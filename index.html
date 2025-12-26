@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuu株式会社</title>
+  <meta name="description" content="空気のようにあなたに寄り添い、閉塞感のある空気を切り裂き、空のように無限に広がっていく。">
+  <link rel="icon" href="./img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <header>
+    <div class="wrapper header-inner">
+      <a href="./">
+        <img src="./img/logo.svg" alt="Kuu" class="logo">
+      </a>
+      <div class="menu-toggle" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <nav id="nav">
+        <ul>
+          <li><a href="./">Top</a></li>
+          <li><a href="./about/">About</a></li>
+          <li><a href="./news/">News</a></li>
+          <li><a href="./privacy_policy/">Privacy</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <img src="./img/sphere.svg" alt="" class="hero-bg">
+      <div class="hero-content">
+        <img src="./img/logo.svg" alt="Kuu" class="hero-logo">
+        <p class="hero-tagline">
+          空気のようにあなたに寄り添い、<br>
+          閉塞感のある空気を切り裂き、<br>
+          空のように無限に広がっていく。
+        </p>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+      <div class="wrapper">
+        <h2 class="section-title">About</h2>
+        <div class="section-content">
+          <p>「工作人」－哲学者ベルグソンは、人間の本質は物を作りおのれを形成する創造活動だと言い、人間を「工作人」と定義しました。</p>
+          <p>私たちKuuは、人々の生活を生み出し、人々の生活を豊かにするクリエイターにスポットライトをあて、その才能に投資することに力を注ぎます。</p>
+          <p>まだ過小評価されているクリエイターの価値に、テクノロジーの視点で新たな価値提供を。</p>
+          <p>常にユーザーを起点に事業/経営を行い、空気のように人々に寄り添ったプロダクト/サービスを提供していきます。</p>
+        </div>
+        <a href="./about/" class="btn">企業情報</a>
+      </div>
+    </section>
+
+    <!-- News Section -->
+    <section id="news">
+      <div class="wrapper">
+        <h2 class="section-title">News</h2>
+        <ul class="news-list">
+          <li class="news-item">
+            <div class="news-meta">
+              <span class="news-date">2022.02.06</span>
+              <span class="news-category">Info</span>
+            </div>
+            <h3 class="news-title">
+              <a href="./news/">弊社公式Webサイトが立ち上がりました。</a>
+            </h3>
+          </li>
+        </ul>
+        <a href="./news/" class="btn">News一覧</a>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+      <div class="wrapper">
+        <h2 class="section-title">Contact</h2>
+        <div class="contact-content">
+          <p>コラボレーションをご検討いただける法人様、報道関係の方、取材のお申し込み、プレスリリース、採用などに関するお問い合わせはこちらからお願いいたします。</p>
+          <a href="mailto:info@kuucorp.com" class="contact-email">info@kuucorp.com</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrapper footer-inner">
+      <nav class="footer-nav">
+        <ul>
+          <li><a href="./">Top</a></li>
+          <li><a href="./about/">About</a></li>
+          <li><a href="./news/">News</a></li>
+          <li><a href="./privacy_policy/">Privacy Policy</a></li>
+        </ul>
+      </nav>
+      <p class="copyright">&copy; 2022 Kuu All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function toggleMenu() {
+      document.getElementById('nav').classList.toggle('active');
+    }
+  </script>
+</body>
+</html>
