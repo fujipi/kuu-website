@@ -77,11 +77,12 @@
   </script>
 </head>
 <body>
+  <div class="noise-overlay"></div>
+
   <header>
     <div class="wrapper header-inner">
-      <a href="./">
-        <img src="./img/messageImage_1708088995793.jpg" alt="Kuu" class="logo">
-      </a>
+      <a href="./" class="logo-text">Kuu</a>
+      <img src="./img/messageImage_1708088995793.jpg" alt="Kuu" class="logo">
       <div class="menu-toggle" onclick="toggleMenu()">
         <span></span>
         <span></span>
@@ -101,8 +102,11 @@
   <main>
     <!-- Hero Section -->
     <section class="hero hero-centered">
+      <div class="hero-line hero-line-1"></div>
+      <div class="hero-line hero-line-2"></div>
       <div class="hero-inner">
         <div class="hero-content">
+          <p class="hero-eyebrow">Kuu Corporation</p>
           <h1 class="hero-title">
             <span class="hero-title-line">空気のように</span>
             <span class="hero-title-line">あなたに寄り添う</span>
@@ -121,24 +125,33 @@
     </section>
 
     <!-- About Section -->
+    <div class="section-divider"></div>
     <section id="about">
       <div class="wrapper">
-        <h2 class="section-title">About Kuu</h2>
-        <div class="section-content">
-          <p>「工作人」－哲学者ベルグソンは、人間の本質は物を作りおのれを形成する創造活動だと言い、人間を「工作人」と定義しました。</p>
-          <p>私たちKuu株式会社は、人々の生活を生み出し、人々の生活を豊かにするクリエイターにスポットライトをあて、その才能に投資することに力を注ぎます。</p>
-          <p>まだ過小評価されているクリエイターの価値に、テクノロジーの視点で新たな価値提供を。</p>
-          <p>Kuuは常にユーザーを起点に事業/経営を行い、空気のように人々に寄り添ったプロダクト/サービスを提供していきます。</p>
+        <h2 class="section-title reveal">About Kuu</h2>
+        <div class="about-grid">
+          <div class="about-left reveal reveal-delay-1">
+            <h3 class="about-heading">工作人</h3>
+          </div>
+          <div class="about-right reveal reveal-delay-2">
+            <div class="section-content">
+              <p>「工作人」－哲学者ベルグソンは、人間の本質は物を作りおのれを形成する創造活動だと言い、人間を「工作人」と定義しました。</p>
+              <p>私たちKuu株式会社は、人々の生活を生み出し、人々の生活を豊かにするクリエイターにスポットライトをあて、その才能に投資することに力を注ぎます。</p>
+              <p>まだ過小評価されているクリエイターの価値に、テクノロジーの視点で新たな価値提供を。</p>
+              <p>Kuuは常にユーザーを起点に事業/経営を行い、空気のように人々に寄り添ったプロダクト/サービスを提供していきます。</p>
+            </div>
+            <a href="./about/" class="btn">企業情報</a>
+          </div>
         </div>
-        <a href="./about/" class="btn">企業情報</a>
       </div>
     </section>
 
     <!-- News Section -->
+    <div class="section-divider"></div>
     <section id="news">
       <div class="wrapper">
-        <h2 class="section-title">News</h2>
-        <ul class="news-list">
+        <h2 class="section-title reveal">News</h2>
+        <ul class="news-list reveal reveal-delay-1">
           <li class="news-item">
             <div class="news-meta">
               <span class="news-date">2022.02.06</span>
@@ -149,15 +162,15 @@
             </h3>
           </li>
         </ul>
-        <a href="./news/" class="btn">News一覧</a>
+        <a href="./news/" class="btn reveal reveal-delay-2">News一覧</a>
       </div>
     </section>
 
     <!-- Contact Section -->
     <section id="contact" class="contact-section">
       <div class="wrapper">
-        <h2 class="section-title">Contact</h2>
-        <div class="contact-content">
+        <h2 class="section-title reveal">Contact</h2>
+        <div class="contact-content reveal reveal-delay-1">
           <p>コラボレーションをご検討いただける法人様、報道関係の方、取材のお申し込み、プレスリリース、採用などに関するお問い合わせはこちらからお願いいたします。</p>
           <a href="mailto:info@kuucorp.com" class="contact-email">info@kuucorp.com</a>
         </div>
@@ -183,6 +196,21 @@
     function toggleMenu() {
       document.getElementById('nav').classList.toggle('active');
     }
+
+    // Scroll reveal
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealElements.forEach(el => revealObserver.observe(el));
   </script>
 </body>
 </html>

@@ -34,11 +34,12 @@
   <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
+  <div class="noise-overlay"></div>
+
   <header>
     <div class="wrapper header-inner">
-      <a href="../">
-        <img src="../img/messageImage_1708088995793.jpg" alt="Kuu" class="logo">
-      </a>
+      <a href="../" class="logo-text">Kuu</a>
+      <img src="../img/messageImage_1708088995793.jpg" alt="Kuu" class="logo">
       <div class="menu-toggle" onclick="toggleMenu()">
         <span></span>
         <span></span>
@@ -59,12 +60,14 @@
     <div class="page-header">
       <div class="wrapper">
         <h1 class="page-title">News</h1>
+        <span class="page-header-line"></span>
       </div>
     </div>
 
+    <div class="section-divider"></div>
     <section>
       <div class="wrapper">
-        <ul class="news-list news-list-page">
+        <ul class="news-list news-list-page reveal">
           <li class="news-item">
             <div class="news-meta">
               <span class="news-date">2022.02.06</span>
@@ -100,6 +103,20 @@
     function toggleMenu() {
       document.getElementById('nav').classList.toggle('active');
     }
+
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    revealElements.forEach(el => revealObserver.observe(el));
   </script>
 </body>
 </html>
