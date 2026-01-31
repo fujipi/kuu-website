@@ -2,17 +2,17 @@
 
 /* ===== Design Tokens ===== */
 :root {
-  /* Colors - Dark Monotone */
-  --color-bg: #0a0a0a;
-  --color-bg-elevated: #111111;
-  --color-bg-subtle: #161616;
-  --color-surface: #1a1a1a;
-  --color-text: #e8e8e8;
-  --color-text-secondary: #888888;
-  --color-text-tertiary: #555555;
-  --color-white: #f0f0f0;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.15);
+  /* Colors - Soft Dark */
+  --color-bg: #1a1a20;
+  --color-bg-elevated: #1f1f26;
+  --color-bg-subtle: #24242b;
+  --color-surface: #28282f;
+  --color-text: #e8e6e3;
+  --color-text-secondary: #9a9a9a;
+  --color-text-tertiary: #636368;
+  --color-white: #f2f0ed;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
 
   /* Pastel Accents - soft, muted on dark */
   --pastel-pink: #e8a0b8;
@@ -20,9 +20,10 @@
   --pastel-sky: #a0c8e0;
   --pastel-mint: #a0d8c0;
   --gradient-pastel: linear-gradient(135deg, var(--pastel-pink) 0%, var(--pastel-lavender) 50%, var(--pastel-sky) 100%);
-  --glow-pink: rgba(232, 160, 184, 0.08);
-  --glow-lavender: rgba(184, 168, 216, 0.06);
-  --glow-sky: rgba(160, 200, 224, 0.06);
+  --glow-pink: rgba(232, 160, 184, 0.12);
+  --glow-lavender: rgba(184, 168, 216, 0.10);
+  --glow-sky: rgba(160, 200, 224, 0.10);
+  --glow-mint: rgba(160, 216, 192, 0.08);
 
   /* Fonts */
   --font-display: 'Inter', sans-serif;
@@ -113,7 +114,7 @@ header {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(10, 10, 10, 0.8);
+  background: rgba(26, 26, 32, 0.85);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
 }
@@ -248,29 +249,10 @@ nav a:hover::after {
   background: var(--color-bg);
 }
 
-/* Subtle pastel glow */
-.hero::before {
-  content: '';
-  position: absolute;
-  top: 10%;
-  right: -10%;
-  width: 50%;
-  height: 60%;
-  background: radial-gradient(ellipse at center, var(--glow-pink) 0%, transparent 70%);
-  pointer-events: none;
-  filter: blur(80px);
-}
-
+/* Hero ambient background - suppress pseudo-elements, handled by .hero-ambient */
+.hero::before,
 .hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 10%;
-  width: 40%;
-  height: 50%;
-  background: radial-gradient(ellipse at center, var(--glow-lavender) 0%, transparent 70%);
-  pointer-events: none;
-  filter: blur(100px);
+  display: none;
 }
 
 .hero-inner {
@@ -1053,4 +1035,164 @@ footer {
 .hero-gradient-sphere,
 .hero-decoration {
   display: none;
+}
+
+/* ===== Ambient Flow Animation ===== */
+.hero-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  will-change: transform;
+}
+
+.hero-ambient-blob-1 {
+  width: 60vw;
+  height: 60vw;
+  max-width: 700px;
+  max-height: 700px;
+  top: -15%;
+  right: -15%;
+  background: radial-gradient(ellipse at 40% 40%, var(--glow-pink) 0%, rgba(232, 160, 184, 0.04) 50%, transparent 70%);
+  animation: ambientDrift1 20s ease-in-out infinite;
+}
+
+.hero-ambient-blob-2 {
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  bottom: -10%;
+  left: -10%;
+  background: radial-gradient(ellipse at 60% 60%, var(--glow-lavender) 0%, rgba(184, 168, 216, 0.04) 50%, transparent 70%);
+  animation: ambientDrift2 25s ease-in-out infinite;
+}
+
+.hero-ambient-blob-3 {
+  width: 40vw;
+  height: 40vw;
+  max-width: 500px;
+  max-height: 500px;
+  top: 30%;
+  left: 30%;
+  background: radial-gradient(ellipse at 50% 50%, var(--glow-sky) 0%, rgba(160, 200, 224, 0.03) 50%, transparent 70%);
+  animation: ambientDrift3 30s ease-in-out infinite;
+}
+
+.hero-ambient-blob-4 {
+  width: 35vw;
+  height: 35vw;
+  max-width: 420px;
+  max-height: 420px;
+  top: 10%;
+  left: 50%;
+  background: radial-gradient(ellipse at 50% 50%, var(--glow-mint) 0%, rgba(160, 216, 192, 0.03) 50%, transparent 70%);
+  animation: ambientDrift4 22s ease-in-out infinite;
+}
+
+@keyframes ambientDrift1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-8%, 12%) scale(1.08);
+  }
+  50% {
+    transform: translate(-15%, 5%) scale(0.95);
+  }
+  75% {
+    transform: translate(-5%, -8%) scale(1.05);
+  }
+}
+
+@keyframes ambientDrift2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(12%, -8%) scale(1.1);
+  }
+  50% {
+    transform: translate(8%, -15%) scale(0.92);
+  }
+  75% {
+    transform: translate(-5%, -5%) scale(1.06);
+  }
+}
+
+@keyframes ambientDrift3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(10%, 8%) scale(1.12);
+  }
+  66% {
+    transform: translate(-8%, -10%) scale(0.9);
+  }
+}
+
+@keyframes ambientDrift4 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  30% {
+    transform: translate(-12%, 10%) scale(1.05);
+  }
+  60% {
+    transform: translate(5%, -12%) scale(0.95);
+  }
+}
+
+/* Ambient glow for pages without hero */
+.page-ambient {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-ambient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform;
+}
+
+.page-ambient-blob-1 {
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  top: 0;
+  right: -20%;
+  background: radial-gradient(ellipse at center, var(--glow-pink) 0%, transparent 70%);
+  animation: ambientDrift1 25s ease-in-out infinite;
+}
+
+.page-ambient-blob-2 {
+  width: 40vw;
+  height: 40vw;
+  max-width: 500px;
+  max-height: 500px;
+  bottom: 10%;
+  left: -10%;
+  background: radial-gradient(ellipse at center, var(--glow-lavender) 0%, transparent 70%);
+  animation: ambientDrift2 30s ease-in-out infinite;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .hero-ambient-blob,
+  .page-ambient-blob {
+    animation: none;
+  }
 }
