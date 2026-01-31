@@ -2,28 +2,28 @@
 
 /* ===== Design Tokens ===== */
 :root {
-  /* Colors - Soft Dark */
-  --color-bg: #1a1a20;
-  --color-bg-elevated: #1f1f26;
-  --color-bg-subtle: #24242b;
-  --color-surface: #28282f;
-  --color-text: #e8e6e3;
-  --color-text-secondary: #9a9a9a;
-  --color-text-tertiary: #636368;
-  --color-white: #f2f0ed;
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-border-strong: rgba(255, 255, 255, 0.13);
+  /* Colors - Light Base */
+  --color-bg: #fafaf8;
+  --color-bg-elevated: #f4f4f2;
+  --color-bg-subtle: #eeeeed;
+  --color-surface: #e8e8e6;
+  --color-text: #2a2a2a;
+  --color-text-secondary: #6a6a6a;
+  --color-text-tertiary: #9a9a9a;
+  --color-white: #1a1a1a;
+  --color-border: rgba(0, 0, 0, 0.07);
+  --color-border-strong: rgba(0, 0, 0, 0.12);
 
-  /* Pastel Accents - soft, muted on dark */
-  --pastel-pink: #e8a0b8;
-  --pastel-lavender: #b8a8d8;
-  --pastel-sky: #a0c8e0;
-  --pastel-mint: #a0d8c0;
+  /* Pastel Accents - vivid on light */
+  --pastel-pink: #e07898;
+  --pastel-lavender: #9a80c8;
+  --pastel-sky: #70a8c8;
+  --pastel-mint: #70b898;
   --gradient-pastel: linear-gradient(135deg, var(--pastel-pink) 0%, var(--pastel-lavender) 50%, var(--pastel-sky) 100%);
-  --glow-pink: rgba(232, 160, 184, 0.12);
-  --glow-lavender: rgba(184, 168, 216, 0.10);
-  --glow-sky: rgba(160, 200, 224, 0.10);
-  --glow-mint: rgba(160, 216, 192, 0.08);
+  --glow-pink: rgba(224, 120, 152, 0.12);
+  --glow-lavender: rgba(154, 128, 200, 0.10);
+  --glow-sky: rgba(112, 168, 200, 0.10);
+  --glow-mint: rgba(112, 184, 152, 0.08);
 
   /* Fonts */
   --font-display: 'Inter', sans-serif;
@@ -63,8 +63,8 @@ body {
 }
 
 ::selection {
-  background: rgba(232, 160, 184, 0.25);
-  color: var(--color-white);
+  background: rgba(224, 120, 152, 0.2);
+  color: var(--color-text);
 }
 
 a {
@@ -114,7 +114,7 @@ header {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(26, 26, 32, 0.85);
+  background: rgba(250, 250, 248, 0.85);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
 }
@@ -196,7 +196,7 @@ nav a:hover::after {
   display: block;
   width: 24px;
   height: 1px;
-  background: var(--color-white);
+  background: var(--color-text);
   transition: all 0.4s var(--ease-out-expo);
 }
 
@@ -377,7 +377,7 @@ nav a:hover::after {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: linear-gradient(to bottom, transparent 0%, rgba(232, 160, 184, 0.08) 30%, rgba(184, 168, 216, 0.06) 70%, transparent 100%);
+  background: linear-gradient(to bottom, transparent 0%, rgba(224, 120, 152, 0.12) 30%, rgba(154, 128, 200, 0.10) 70%, transparent 100%);
 }
 
 .hero-line-1 { right: 33.333%; }
@@ -673,7 +673,7 @@ section {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 4px 12px;
-  border: 1px solid rgba(184, 168, 216, 0.3);
+  border: 1px solid rgba(154, 128, 200, 0.4);
   color: var(--pastel-lavender);
   border-radius: 0;
   background: transparent;
@@ -718,7 +718,7 @@ section {
   right: 0;
   width: 50%;
   height: 60%;
-  background: radial-gradient(ellipse at bottom right, var(--glow-sky) 0%, transparent 70%);
+  background: radial-gradient(ellipse at bottom right, rgba(112, 168, 200, 0.10) 0%, transparent 70%);
   pointer-events: none;
   filter: blur(60px);
 }
@@ -890,7 +890,7 @@ footer {
 }
 
 .info-table tr:hover {
-  background: var(--color-bg-subtle);
+  background: var(--color-bg-elevated);
 }
 
 .info-table th,
@@ -997,7 +997,7 @@ footer {
   height: 100%;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.03;
+  opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
@@ -1060,7 +1060,7 @@ footer {
   max-height: 700px;
   top: -15%;
   right: -15%;
-  background: radial-gradient(ellipse at 40% 40%, var(--glow-pink) 0%, rgba(232, 160, 184, 0.04) 50%, transparent 70%);
+  background: radial-gradient(ellipse at 40% 40%, rgba(224, 120, 152, 0.15) 0%, rgba(224, 120, 152, 0.05) 50%, transparent 70%);
   animation: ambientDrift1 20s ease-in-out infinite;
 }
 
@@ -1071,7 +1071,7 @@ footer {
   max-height: 600px;
   bottom: -10%;
   left: -10%;
-  background: radial-gradient(ellipse at 60% 60%, var(--glow-lavender) 0%, rgba(184, 168, 216, 0.04) 50%, transparent 70%);
+  background: radial-gradient(ellipse at 60% 60%, rgba(154, 128, 200, 0.12) 0%, rgba(154, 128, 200, 0.04) 50%, transparent 70%);
   animation: ambientDrift2 25s ease-in-out infinite;
 }
 
@@ -1082,7 +1082,7 @@ footer {
   max-height: 500px;
   top: 30%;
   left: 30%;
-  background: radial-gradient(ellipse at 50% 50%, var(--glow-sky) 0%, rgba(160, 200, 224, 0.03) 50%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(112, 168, 200, 0.12) 0%, rgba(112, 168, 200, 0.04) 50%, transparent 70%);
   animation: ambientDrift3 30s ease-in-out infinite;
 }
 
@@ -1093,7 +1093,7 @@ footer {
   max-height: 420px;
   top: 10%;
   left: 50%;
-  background: radial-gradient(ellipse at 50% 50%, var(--glow-mint) 0%, rgba(160, 216, 192, 0.03) 50%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(112, 184, 152, 0.10) 0%, rgba(112, 184, 152, 0.03) 50%, transparent 70%);
   animation: ambientDrift4 22s ease-in-out infinite;
 }
 
@@ -1174,7 +1174,7 @@ footer {
   max-height: 600px;
   top: 0;
   right: -20%;
-  background: radial-gradient(ellipse at center, var(--glow-pink) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(224, 120, 152, 0.12) 0%, transparent 70%);
   animation: ambientDrift1 25s ease-in-out infinite;
 }
 
@@ -1185,7 +1185,7 @@ footer {
   max-height: 500px;
   bottom: 10%;
   left: -10%;
-  background: radial-gradient(ellipse at center, var(--glow-lavender) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(154, 128, 200, 0.10) 0%, transparent 70%);
   animation: ambientDrift2 30s ease-in-out infinite;
 }
 
