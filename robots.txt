@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
 
+# Block common non-content endpoints if added in future
+Disallow: /cgi-bin/
+Disallow: /*?*
+
 Sitemap: https://kuucorp.com/sitemap.xml

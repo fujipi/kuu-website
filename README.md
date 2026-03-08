@@ -1,110 +1,29 @@
 # Kuu株式会社 コーポレートサイト
 
-Kuu株式会社の公式Webサイトです。
+Kuu株式会社（AI業務活用コンサルティング事業）の公式Webサイトです。
 
-## GitHub Pagesへのデプロイ手順
+## 主要ページ
+- `/` トップページ（サービス訴求・導入プロセス・FAQ）
+- `/about/` 会社情報
+- `/news/` ニュース
+- `/privacy_policy/` プライバシーポリシー
+- `/404.html` カスタム404
 
-### 1. GitHubリポジトリの作成
+## SEO実装
+- 各ページに `title` / `description` / canonical / OGP / Twitter Card を設定
+- `robots.txt` と `sitemap.xml` を更新
+- 構造化データ（Organization / WebSite / Service / FAQPage など）を設定
+- `hreflang`、`max-image-preview` などクローラー向けメタを設定
 
+## セキュリティ実装（静的サイトで可能な範囲）
+- `Content-Security-Policy`（meta）
+- `Referrer-Policy`、`X-Frame-Options`、`X-Content-Type-Options`、`Permissions-Policy`（meta）
+- `.well-known/security.txt` を追加
+
+> 注: 本来はHTTPレスポンスヘッダーでの設定が推奨です。GitHub Pages以外のCDN/ホスティングでヘッダーを強制する構成が理想です。
+
+## ローカル確認
 ```bash
-# ローカルでGit初期化
-cd kuu-website
-git init
-git add .
-git commit -m "Initial commit"
-
-# GitHubでリポジトリを作成後
-git remote add origin https://github.com/YOUR_USERNAME/kuu-website.git
-git branch -M main
-git push -u origin main
+python3 -m http.server 4173
 ```
-
-### 2. GitHub Pagesの有効化
-
-1. GitHubリポジトリの **Settings** タブを開く
-2. 左メニューから **Pages** を選択
-3. **Source** で `Deploy from a branch` を選択
-4. **Branch** で `main` を選択、フォルダは `/ (root)` を選択
-5. **Save** をクリック
-
-### 3. カスタムドメインの設定（kuucorp.com）
-
-#### DNSの設定
-
-お使いのドメインレジストラまたはDNSプロバイダで以下を設定：
-
-**Aレコード（apex domain: kuucorp.com）:**
-```
-185.199.108.153
-185.199.109.153
-185.199.110.153
-185.199.111.153
-```
-
-**CNAMEレコード（www.kuucorp.com → YOUR_USERNAME.github.io）**
-
-#### GitHubでの設定
-
-1. リポジトリの **Settings** → **Pages**
-2. **Custom domain** に `kuucorp.com` を入力
-3. **Enforce HTTPS** にチェック
-
-#### CNAMEファイルの追加
-
-このリポジトリのルートに `CNAME` ファイルを作成：
-```
-kuucorp.com
-```
-
-## ディレクトリ構成
-
-```
-kuu-website/
-├── index.html          # トップページ
-├── css/
-│   └── style.css       # スタイルシート
-├── img/
-│   ├── logo.svg        # ロゴ
-│   ├── sphere.svg      # 背景装飾
-│   └── favicon.svg     # ファビコン
-├── about/
-│   └── index.html      # 企業情報ページ
-├── news/
-│   └── index.html      # ニュースページ
-├── privacy_policy/
-│   └── index.html      # プライバシーポリシー
-├── CNAME               # カスタムドメイン設定
-└── README.md           # このファイル
-```
-
-## ローカルでの確認
-
-```bash
-# Python 3の場合
-python -m http.server 8000
-
-# Node.jsの場合
-npx serve
-```
-
-ブラウザで `http://localhost:8000` を開いて確認できます。
-
-## 更新方法
-
-1. ファイルを編集
-2. `git add .`
-3. `git commit -m "更新内容"`
-4. `git push`
-
-GitHub Pagesは自動的に更新されます（通常1〜2分）。
-
-## 技術スタック
-
-- HTML5
-- CSS3（CSS Variables使用）
-- Vanilla JavaScript（モバイルメニューのみ）
-- Google Fonts（Outfit, Noto Sans JP）
-
-## ライセンス
-
-© 2022 Kuu株式会社 All Rights Reserved.
+`http://127.0.0.1:4173/` を開いて確認します。
