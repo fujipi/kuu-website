@@ -8,6 +8,41 @@
   <link rel="canonical" href="https://kuucorp.com/">
   <link rel="icon" href="./img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./css/style.css">
+  <meta property="og:title" content="Kuu株式会社 | AI業務活用コンサルティング">
+  <meta property="og:description" content="Kuu株式会社は、AI業務活用コンサルティングを提供。業務棚卸しからPoC・定着化まで、売上拡大と生産性向上を実現します。">
+  <meta property="og:url" content="https://kuucorp.com/">
+  <meta property="og:image" content="https://kuucorp.com/img/og-default.jpg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Kuu株式会社">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Kuu株式会社",
+    "url": "https://kuucorp.com",
+    "logo": "https://kuucorp.com/img/favicon.svg",
+    "description": "AI業務活用コンサルティングを提供。業務棚卸しからPoC・定着化まで、売上拡大と生産性向上を実現します。",
+    "foundingDate": "2022-02",
+    "founder": {
+      "@type": "Person",
+      "name": "藤平 賢人"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "渋谷区",
+      "addressRegion": "東京都",
+      "addressCountry": "JP"
+    },
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "info@kuucorp.com",
+      "contactType": "customer service",
+      "availableLanguage": "Japanese"
+    },
+    "serviceType": ["AI業務活用コンサルティング", "DX戦略設計", "社内AI研修"]
+  }
+  </script>
 </head>
 <body>
   <header>
@@ -16,10 +51,10 @@
       <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
       <nav id="nav">
         <ul>
-          <li><a href="./">Top</a></li>
-          <li><a href="./about/">Company</a></li>
-          <li><a href="./news/">News</a></li>
-          <li><a href="./privacy_policy/">Privacy</a></li>
+          <li><a href="./">トップ</a></li>
+          <li><a href="./about/">会社情報</a></li>
+          <li><a href="./news/">ニュース</a></li>
+          <li><a href="./contact/" class="nav-contact">お問い合わせ</a></li>
         </ul>
       </nav>
     </div>
@@ -33,7 +68,7 @@
           <h1>AIを「導入」で終わらせない。<br>現場に根づく業務改革へ。</h1>
           <p>中小〜中堅企業向けに、AI活用の事業計画策定・業務設計・実装支援・社内展開をワンストップで支援します。単発のツール導入ではなく、成果につながる運用定着まで伴走します。</p>
           <div class="button-row">
-            <a class="btn btn-primary" href="mailto:info@kuucorp.com?subject=AI業務活用コンサルの相談">無料相談を予約する</a>
+            <a class="btn btn-primary" href="./contact/">無料相談を予約する</a>
             <a class="btn btn-ghost" href="./about/">会社情報を見る</a>
           </div>
         </div>
@@ -105,7 +140,7 @@
         <div class="contact" id="contact">
           <h2>まずは1時間の無料相談から</h2>
           <p>「どの業務からAI活用を始めるべきか」を明確化するセッションを実施しています。</p>
-          <a href="mailto:info@kuucorp.com" class="contact-email">info@kuucorp.com</a>
+          <a href="./contact/" class="btn btn-primary">無料相談を予約する</a>
         </div>
       </div>
     </section>
@@ -113,14 +148,18 @@
 
   <footer>
     <div class="wrapper footer-inner">
-      <nav class="footer-nav">
-        <ul>
-          <li><a href="./">Top</a></li>
-          <li><a href="./about/">Company</a></li>
-          <li><a href="./news/">News</a></li>
-          <li><a href="./privacy_policy/">Privacy Policy</a></li>
-        </ul>
-      </nav>
+      <div class="footer-info">
+        <nav class="footer-nav">
+          <ul>
+            <li><a href="./">トップ</a></li>
+            <li><a href="./about/">会社情報</a></li>
+            <li><a href="./news/">ニュース</a></li>
+            <li><a href="./contact/">お問い合わせ</a></li>
+            <li><a href="./privacy_policy/">プライバシーポリシー</a></li>
+          </ul>
+        </nav>
+        <p class="footer-address">Kuu株式会社 | 東京都渋谷区</p>
+      </div>
       <p class="copyright">&copy; 2026 Kuu株式会社 All Rights Reserved.</p>
     </div>
   </footer>

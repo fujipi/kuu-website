@@ -236,6 +236,100 @@ footer {
 .privacy h3 { margin-top: 20px; }
 .privacy p, .privacy li { color: var(--muted); }
 
+/* Contact form */
+.contact-form {
+  max-width: 640px;
+  display: grid;
+  gap: 20px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.required {
+  color: #ff6b8a;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a8b3d9' fill='none' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+.form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+.btn-submit {
+  width: fit-content;
+  padding: 0.85rem 2.4rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.form-note {
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.form-note a {
+  color: var(--accent);
+}
+
+/* Nav contact button */
+.nav-contact {
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+}
+
+/* Footer enhanced */
+.footer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footer-address {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin: 0;
+}
+.footer-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-2);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .hero-grid,
   .card-grid { grid-template-columns: 1fr; }
