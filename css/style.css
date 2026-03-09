@@ -138,8 +138,18 @@ h2 { font-size: clamp(1.45rem, 2.6vw, 2rem); }
 .stat strong { display: block; font-family: 'Inter', sans-serif; font-size: 1.3rem; }
 .stat span { color: var(--muted); font-size: 0.84rem; }
 
-main section { padding: 54px 0; }
+main section { padding: 72px 0; }
 
+.section-head { margin-bottom: 32px; }
+.section-head h2::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-3));
+}
 .section-head p { margin-top: 8px; color: var(--muted); }
 
 .card-grid {
@@ -152,6 +162,11 @@ main section { padding: 54px 0; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
 
@@ -330,9 +345,182 @@ footer {
   font-weight: 600;
 }
 
+/* ── Usecase cards ── */
+.usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.usecase-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.usecase-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.usecase-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.usecase-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  color: var(--accent);
+  background: rgba(110, 168, 254, 0.1);
+  border-radius: 10px;
+  padding: 8px;
+}
+.usecase-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.usecase-tag {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-top: 2px;
+}
+.usecase-body {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+}
+.usecase-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.usecase-list li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 2;
+}
+.usecase-list li::before {
+  content: '\b7';
+  position: absolute;
+  left: 0;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+.usecase-tools {
+  background: rgba(143, 240, 200, 0.06);
+  border: 1px solid rgba(143, 240, 200, 0.15);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-width: 160px;
+}
+.tools-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+.usecase-tools p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ── AI Tool cards ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  color: #fff;
+}
+.tool-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-family: 'Inter', sans-serif;
+}
+.tool-header span {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.tool-logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.tool-header--claude {
+  background: linear-gradient(135deg, #1a3a6e, #2a4a8e);
+}
+.tool-header--gemini {
+  background: linear-gradient(135deg, #1a5c5c, #2a7a6a);
+}
+.tool-header--openai {
+  background: linear-gradient(135deg, #1a1a3e, #2e2e5e);
+}
+.tool-badge {
+  display: inline-block;
+  margin: 16px 24px 0;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+}
+.tool-details {
+  padding: 12px 24px 24px;
+  margin: 0;
+}
+.tool-details dt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-top: 14px;
+  letter-spacing: 0.03em;
+}
+.tool-details dt:first-child {
+  margin-top: 0;
+}
+.tool-details dd {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 @media (max-width: 900px) {
   .hero-grid,
-  .card-grid { grid-template-columns: 1fr; }
+  .card-grid,
+  .usecase-grid,
+  .tool-grid { grid-template-columns: 1fr; }
   .news-item { grid-template-columns: 1fr; }
 }
 
