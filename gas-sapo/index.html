@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ガスサポ | LPガス販売店の販促物・通知物を無料で作成</title>
+  <meta name="description" content="LPガス販売事業者向け無料テンプレートツール。検針ハガキ、三部料金制通知、販促チラシなど、会社情報を入力するだけで即時作成。">
+  <link rel="canonical" href="https://kuucorp.com/gas-sapo/">
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <meta property="og:title" content="ガスサポ | LPガス販売店の販促物・通知物を無料で作成">
+  <meta property="og:description" content="検針ハガキ、三部料金制通知、販促チラシなど、LPガス販売事業者に必要なテンプレートを完備。会社情報を一度登録するだけで自動反映。">
+  <meta property="og:url" content="https://kuucorp.com/gas-sapo/">
+  <meta property="og:image" content="https://kuucorp.com/img/og-default.jpg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Kuu株式会社">
+  <meta name="twitter:card" content="summary_large_image">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'Noto Sans JP', 'Inter', sans-serif; }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ガスサポ",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "LPガス販売事業者向け販促物・通知物テンプレートツール",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Kuu株式会社",
+      "url": "https://kuucorp.com"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const TEMPLATES = [
+      {
+        id: "sanbu_ryokin",
+        name: "三部料金制 お知らせ",
+        category: "制度対応",
+        description: "2025年4月施行の三部料金制度に関するお客様向け通知文書",
+        fields: ["基本料金", "従量料金", "設備料金"],
+        hot: true,
+      },
+      {
+        id: "kensin_hagaki",
+        name: "検針ハガキ",
+        category: "月次業務",
+        description: "毎月のガス使用量・請求額をお知らせする検針結果通知",
+        fields: ["検針日", "使用量", "請求額"],
+      },
+      {
+        id: "fusei_kanyuu",
+        name: "不正勧誘注意喚起チラシ",
+        category: "顧客保護",
+        description: "悪質な切替勧誘からお客様を守る注意喚起チラシ",
+        fields: [],
+      },
+      {
+        id: "touyu_hanbai",
+        name: "灯油販売キャンペーン",
+        category: "季節販促",
+        description: "冬季の灯油販売促進チラシ。価格・配達エリアを記載",
+        fields: ["灯油価格", "配達エリア"],
+      },
+      {
+        id: "reform_annai",
+        name: "リフォーム案内チラシ",
+        category: "クロスセル",
+        description: "給湯器交換・ガスコンロ入替等のリフォーム案内",
+        fields: ["対象商品", "キャンペーン価格"],
+      },
+      {
+        id: "kirikae_boshi",
+        name: "切替防止レター",
+        category: "顧客保護",
+        description: "他社への切替を検討中のお客様向け。自社サービスの価値を再訴求",
+        fields: [],
+      },
+      {
+        id: "safety_check",
+        name: "保安点検のお知らせ",
+        category: "保安・法定",
+        description: "法定保安点検の事前案内。日程・準備事項を記載",
+        fields: ["点検予定日", "点検内容"],
+      },
+      {
+        id: "setsuden",
+        name: "省エネ・節約ガイド",
+        category: "顧客サービス",
+        description: "ガス代節約のコツをまとめた配布用ガイド",
+        fields: [],
+      },
+    ];
+
+    const CATEGORIES = ["すべて", "制度対応", "月次業務", "顧客保護", "季節販促", "クロスセル", "保安・法定", "顧客サービス"];
+
+    function TemplatePreview({ template, companyInfo }) {
+      const name = companyInfo.name || "○○ガス株式会社";
+      const tel = companyInfo.tel || "0120-XXX-XXX";
+      const address = companyInfo.address || "千葉県○○市○○町1-2-3";
+
+      if (template.id === "sanbu_ryokin") {
+        return (
+          <div className="bg-white border-2 border-gray-300 p-6 text-sm" style={{ fontFamily: "serif", maxWidth: 480 }}>
+            <div className="text-center border-b-2 border-blue-800 pb-3 mb-4">
+              <p className="text-xs text-gray-500">令和7年4月</p>
+              <h2 className="text-lg font-bold text-blue-900 mt-1">LPガス料金体系変更のお知らせ</h2>
+            </div>
+            <p className="mb-3 leading-relaxed text-gray-800">
+              平素より格別のご愛顧を賜り、誠にありがとうございます。
+            </p>
+            <p className="mb-3 leading-relaxed text-gray-800">
+              さて、「液化石油ガスの保安の確保及び取引の適正化に関する法律」の改正に伴い、
+              令和7年4月より料金体系を以下の通り変更させていただきます。
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded p-4 my-4">
+              <h3 className="font-bold text-blue-900 mb-2">新料金体系（三部料金制）</h3>
+              <table className="w-full text-left">
+                <tbody>
+                  <tr className="border-b border-blue-100">
+                    <td className="py-1 font-bold text-blue-800 w-28">基本料金</td>
+                    <td className="py-1">{companyInfo.fields?.["基本料金"] || "1,980円（税込）"}</td>
+                  </tr>
+                  <tr className="border-b border-blue-100">
+                    <td className="py-1 font-bold text-blue-800">従量料金</td>
+                    <td className="py-1">{companyInfo.fields?.["従量料金"] || "○○円/m³"}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1 font-bold text-blue-800">設備料金</td>
+                    <td className="py-1">{companyInfo.fields?.["設備料金"] || "○○円/月"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mb-4 leading-relaxed text-gray-800">
+              これまで基本料金に含まれていた設備費用を明示し、料金の透明性を高めるものです。
+              お客様のご負担額に変更はございません。
+            </p>
+            <div className="border-t pt-3 mt-4 text-center">
+              <p className="font-bold text-blue-900">{name}</p>
+              <p className="text-gray-600">{address}</p>
+              <p className="text-blue-800 font-bold text-lg mt-1">{tel}</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (template.id === "fusei_kanyuu") {
+        return (
+          <div className="bg-white border-2 border-red-300 p-6 text-sm" style={{ fontFamily: "serif", maxWidth: 480 }}>
+            <div className="text-center bg-red-600 text-white py-3 rounded mb-4">
+              <h2 className="text-lg font-bold">ご注意ください！</h2>
+              <p className="text-sm mt-1">悪質なガス切替勧誘にご用心</p>
+            </div>
+            <div className="space-y-3 text-gray-800 leading-relaxed">
+              <p>最近、以下のような悪質な勧誘が報告されています。</p>
+              <div className="bg-red-50 border-l-4 border-red-500 p-3">
+                <p className="font-bold text-red-800 mb-1">こんな勧誘にご注意！</p>
+                <ul className="space-y-1 text-red-900">
+                  <li>「料金が必ず安くなります」と断言する</li>
+                  <li>「今すぐ契約しないと値上げされる」と急がせる</li>
+                  <li>身分証の提示を拒む</li>
+                  <li>契約書の説明が不十分</li>
+                </ul>
+              </div>
+              <p>不審な訪問を受けた場合は、すぐにお電話ください。</p>
+            </div>
+            <div className="border-t pt-3 mt-4 text-center">
+              <p className="font-bold text-blue-900">{name}</p>
+              <p className="text-blue-800 font-bold text-lg mt-1">{tel}</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (template.id === "kensin_hagaki") {
+        return (
+          <div className="bg-white border-2 border-gray-300 p-6 text-sm" style={{ fontFamily: "serif", maxWidth: 480 }}>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">ガスご使用量のお知らせ</h2>
+                <p className="text-xs text-gray-500 mt-1">検針票</p>
+              </div>
+              <div className="text-right text-xs text-gray-500">
+                <p>{companyInfo.fields?.["検針日"] || "令和7年○月○日"}</p>
+              </div>
+            </div>
+            <table className="w-full border-collapse mb-4">
+              <tbody>
+                <tr className="bg-gray-100">
+                  <td className="border p-2 font-bold w-32">ご使用量</td>
+                  <td className="border p-2 text-right text-xl font-bold text-blue-800">
+                    {companyInfo.fields?.["使用量"] || "○○.○"} m³
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border p-2 font-bold">ご請求額</td>
+                  <td className="border p-2 text-right text-xl font-bold text-red-700">
+                    ¥{companyInfo.fields?.["請求額"] || "○,○○○"}
+                  </td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="border p-2 font-bold">基本料金</td>
+                  <td className="border p-2 text-right">¥1,980</td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="border p-2 font-bold">従量料金</td>
+                  <td className="border p-2 text-right">¥○,○○○</td>
+                </tr>
+                <tr className="bg-gray-50">
+                  <td className="border p-2 font-bold">設備料金</td>
+                  <td className="border p-2 text-right">¥○○○</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="border-t pt-3 text-center">
+              <p className="font-bold">{name}</p>
+              <p className="text-gray-600 text-xs">{address}</p>
+              <p className="text-blue-800 font-bold mt-1">{tel}</p>
+            </div>
+          </div>
+        );
+      }
+
+      // Default preview
+      return (
+        <div className="bg-white border-2 border-gray-300 p-6 text-sm" style={{ fontFamily: "serif", maxWidth: 480 }}>
+          <div className="text-center border-b pb-3 mb-4">
+            <h2 className="text-lg font-bold text-gray-900">{template.name}</h2>
+          </div>
+          <p className="text-gray-600 mb-4">{template.description}</p>
+          <div className="bg-gray-50 rounded p-4 text-center text-gray-400">
+            <p>テンプレートプレビュー</p>
+            <p className="text-xs mt-1">会社情報を入力するとここに反映されます</p>
+          </div>
+          <div className="border-t pt-3 mt-4 text-center">
+            <p className="font-bold">{name}</p>
+            <p className="text-gray-600 text-xs">{address}</p>
+            <p className="text-blue-800 font-bold mt-1">{tel}</p>
+          </div>
+        </div>
+      );
+    }
+
+    function GasSapoApp() {
+      const [page, setPage] = useState("top");
+      const [selectedCategory, setSelectedCategory] = useState("すべて");
+      const [selectedTemplate, setSelectedTemplate] = useState(null);
+      const [companyInfo, setCompanyInfo] = useState({
+        name: "",
+        tel: "",
+        address: "",
+        representative: "",
+        fields: {},
+      });
+      const [registered, setRegistered] = useState(false);
+
+      const filteredTemplates = selectedCategory === "すべて"
+        ? TEMPLATES
+        : TEMPLATES.filter((t) => t.category === selectedCategory);
+
+      // TOP PAGE
+      if (page === "top") {
+        return (
+          <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+            {/* Header */}
+            <header className="bg-white shadow-sm">
+              <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">G</span>
+                  </div>
+                  <span className="font-bold text-xl text-gray-900">ガスサポ</span>
+                </div>
+                <button
+                  onClick={() => setPage("register")}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
+                >
+                  無料で始める
+                </button>
+              </div>
+            </header>
+
+            {/* Hero */}
+            <section className="max-w-5xl mx-auto px-4 py-16 text-center">
+              <div className="inline-block bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full mb-4">
+                2025年4月 三部料金制 対応テンプレート公開中
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                LPガス販売店の販促物・通知物を
+                <br />
+                <span className="text-blue-600">無料で、今すぐ</span>作成
+              </h1>
+              <p className="text-gray-600 max-w-xl mx-auto mb-8 leading-relaxed">
+                検針ハガキ、制度改正通知、販促チラシなど、LPガス販売事業者に必要なテンプレートを完備。
+                会社情報を一度登録するだけで、すべてのテンプレートに自動反映されます。
+              </p>
+              <div className="flex gap-4 justify-center flex-wrap">
+                <button
+                  onClick={() => setPage("register")}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-blue-700 shadow-lg transition"
+                >
+                  無料で始める
+                </button>
+                <button
+                  onClick={() => setPage("templates")}
+                  className="bg-white text-blue-600 px-8 py-3 rounded-lg font-bold text-lg border-2 border-blue-600 hover:bg-blue-50 transition"
+                >
+                  テンプレートを見る
+                </button>
+              </div>
+            </section>
+
+            {/* Value Props */}
+            <section className="max-w-5xl mx-auto px-4 py-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                    <span className="text-2xl font-bold text-blue-600">0</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">基本無料</h3>
+                  <p className="text-gray-600 text-sm">テンプレートの利用・PDF生成は完全無料。印刷はオプションで格安発注可能。</p>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                    <span className="text-2xl font-bold text-green-600">30s</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">30秒で完成</h3>
+                  <p className="text-gray-600 text-sm">会社情報を入力すれば、AIが自動で差し込み。デザイン知識は不要。</p>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow-sm border">
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                    <span className="text-2xl font-bold text-orange-600">法</span>
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">制度改正に即対応</h3>
+                  <p className="text-gray-600 text-sm">法改正のたびに最新テンプレートを追加。三部料金制の通知もすぐに作成可能。</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Comparison */}
+            <section className="max-w-5xl mx-auto px-4 py-12">
+              <h2 className="text-2xl font-bold text-center mb-8">従来の方法との比較</h2>
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="p-4 text-left font-bold w-1/3"></th>
+                      <th className="p-4 text-center font-bold text-blue-600 w-1/3">ガスサポ</th>
+                      <th className="p-4 text-center font-bold text-gray-500 w-1/3">従来の広告代理店</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="p-4 font-bold">費用</td>
+                      <td className="p-4 text-center text-blue-600 font-bold">無料</td>
+                      <td className="p-4 text-center text-gray-500">数万円〜/件</td>
+                    </tr>
+                    <tr className="border-t bg-gray-50">
+                      <td className="p-4 font-bold">納期</td>
+                      <td className="p-4 text-center text-blue-600 font-bold">即時</td>
+                      <td className="p-4 text-center text-gray-500">数日〜数週間</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="p-4 font-bold">修正</td>
+                      <td className="p-4 text-center text-blue-600 font-bold">何度でも無料</td>
+                      <td className="p-4 text-center text-gray-500">追加費用</td>
+                    </tr>
+                    <tr className="border-t bg-gray-50">
+                      <td className="p-4 font-bold">制度改正対応</td>
+                      <td className="p-4 text-center text-blue-600 font-bold">自動更新</td>
+                      <td className="p-4 text-center text-gray-500">都度発注</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section className="max-w-5xl mx-auto px-4 py-16 text-center">
+              <div className="bg-blue-600 rounded-2xl p-10 text-white">
+                <h2 className="text-2xl font-bold mb-4">まずは無料でお試しください</h2>
+                <p className="mb-6 opacity-90">登録は30秒。クレジットカード不要。</p>
+                <button
+                  onClick={() => setPage("register")}
+                  className="bg-white text-blue-600 px-8 py-3 rounded-lg font-bold text-lg hover:bg-blue-50 transition"
+                >
+                  無料で始める
+                </button>
+              </div>
+            </section>
+
+            <footer className="border-t py-6 text-center text-xs text-gray-400">
+              <p>ガスサポ - LPガス販売事業者向け業務支援ツール</p>
+              <p className="mt-1">提供: <a href="https://kuucorp.com" className="text-blue-500 hover:underline">Kuu株式会社</a></p>
+            </footer>
+          </div>
+        );
+      }
+
+      // REGISTER PAGE
+      if (page === "register") {
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <header className="bg-white shadow-sm">
+              <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-2">
+                <button onClick={() => setPage("top")} className="text-gray-400 hover:text-gray-600 mr-2 transition">
+                  &larr; 戻る
+                </button>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">G</span>
+                </div>
+                <span className="font-bold text-xl text-gray-900">ガスサポ</span>
+              </div>
+            </header>
+
+            <div className="max-w-lg mx-auto px-4 py-12">
+              <h1 className="text-2xl font-bold text-center mb-2">会社情報の登録</h1>
+              <p className="text-gray-600 text-center mb-8 text-sm">
+                一度登録すれば、すべてのテンプレートに自動で反映されます
+              </p>
+
+              <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">会社名 <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="例：○○ガス株式会社"
+                    value={companyInfo.name}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">代表者名</label>
+                  <input
+                    type="text"
+                    placeholder="例：山田 太郎"
+                    value={companyInfo.representative}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, representative: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">電話番号 <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="例：0120-XXX-XXX"
+                    value={companyInfo.tel}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, tel: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">住所 <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="例：千葉県○○市○○町1-2-3"
+                    value={companyInfo.address}
+                    onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    setRegistered(true);
+                    setPage("templates");
+                  }}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 mt-4 transition"
+                >
+                  登録してテンプレートを見る
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // TEMPLATES LIST
+      if (page === "templates" && !selectedTemplate) {
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <header className="bg-white shadow-sm">
+              <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPage("top")} className="text-gray-400 hover:text-gray-600 mr-2 transition">
+                    &larr; トップ
+                  </button>
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">G</span>
+                  </div>
+                  <span className="font-bold text-xl text-gray-900">ガスサポ</span>
+                </div>
+                {!registered && (
+                  <button
+                    onClick={() => setPage("register")}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
+                  >
+                    無料登録
+                  </button>
+                )}
+              </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto px-4 py-8">
+              <h1 className="text-2xl font-bold mb-6">テンプレート一覧</h1>
+
+              {/* Category filter */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                      selectedCategory === cat
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-600 border hover:bg-gray-50"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Template grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTemplates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setSelectedTemplate(t);
+                    }}
+                    className="bg-white rounded-xl p-5 shadow-sm border text-left hover:shadow-md hover:border-blue-300 transition relative"
+                  >
+                    {t.hot && (
+                      <span className="absolute top-3 right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                        HOT
+                      </span>
+                    )}
+                    <div className="text-xs text-blue-600 font-bold mb-1">{t.category}</div>
+                    <h3 className="font-bold text-gray-900 mb-2">{t.name}</h3>
+                    <p className="text-gray-500 text-sm">{t.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // TEMPLATE DETAIL + PREVIEW
+      if (selectedTemplate) {
+        return (
+          <div className="min-h-screen bg-gray-50">
+            <header className="bg-white shadow-sm">
+              <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedTemplate(null)}
+                  className="text-gray-400 hover:text-gray-600 mr-2 transition"
+                >
+                  &larr; テンプレート一覧
+                </button>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">G</span>
+                </div>
+                <span className="font-bold text-xl text-gray-900">ガスサポ</span>
+              </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto px-4 py-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Settings */}
+                <div>
+                  <div className="text-xs text-blue-600 font-bold mb-1">{selectedTemplate.category}</div>
+                  <h1 className="text-2xl font-bold mb-2">{selectedTemplate.name}</h1>
+                  <p className="text-gray-600 mb-6">{selectedTemplate.description}</p>
+
+                  <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
+                    <h2 className="font-bold text-gray-900">会社情報</h2>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">会社名</label>
+                      <input
+                        type="text"
+                        placeholder="○○ガス株式会社"
+                        value={companyInfo.name}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, name: e.target.value })}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">電話番号</label>
+                      <input
+                        type="text"
+                        placeholder="0120-XXX-XXX"
+                        value={companyInfo.tel}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, tel: e.target.value })}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">住所</label>
+                      <input
+                        type="text"
+                        placeholder="千葉県○○市○○町1-2-3"
+                        value={companyInfo.address}
+                        onChange={(e) => setCompanyInfo({ ...companyInfo, address: e.target.value })}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {selectedTemplate.fields.length > 0 && (
+                      <>
+                        <h2 className="font-bold text-gray-900 pt-2">テンプレート固有項目</h2>
+                        {selectedTemplate.fields.map((f) => (
+                          <div key={f}>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">{f}</label>
+                            <input
+                              type="text"
+                              placeholder={`${f}を入力`}
+                              value={companyInfo.fields?.[f] || ""}
+                              onChange={(e) =>
+                                setCompanyInfo({
+                                  ...companyInfo,
+                                  fields: { ...companyInfo.fields, [f]: e.target.value },
+                                })
+                              }
+                              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex gap-3">
+                    <button className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                      PDFダウンロード（無料）
+                    </button>
+                    <button className="flex-1 bg-white text-blue-600 py-3 rounded-lg font-bold border-2 border-blue-600 hover:bg-blue-50 transition">
+                      印刷を注文
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 text-center mt-2">
+                    印刷注文は有料プラン（月額9,800円）の機能です
+                  </p>
+                </div>
+
+                {/* Right: Preview */}
+                <div>
+                  <h2 className="font-bold text-gray-900 mb-3">プレビュー</h2>
+                  <div className="bg-gray-100 rounded-xl p-6 flex justify-center">
+                    <TemplatePreview template={selectedTemplate} companyInfo={companyInfo} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<GasSapoApp />);
+  </script>
+</body>
+</html>
