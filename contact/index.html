@@ -17,32 +17,23 @@
   <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
+
   <header>
-    <div class="wrapper header-inner">
-      <a href="../" class="logo-text">Kuu</a>
-      <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
-      <nav id="nav">
-        <ul>
-          <li><a href="../">トップ</a></li>
-          <li><a href="../about/">会社情報</a></li>
-          <li><a href="../news/">ニュース</a></li>
-          <li><a href="../contact/" class="nav-contact">お問い合わせ</a></li>
-        </ul>
-      </nav>
-    </div>
+    <a href="../" class="logo-text">Kuu</a>
+    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <nav id="nav">
+      <ul>
+        <li><a href="../">Top</a></li>
+        <li><a href="../about/">About</a></li>
+      </ul>
+    </nav>
   </header>
 
   <main>
-    <section class="page-hero">
-      <div class="wrapper panel">
-        <span class="kicker">Contact</span>
-        <h1>お問い合わせ</h1>
-        <p>AI業務活用に関するご相談・お見積もり・ご質問など、お気軽にお問い合わせください。通常1〜2営業日以内にご返信いたします。</p>
-      </div>
-    </section>
+    <div class="page-content">
+      <h1 class="page-title fade-in">Contact</h1>
 
-    <section>
-      <div class="wrapper">
+      <div class="fade-in">
         <form class="contact-form" action="https://formspree.io/f/your-form-id" method="POST">
           <div class="form-group">
             <label for="company">会社名 <span class="required">*</span></label>
@@ -70,35 +61,40 @@
             <label for="message">メッセージ</label>
             <textarea id="message" name="message" rows="6" placeholder="ご相談内容やご質問をご記入ください"></textarea>
           </div>
-          <button type="submit" class="btn btn-primary btn-submit">送信する</button>
+          <button type="submit" class="btn-submit">送信する</button>
         </form>
         <p class="form-note">通常1〜2営業日以内にご返信いたします。</p>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>
-    <div class="wrapper footer-inner">
-      <div class="footer-info">
-        <nav class="footer-nav">
-          <ul>
-            <li><a href="../">トップ</a></li>
-            <li><a href="../about/">会社情報</a></li>
-            <li><a href="../news/">ニュース</a></li>
-            <li><a href="../contact/">お問い合わせ</a></li>
-            <li><a href="../privacy_policy/">プライバシーポリシー</a></li>
-          </ul>
-        </nav>
-        <p class="footer-address">Kuu株式会社 | 東京都渋谷区</p>
-      </div>
-      <p class="copyright">&copy; 2026 Kuu株式会社 All Rights Reserved.</p>
+    <div class="footer-links">
+      <a href="../contact/">Contact</a>
+      <a href="../privacy_policy/">Privacy</a>
     </div>
+    <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
   <script>
-    function toggleMenu() {
-      document.getElementById('nav').classList.toggle('active');
-    }
+    (function() {
+      for (var i = 0; i < 120; i++) {
+        var s = document.createElement('div');
+        s.className = 'star';
+        s.style.left = Math.random() * 100 + 'vw';
+        s.style.top = Math.random() * 100 + 'vh';
+        s.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        s.style.setProperty('--delay', (Math.random() * 5) + 's');
+        document.body.appendChild(s);
+      }
+    })();
+    (function() {
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-in').forEach(function(el) { obs.observe(el); });
+    })();
+    function toggleMenu() { document.getElementById('nav').classList.toggle('active'); }
   </script>
 </body>
 </html>

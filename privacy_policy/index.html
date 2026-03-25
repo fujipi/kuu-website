@@ -17,37 +17,30 @@
   <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
+
   <header>
-    <div class="wrapper header-inner">
-      <a href="../" class="logo-text">Kuu</a>
-      <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
-      <nav id="nav">
-        <ul>
-          <li><a href="../">トップ</a></li>
-          <li><a href="../about/">会社情報</a></li>
-          <li><a href="../news/">ニュース</a></li>
-          <li><a href="../contact/" class="nav-contact">お問い合わせ</a></li>
-        </ul>
-      </nav>
-    </div>
+    <a href="../" class="logo-text">Kuu</a>
+    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <nav id="nav">
+      <ul>
+        <li><a href="../">Top</a></li>
+        <li><a href="../about/">About</a></li>
+      </ul>
+    </nav>
   </header>
 
   <main>
-    <section class="page-hero">
-      <div class="wrapper panel privacy">
-        <span class="kicker">Privacy Policy</span>
-        <h1>プライバシーポリシー</h1>
+    <div class="page-content privacy">
+      <h1 class="page-title fade-in">Privacy Policy</h1>
+
+      <div class="fade-in">
         <p>Kuu株式会社（以下「当社」）は、お客様の個人情報を適切に保護し、以下の方針に基づいて取り扱います。</p>
 
         <h3>1. 取得する情報</h3>
         <p>お問い合わせ時にご提供いただく氏名、会社名、メールアドレス、相談内容等を取得します。</p>
 
         <h3>2. 利用目的</h3>
-        <ul>
-          <li>お問い合わせへの回答</li>
-          <li>サービス提供・改善・新規企画の検討</li>
-          <li>セミナーやサービスに関するご案内</li>
-        </ul>
+        <p>お問い合わせへの回答、サービス提供・改善・新規企画の検討、セミナーやサービスに関するご案内に利用します。</p>
 
         <h3>3. 第三者提供</h3>
         <p>法令に基づく場合を除き、ご本人の同意なく第三者へ提供しません。</p>
@@ -59,38 +52,40 @@
         <p>ご本人からの請求に基づき、合理的な範囲で対応します。</p>
 
         <h3>6. お問い合わせ窓口</h3>
-        <p>
-          Kuu株式会社<br>
-          <a href="../contact/">お問い合わせフォーム</a>よりご連絡ください。
-        </p>
+        <p>Kuu株式会社 <a href="../contact/">お問い合わせフォーム</a>よりご連絡ください。</p>
 
         <p>制定日：2026年3月8日</p>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>
-    <div class="wrapper footer-inner">
-      <div class="footer-info">
-        <nav class="footer-nav">
-          <ul>
-            <li><a href="../">トップ</a></li>
-            <li><a href="../about/">会社情報</a></li>
-            <li><a href="../news/">ニュース</a></li>
-            <li><a href="../contact/">お問い合わせ</a></li>
-            <li><a href="../privacy_policy/">プライバシーポリシー</a></li>
-          </ul>
-        </nav>
-        <p class="footer-address">Kuu株式会社 | 東京都渋谷区</p>
-      </div>
-      <p class="copyright">&copy; 2026 Kuu株式会社 All Rights Reserved.</p>
+    <div class="footer-links">
+      <a href="../contact/">Contact</a>
+      <a href="../privacy_policy/">Privacy</a>
     </div>
+    <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
   <script>
-    function toggleMenu() {
-      document.getElementById('nav').classList.toggle('active');
-    }
+    (function() {
+      for (var i = 0; i < 120; i++) {
+        var s = document.createElement('div');
+        s.className = 'star';
+        s.style.left = Math.random() * 100 + 'vw';
+        s.style.top = Math.random() * 100 + 'vh';
+        s.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        s.style.setProperty('--delay', (Math.random() * 5) + 's');
+        document.body.appendChild(s);
+      }
+    })();
+    (function() {
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-in').forEach(function(el) { obs.observe(el); });
+    })();
+    function toggleMenu() { document.getElementById('nav').classList.toggle('active'); }
   </script>
 </body>
 </html>

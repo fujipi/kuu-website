@@ -17,88 +17,94 @@
   <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
+
   <header>
-    <div class="wrapper header-inner">
-      <a href="../" class="logo-text">Kuu</a>
-      <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
-      <nav id="nav">
-        <ul>
-          <li><a href="../">トップ</a></li>
-          <li><a href="../about/">会社情報</a></li>
-          <li><a href="../news/">ニュース</a></li>
-          <li><a href="../contact/" class="nav-contact">お問い合わせ</a></li>
-        </ul>
-      </nav>
-    </div>
+    <a href="../" class="logo-text">Kuu</a>
+    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <nav id="nav">
+      <ul>
+        <li><a href="../">Top</a></li>
+        <li><a href="../contact/">Contact</a></li>
+      </ul>
+    </nav>
   </header>
 
   <main>
-    <section class="page-hero">
-      <div class="wrapper panel">
-        <span class="kicker">Company</span>
-        <h1>AIで、働き方を再設計する。</h1>
-        <p>Kuu株式会社は、企業の現場にAIを定着させるためのコンサルティング会社です。経営層の意思決定と、現場オペレーションの両方をつなぐ設計力を強みにしています。</p>
-      </div>
-    </section>
+    <div class="page-content">
+      <h1 class="page-title fade-in">About</h1>
 
-    <section>
-      <div class="wrapper">
-        <div class="card-grid">
-          <article class="card">
-            <h3>Mission</h3>
-            <p>AIを一部の専門家のものにせず、誰もが使いこなせる業務インフラにする。</p>
-          </article>
-          <article class="card">
-            <h3>Vision</h3>
-            <p>日本企業の現場に、継続的な改善サイクルを生み出す「AI駆動型組織」を増やす。</p>
-          </article>
-          <article class="card">
-            <h3>Value</h3>
-            <p>現場起点 / 実装重視 / 内製化支援。成果につながるところまで責任を持つ。</p>
-          </article>
+      <div class="about-mission fade-in">
+        <div class="mission-card">
+          <h3>Mission</h3>
+          <p>AIを一部の専門家のものにせず、誰もが使いこなせる業務インフラにする。</p>
+        </div>
+        <div class="mission-card">
+          <h3>Vision</h3>
+          <p>日本企業の現場に、継続的な改善サイクルを生み出す「AI駆動型組織」を増やす。</p>
+        </div>
+        <div class="mission-card">
+          <h3>Value</h3>
+          <p>現場起点 / 実装重視 / 内製化支援。成果につながるところまで責任を持つ。</p>
         </div>
       </div>
-    </section>
 
-    <section>
-      <div class="wrapper">
-        <h2>会社概要</h2>
-        <div class="table-wrap">
-          <table class="info-table">
-            <tr><th>会社名</th><td>Kuu株式会社</td></tr>
-            <tr><th>設立</th><td>2022年2月</td></tr>
-            <tr><th>代表</th><td>藤平 賢人（Kento Fujihira）</td></tr>
-            <tr><th>所在地</th><td>東京都渋谷区</td></tr>
-            <tr><th>事業内容</th><td>AI業務活用コンサルティング / DX戦略設計 / 社内研修</td></tr>
-            <tr><th>連絡先</th><td><a href="../contact/">お問い合わせフォーム</a></td></tr>
-          </table>
+      <div class="section-label fade-in">Company</div>
+      <div class="about-table fade-in">
+        <div class="about-row">
+          <div class="about-label">会社名</div>
+          <div class="about-value">Kuu株式会社</div>
+        </div>
+        <div class="about-row">
+          <div class="about-label">設立</div>
+          <div class="about-value">2022年2月</div>
+        </div>
+        <div class="about-row">
+          <div class="about-label">代表</div>
+          <div class="about-value">藤平 賢人（Kento Fujihira）</div>
+        </div>
+        <div class="about-row">
+          <div class="about-label">所在地</div>
+          <div class="about-value">東京都渋谷区</div>
+        </div>
+        <div class="about-row">
+          <div class="about-label">事業内容</div>
+          <div class="about-value">AI業務活用コンサルティング / DX戦略設計 / 社内研修</div>
+        </div>
+        <div class="about-row">
+          <div class="about-label">連絡先</div>
+          <div class="about-value"><a href="../contact/">お問い合わせフォーム</a></div>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
   <footer>
-    <div class="wrapper footer-inner">
-      <div class="footer-info">
-        <nav class="footer-nav">
-          <ul>
-            <li><a href="../">トップ</a></li>
-            <li><a href="../about/">会社情報</a></li>
-            <li><a href="../news/">ニュース</a></li>
-            <li><a href="../contact/">お問い合わせ</a></li>
-            <li><a href="../privacy_policy/">プライバシーポリシー</a></li>
-          </ul>
-        </nav>
-        <p class="footer-address">Kuu株式会社 | 東京都渋谷区</p>
-      </div>
-      <p class="copyright">&copy; 2026 Kuu株式会社 All Rights Reserved.</p>
+    <div class="footer-links">
+      <a href="../contact/">Contact</a>
+      <a href="../privacy_policy/">Privacy</a>
     </div>
+    <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
   <script>
-    function toggleMenu() {
-      document.getElementById('nav').classList.toggle('active');
-    }
+    (function() {
+      for (var i = 0; i < 120; i++) {
+        var s = document.createElement('div');
+        s.className = 'star';
+        s.style.left = Math.random() * 100 + 'vw';
+        s.style.top = Math.random() * 100 + 'vh';
+        s.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        s.style.setProperty('--delay', (Math.random() * 5) + 's');
+        document.body.appendChild(s);
+      }
+    })();
+    (function() {
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+      }, { threshold: 0.1 });
+      document.querySelectorAll('.fade-in').forEach(function(el) { obs.observe(el); });
+    })();
+    function toggleMenu() { document.getElementById('nav').classList.toggle('active'); }
   </script>
 </body>
 </html>
