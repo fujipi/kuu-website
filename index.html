@@ -45,296 +45,132 @@
   </script>
 </head>
 <body>
+
   <header>
-    <div class="wrapper header-inner">
-      <a href="./" class="logo-text">Kuu</a>
-      <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
-      <nav id="nav">
-        <ul>
-          <li><a href="./">トップ</a></li>
-          <li><a href="./about/">会社情報</a></li>
-          <li><a href="./news/">ニュース</a></li>
-          <li><a href="./contact/" class="nav-contact">お問い合わせ</a></li>
-        </ul>
-      </nav>
-    </div>
+    <a href="./" class="logo-text">Kuu</a>
+    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <nav id="nav">
+      <ul>
+        <li><a href="#service">Service</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
   </header>
 
   <main>
     <section class="hero">
-      <div class="wrapper hero-grid">
-        <div class="panel">
-          <span class="kicker">AI Productivity Consulting</span>
-          <h1>AIを「導入」で終わらせない。<br>現場に根づく業務改革へ。</h1>
-          <p>中小〜中堅企業向けに、AI活用の事業計画策定・業務設計・実装支援・社内展開をワンストップで支援します。単発のツール導入ではなく、成果につながる運用定着まで伴走します。</p>
-          <div class="button-row">
-            <a class="btn btn-primary" href="./contact/">無料相談を予約する</a>
-            <a class="btn btn-ghost" href="./about/">会社情報を見る</a>
-          </div>
-        </div>
-        <aside class="panel">
-          <h2>支援テーマ</h2>
-          <div class="stat-grid">
-            <div class="stat"><strong>業務可視化</strong><span>現状フロー分析 / KPI設計</span></div>
-            <div class="stat"><strong>AI活用設計</strong><span>ユースケース選定 / 優先順位化</span></div>
-            <div class="stat"><strong>現場実装</strong><span>プロンプト / 自動化フロー構築</span></div>
-            <div class="stat"><strong>定着支援</strong><span>社内研修 / ガイドライン整備</span></div>
-          </div>
-        </aside>
+      <div class="hero-content fade-in">
+        <h1 class="hero-heading">AIを、すべての現場に届ける。</h1>
+        <p class="hero-sub">AI Productivity Consulting</p>
       </div>
     </section>
 
-    <section>
-      <div class="wrapper">
-        <div class="section-head">
-          <h2>よくある課題</h2>
-          <p>AIを導入したいが、何から始めるべきか分からない企業様から多く相談をいただいています。</p>
+    <section class="section-service" id="service">
+      <div class="section-label fade-in">Service</div>
+      <div class="service-list fade-in-stagger">
+
+        <div class="service-item fade-in-item">
+          <div class="service-name">AI業務活用コンサルティング</div>
+          <div class="service-desc">業務棚卸しからAI活用ロードマップの策定、PoC実施、運用定着まで。現場に根づく業務改革をワンストップで支援します。</div>
         </div>
-        <div class="card-grid">
-          <article class="card"><h3>1. 属人的な業務が多い</h3><p>担当者しか分からない業務が多く、引き継ぎや品質担保に時間がかかっている。</p></article>
-          <article class="card"><h3>2. ツール導入が目的化</h3><p>生成AIツールは導入したものの、具体的な業務改善につながっていない。</p></article>
-          <article class="card"><h3>3. 社内展開が進まない</h3><p>一部のメンバーしか使えず、全社的な生産性向上まで到達していない。</p></article>
+
+        <div class="service-item fade-in-item">
+          <div class="service-name">DX戦略設計</div>
+          <div class="service-desc">事業目標から逆算したDX推進計画を策定。部門横断のAI活用テーマ設計と優先順位付けを行います。</div>
         </div>
+
+        <div class="service-item fade-in-item">
+          <div class="service-name">社内AI研修</div>
+          <div class="service-desc">経営層向けAIリテラシー研修から、現場担当者向けハンズオントレーニングまで。「使い続ける組織」を作ります。</div>
+        </div>
+
       </div>
     </section>
 
-    <section>
-      <div class="wrapper">
-        <div class="section-head">
-          <h2>提供サービス</h2>
-          <p>「戦略」「実装」「教育」を一体化した伴走型の支援モデルです。</p>
+    <section class="section-about" id="about">
+      <div class="section-label fade-in">About</div>
+      <div class="about-table fade-in">
+        <div class="about-row">
+          <div class="about-label">会社名</div>
+          <div class="about-value">Kuu株式会社</div>
         </div>
-        <div class="card-grid">
-          <article class="card service-card">
-            <h3>AI業務活用ロードマップ策定</h3>
-            <p>事業目標から逆算し、部門別のAI活用テーマ・導入優先度・評価指標を設計します。</p>
-          </article>
-          <article class="card service-card">
-            <h3>業務自動化 / AI実装支援</h3>
-            <p>議事録・営業資料・提案書・問い合わせ対応など、成果が出やすい業務から迅速にPoCを実施します。</p>
-          </article>
-          <article class="card service-card">
-            <h3>社内AIアカデミー</h3>
-            <p>管理職向け研修、現場向けハンズオン、運用ルール整備を通じて「使い続ける組織」を作ります。</p>
-          </article>
+        <div class="about-row">
+          <div class="about-label">役員</div>
+          <div class="about-value">代表取締役 藤平賢人</div>
         </div>
-      </div>
-    </section>
-
-    <section class="section-usecase">
-      <div class="wrapper">
-        <div class="section-head">
-          <h2>部門別 AI活用ユースケース</h2>
-          <p>各部門の実務に直結するAI活用シナリオを設計・実装します。</p>
+        <div class="about-row">
+          <div class="about-label">所在地</div>
+          <div class="about-value">東京都渋谷区</div>
         </div>
-        <div class="usecase-grid">
-
-          <article class="usecase-card">
-            <div class="usecase-header">
-              <svg class="usecase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <div>
-                <h3>営業AI化</h3>
-                <span class="usecase-tag">一番売りやすい</span>
-              </div>
-            </div>
-            <div class="usecase-body">
-              <ul class="usecase-list">
-                <li>商談前調査の自動化</li>
-                <li>提案書の骨子生成</li>
-                <li>卸先別の提案切替</li>
-                <li>展示会後フォロー</li>
-                <li>見積前処理</li>
-              </ul>
-              <div class="usecase-tools">
-                <span class="tools-label">使用AI</span>
-                <p>Claude Research + Skills<br>Gemini Workspace連携</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="usecase-card">
-            <div class="usecase-header">
-              <svg class="usecase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-              <div>
-                <h3>販促/マーケAI化</h3>
-                <span class="usecase-tag">既存サービスとクロスセル</span>
-              </div>
-            </div>
-            <div class="usecase-body">
-              <ul class="usecase-list">
-                <li>LP/POP案の生成</li>
-                <li>SNS投稿案・キャンペーン</li>
-                <li>競合比較・レビュー要約</li>
-                <li>販促資料のExcel/PPT化</li>
-              </ul>
-              <div class="usecase-tools">
-                <span class="tools-label">使用AI</span>
-                <p>Claude ファイル作成<br>ChatGPT 画像生成</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="usecase-card">
-            <div class="usecase-header">
-              <svg class="usecase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 7l10-5 10 5-10 5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-              <div>
-                <h3>商品企画AI化</h3>
-                <span class="usecase-tag">差別化の起点</span>
-              </div>
-            </div>
-            <div class="usecase-body">
-              <ul class="usecase-list">
-                <li>新商品コンセプト</li>
-                <li>ネーミング・訴求軸</li>
-                <li>ペルソナ別コピー</li>
-                <li>営業向け商品説明書</li>
-              </ul>
-              <div class="usecase-tools">
-                <span class="tools-label">使用AI</span>
-                <p>Claude Projects + Skills<br>NotebookLM 資料分析</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="usecase-card">
-            <div class="usecase-header">
-              <svg class="usecase-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-              <div>
-                <h3>管理部AI化</h3>
-                <span class="usecase-tag">業種不問で展開可能</span>
-              </div>
-            </div>
-            <div class="usecase-body">
-              <ul class="usecase-list">
-                <li>採用文面・JD</li>
-                <li>議事録・会議要約</li>
-                <li>稟議・補助金たたき台</li>
-                <li>社内マニュアル</li>
-              </ul>
-              <div class="usecase-tools">
-                <span class="tools-label">使用AI</span>
-                <p>Claude Skills<br>Gemini 議事録要約</p>
-              </div>
-            </div>
-          </article>
-
+        <div class="about-row">
+          <div class="about-label">設立</div>
+          <div class="about-value">2022年2月</div>
         </div>
-      </div>
-    </section>
-
-    <section class="section-tools">
-      <div class="wrapper">
-        <div class="section-head">
-          <h2>活用するAIツール</h2>
-          <p>業務内容と社内環境に応じて、最適なAIを選定・組み合わせて導入します。</p>
-        </div>
-        <div class="tool-grid">
-
-          <article class="tool-card">
-            <div class="tool-header tool-header--claude">
-              <svg class="tool-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <div>
-                <h3>Claude</h3>
-                <span>Projects / Skills / Cowork</span>
-              </div>
-            </div>
-            <span class="tool-badge">業務AI化の主軸</span>
-            <dl class="tool-details">
-              <dt>対象</dt>
-              <dd>文書作成・業務標準化・半自動化が必要な業務</dd>
-              <dt>使う機能</dt>
-              <dd>Projects / Skills / Connectors / Research / Cowork / ファイル作成</dd>
-              <dt>具体例</dt>
-              <dd>提案書作成、商談準備、議事録、週次レポート自動化、業務標準化</dd>
-            </dl>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-header tool-header--gemini">
-              <svg class="tool-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <div>
-                <h3>Gemini / NotebookLM</h3>
-                <span>Google Workspace統合</span>
-              </div>
-            </div>
-            <span class="tool-badge">Google環境に強い</span>
-            <dl class="tool-details">
-              <dt>対象</dt>
-              <dd>Google環境が中心の企業・ドキュメント分析が多い業務</dd>
-              <dt>使う機能</dt>
-              <dd>Gmail / Drive / Sheets統合 / NotebookLMのソース理解</dd>
-              <dt>具体例</dt>
-              <dd>社内資料の横断検索・要約、会議録の分析、マニュアル整備</dd>
-            </dl>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-header tool-header--openai">
-              <svg class="tool-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <div>
-                <h3>ChatGPT / OpenAI</h3>
-                <span>GPTs / Canvas / API</span>
-              </div>
-            </div>
-            <span class="tool-badge">カスタマイズに強い</span>
-            <dl class="tool-details">
-              <dt>対象</dt>
-              <dd>カスタムAI構築・画像生成・API連携が必要</dd>
-              <dt>使う機能</dt>
-              <dd>GPTs / Canvas / DALL-E / Assistants API</dd>
-              <dt>具体例</dt>
-              <dd>社内チャットボット、商品画像生成、FAQ自動応答</dd>
-            </dl>
-          </article>
-
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrapper">
-        <div class="section-head">
-          <h2>導入プロセス</h2>
-        </div>
-        <div class="process">
-          <div class="process-step"><strong>STEP 01</strong><div><h3>無料ヒアリング</h3><p>課題と目標を整理し、最短で成果が出る業務領域を特定します。</p></div></div>
-          <div class="process-step"><strong>STEP 02</strong><div><h3>診断・計画</h3><p>業務棚卸しを行い、90日で実行可能なアクションプランに落とし込みます。</p></div></div>
-          <div class="process-step"><strong>STEP 03</strong><div><h3>実装・検証</h3><p>小さく試して早く改善。現場メンバーと一緒に運用まで設計します。</p></div></div>
-          <div class="process-step"><strong>STEP 04</strong><div><h3>展開・内製化</h3><p>教育プログラムとテンプレートを提供し、継続的に改善できる体制を作ります。</p></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="wrapper">
-        <div class="contact" id="contact">
-          <h2>まずは1時間の無料相談から</h2>
-          <p>「どの業務からAI活用を始めるべきか」を明確化するセッションを実施しています。</p>
-          <a href="./contact/" class="btn btn-primary">無料相談を予約する</a>
+        <div class="about-row">
+          <div class="about-label">事業内容</div>
+          <div class="about-value">インターネット事業の企画・開発・運営</div>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    <div class="wrapper footer-inner">
-      <div class="footer-info">
-        <nav class="footer-nav">
-          <ul>
-            <li><a href="./">トップ</a></li>
-            <li><a href="./about/">会社情報</a></li>
-            <li><a href="./news/">ニュース</a></li>
-            <li><a href="./contact/">お問い合わせ</a></li>
-            <li><a href="./privacy_policy/">プライバシーポリシー</a></li>
-          </ul>
-        </nav>
-        <p class="footer-address">Kuu株式会社 | 東京都渋谷区</p>
-      </div>
-      <p class="copyright">&copy; 2026 Kuu株式会社 All Rights Reserved.</p>
+    <div class="footer-links">
+      <a href="./contact/">Contact</a>
+      <a href="./privacy_policy/">Privacy</a>
     </div>
+    <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
   <script>
+    // Twinkling stars
+    (function() {
+      var count = 120;
+      for (var i = 0; i < count; i++) {
+        var star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + 'vw';
+        star.style.top = Math.random() * 100 + 'vh';
+        star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
+        star.style.setProperty('--delay', (Math.random() * 5) + 's');
+        document.body.appendChild(star);
+      }
+    })();
+
+    // Intersection Observer for fade-in
+    (function() {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.fade-in').forEach(function(el) {
+        observer.observe(el);
+      });
+
+      // Staggered items
+      var staggerObserver = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var items = entry.target.querySelectorAll('.fade-in-item');
+            items.forEach(function(item, index) {
+              setTimeout(function() {
+                item.classList.add('visible');
+              }, index * 150);
+            });
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.fade-in-stagger').forEach(function(el) {
+        staggerObserver.observe(el);
+      });
+    })();
+
+    // Mobile menu toggle
     function toggleMenu() {
       document.getElementById('nav').classList.toggle('active');
     }
