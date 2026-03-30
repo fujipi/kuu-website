@@ -72,12 +72,6 @@ header {
   background: transparent;
 }
 
-.logo {
-  height: 40px;
-  display: flex;
-  align-items: center;
-}
-
 .logo-text {
   font-family: var(--font-heading);
   font-weight: 700;
@@ -186,8 +180,7 @@ section {
   display: block;
   padding: 2rem 0;
   border-top: 1px solid var(--gray-dark);
-  transition: transform 0.3s ease, padding-left 0.3s ease;
-  cursor: default;
+  transition: transform 0.3s ease;
 }
 .service-item:last-child {
   border-bottom: 1px solid var(--gray-dark);
@@ -299,10 +292,6 @@ footer {
   margin-bottom: 4rem;
 }
 
-.mission-card {
-  padding: 0;
-}
-
 .mission-heading {
   font-family: var(--font-heading);
   font-size: 0.85rem;
@@ -388,7 +377,8 @@ footer {
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  outline: none;
+  outline: 2px solid var(--gray-light);
+  outline-offset: -2px;
   border-color: var(--gray-light);
 }
 
