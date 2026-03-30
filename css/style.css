@@ -72,12 +72,14 @@ header {
   background: transparent;
 }
 
-.logo-text {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.04em;
-  color: var(--white);
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 28px;
+  width: auto;
 }
 
 nav ul {
