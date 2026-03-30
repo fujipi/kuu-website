@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; form-action 'self' https://formspree.io; connect-src 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="permissions-policy" content="geolocation=(), microphone=(), camera=()">
   <title>お問い合わせ | Kuu株式会社</title>
   <meta name="description" content="Kuu株式会社へのお問い合わせ。無料相談・お見積もり・ご質問はこちらからお気軽にどうぞ。">
   <link rel="canonical" href="https://kuucorp.com/contact/">
   <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../css/style.css">
   <meta property="og:title" content="お問い合わせ | Kuu株式会社">
   <meta property="og:description" content="Kuu株式会社へのお問い合わせ。無料相談・お見積もり・ご質問はこちらからお気軽にどうぞ。">
@@ -14,6 +20,7 @@
   <meta property="og:image" content="https://kuucorp.com/img/favicon.svg">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Kuu株式会社">
+  <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">
   {
@@ -32,6 +39,16 @@
         "availableLanguage": "Japanese"
       }
     }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Top", "item": "https://kuucorp.com/" },
+      { "@type": "ListItem", "position": 2, "name": "Contact", "item": "https://kuucorp.com/contact/" }
+    ]
   }
   </script>
 </head>
@@ -55,6 +72,7 @@
 
       <div class="fade-in">
         <form class="contact-form" action="https://formspree.io/f/fuji@kuucorp.com" method="POST">
+          <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
           <div class="form-group">
             <label for="company">会社名 <span class="required">*</span></label>
             <input type="text" id="company" name="company" required placeholder="例：株式会社サンプル">

@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; form-action 'self' https://formspree.io; connect-src 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="permissions-policy" content="geolocation=(), microphone=(), camera=()">
   <title>会社情報 | Kuu株式会社</title>
   <meta name="description" content="Kuu株式会社の会社情報。ミッション、提供価値、会社概要を掲載しています。">
   <link rel="canonical" href="https://kuucorp.com/about/">
   <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="../css/style.css">
   <meta property="og:title" content="会社情報 | Kuu株式会社">
   <meta property="og:description" content="Kuu株式会社の会社情報。ミッション、提供価値、会社概要を掲載しています。">
@@ -14,6 +20,7 @@
   <meta property="og:image" content="https://kuucorp.com/img/favicon.svg">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Kuu株式会社">
+  <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">
   {
@@ -39,6 +46,16 @@
     }
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Top", "item": "https://kuucorp.com/" },
+      { "@type": "ListItem", "position": 2, "name": "About", "item": "https://kuucorp.com/about/" }
+    ]
+  }
+  </script>
 </head>
 <body>
 
@@ -60,20 +77,20 @@
 
       <div class="about-mission fade-in">
         <div class="mission-card">
-          <h3>Mission</h3>
+          <h2 class="mission-heading">Mission</h2>
           <p>AIを一部の専門家のものにせず、誰もが使いこなせる業務インフラにする。</p>
         </div>
         <div class="mission-card">
-          <h3>Vision</h3>
+          <h2 class="mission-heading">Vision</h2>
           <p>日本企業の現場に、継続的な改善サイクルを生み出す「AI駆動型組織」を増やす。</p>
         </div>
         <div class="mission-card">
-          <h3>Value</h3>
+          <h2 class="mission-heading">Value</h2>
           <p>現場起点 / 実装重視 / 内製化支援。成果につながるところまで責任を持つ。</p>
         </div>
       </div>
 
-      <div class="section-label fade-in">Company</div>
+      <h2 class="section-label fade-in">Company</h2>
       <div class="about-table fade-in">
         <div class="about-row">
           <div class="about-label">会社名</div>
