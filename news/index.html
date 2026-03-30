@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ニュース | Kuu株式会社</title>
-  <meta name="description" content="Kuu株式会社のニュース一覧。AI業務活用コンサルティングの最新情報やセミナー開催情報を掲載しています。">
+  <meta name="description" content="Kuu株式会社のニュース一覧。最新情報やお知らせを掲載しています。">
   <link rel="canonical" href="https://kuucorp.com/news/">
   <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../css/style.css">
   <meta property="og:title" content="ニュース | Kuu株式会社">
-  <meta property="og:description" content="Kuu株式会社のニュース一覧。AI業務活用コンサルティングの最新情報やセミナー開催情報を掲載しています。">
+  <meta property="og:description" content="Kuu株式会社のニュース一覧。最新情報やお知らせを掲載しています。">
   <meta property="og:url" content="https://kuucorp.com/news/">
-  <meta property="og:image" content="https://kuucorp.com/img/og-default.jpg">
+  <meta property="og:image" content="https://kuucorp.com/img/favicon.svg">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Kuu株式会社">
   <meta name="twitter:card" content="summary_large_image">
@@ -20,11 +20,12 @@
 
   <header>
     <a href="../" class="logo-text">Kuu</a>
-    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="メニューを開く" aria-expanded="false"><span></span><span></span><span></span></button>
     <nav id="nav">
       <ul>
         <li><a href="../">Top</a></li>
         <li><a href="../about/">About</a></li>
+        <li><a href="../contact/">Contact</a></li>
       </ul>
     </nav>
   </header>
@@ -58,25 +59,6 @@
     <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
-  <script>
-    (function() {
-      for (var i = 0; i < 120; i++) {
-        var s = document.createElement('div');
-        s.className = 'star';
-        s.style.left = Math.random() * 100 + 'vw';
-        s.style.top = Math.random() * 100 + 'vh';
-        s.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
-        s.style.setProperty('--delay', (Math.random() * 5) + 's');
-        document.body.appendChild(s);
-      }
-    })();
-    (function() {
-      var obs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
-      }, { threshold: 0.1 });
-      document.querySelectorAll('.fade-in').forEach(function(el) { obs.observe(el); });
-    })();
-    function toggleMenu() { document.getElementById('nav').classList.toggle('active'); }
-  </script>
+  <script src="../js/main.js"></script>
 </body>
 </html>

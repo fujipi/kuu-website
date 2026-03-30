@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kuu株式会社 | AI業務活用コンサルティング</title>
-  <meta name="description" content="Kuu株式会社は、AI業務活用コンサルティングを提供。業務棚卸しからPoC・定着化まで、売上拡大と生産性向上を実現します。">
+  <title>Kuu株式会社 | 技術と物語を、あらゆる人に届ける</title>
+  <meta name="description" content="Kuu株式会社は、AX/DX戦略コンサルティング、AI業務自動化、Yota mangaサービスを提供。技術と物語を、あらゆる人に届けます。">
   <link rel="canonical" href="https://kuucorp.com/">
   <link rel="icon" href="./img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./css/style.css">
-  <meta property="og:title" content="Kuu株式会社 | AI業務活用コンサルティング">
-  <meta property="og:description" content="Kuu株式会社は、AI業務活用コンサルティングを提供。業務棚卸しからPoC・定着化まで、売上拡大と生産性向上を実現します。">
+  <meta property="og:title" content="Kuu株式会社 | 技術と物語を、あらゆる人に届ける">
+  <meta property="og:description" content="Kuu株式会社は、AX/DX戦略コンサルティング、AI業務自動化、Yota mangaサービスを提供。技術と物語を、あらゆる人に届けます。">
   <meta property="og:url" content="https://kuucorp.com/">
-  <meta property="og:image" content="https://kuucorp.com/img/og-default.jpg">
+  <meta property="og:image" content="https://kuucorp.com/img/favicon.svg">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Kuu株式会社">
   <meta name="twitter:card" content="summary_large_image">
@@ -22,8 +22,8 @@
     "name": "Kuu株式会社",
     "url": "https://kuucorp.com",
     "logo": "https://kuucorp.com/img/favicon.svg",
-    "description": "AI業務活用コンサルティングを提供。業務棚卸しからPoC・定着化まで、売上拡大と生産性向上を実現します。",
-    "foundingDate": "2022-02",
+    "description": "AX/DX戦略コンサルティング、AI業務自動化、Yota mangaサービスを提供。技術と物語を、あらゆる人に届けます。",
+    "foundingDate": "2022",
     "founder": {
       "@type": "Person",
       "name": "藤平 賢人"
@@ -48,11 +48,13 @@
 
   <header>
     <a href="./" class="logo-text">Kuu</a>
-    <div class="menu-toggle" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-label="メニューを開く" aria-expanded="false"><span></span><span></span><span></span></button>
     <nav id="nav">
       <ul>
         <li><a href="#service">Service</a></li>
         <li><a href="#about">About</a></li>
+        <li><a href="./news/">News</a></li>
+        <li><a href="./contact/">Contact</a></li>
       </ul>
     </nav>
   </header>
@@ -61,7 +63,7 @@
     <section class="hero">
       <div class="hero-content fade-in">
         <h1 class="hero-heading">技術と物語を、あらゆる人に届ける</h1>
-        <p class="hero-sub">AI Productivity Consulting</p>
+        <p class="hero-sub">Technology & Story for Everyone</p>
       </div>
     </section>
 
@@ -122,58 +124,6 @@
     <div class="footer-copy">&copy; 2026 Kuu Inc.</div>
   </footer>
 
-  <script>
-    // Twinkling stars
-    (function() {
-      var count = 120;
-      for (var i = 0; i < count; i++) {
-        var star = document.createElement('div');
-        star.className = 'star';
-        star.style.left = Math.random() * 100 + 'vw';
-        star.style.top = Math.random() * 100 + 'vh';
-        star.style.setProperty('--duration', (2 + Math.random() * 4) + 's');
-        star.style.setProperty('--delay', (Math.random() * 5) + 's');
-        document.body.appendChild(star);
-      }
-    })();
-
-    // Intersection Observer for fade-in
-    (function() {
-      var observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      }, { threshold: 0.1 });
-
-      document.querySelectorAll('.fade-in').forEach(function(el) {
-        observer.observe(el);
-      });
-
-      // Staggered items
-      var staggerObserver = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            var items = entry.target.querySelectorAll('.fade-in-item');
-            items.forEach(function(item, index) {
-              setTimeout(function() {
-                item.classList.add('visible');
-              }, index * 150);
-            });
-          }
-        });
-      }, { threshold: 0.1 });
-
-      document.querySelectorAll('.fade-in-stagger').forEach(function(el) {
-        staggerObserver.observe(el);
-      });
-    })();
-
-    // Mobile menu toggle
-    function toggleMenu() {
-      document.getElementById('nav').classList.toggle('active');
-    }
-  </script>
+  <script src="./js/main.js"></script>
 </body>
 </html>
