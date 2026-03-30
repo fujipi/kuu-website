@@ -69,8 +69,6 @@ kuu-website/
 │   └── favicon.svg     # ファビコン
 ├── about/
 │   └── index.html      # 企業情報ページ
-├── news/
-│   └── index.html      # ニュースページ
 ├── privacy_policy/
 │   └── index.html      # プライバシーポリシー
 ├── CNAME               # カスタムドメイン設定

@@ -284,59 +284,6 @@ footer {
   letter-spacing: 0.02em;
 }
 
-/* ── Page: About detail ── */
-.about-mission {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-bottom: 4rem;
-}
-
-.mission-heading {
-  font-family: var(--font-heading);
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--white);
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.05em;
-}
-
-.mission-card p {
-  font-size: 0.85rem;
-  color: var(--gray-medium);
-  line-height: 1.8;
-}
-
-/* ── Page: News ── */
-.news-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.news-item {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 2rem;
-  padding: 1.5rem 0;
-  border-top: 1px solid var(--gray-dark);
-}
-.news-item:last-child {
-  border-bottom: 1px solid var(--gray-dark);
-}
-
-.news-date {
-  font-family: var(--font-heading);
-  font-size: 0.8rem;
-  color: var(--gray-medium);
-  font-weight: 500;
-}
-
-.news-text {
-  font-size: 0.85rem;
-  color: var(--white);
-  line-height: 1.8;
-}
-
 /* ── Page: Contact ── */
 .contact-form {
   max-width: 560px;
@@ -514,10 +461,6 @@ footer {
     padding: 7rem 2.5rem 3.5rem;
   }
 
-  .about-mission {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
 }
 
 /* ── Responsive: Mobile ── */
@@ -547,18 +490,8 @@ footer {
     padding: 6rem 1.5rem 3rem;
   }
 
-  .about-mission {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
   .about-row {
     grid-template-columns: 100px 1fr;
-  }
-
-  .news-item {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
   }
 
   .menu-toggle {
