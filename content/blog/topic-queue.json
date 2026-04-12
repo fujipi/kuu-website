@@ -6,8 +6,7 @@
       "title_hint": "AIエージェント本番運用の壁をAnthropicが消した——Claude Managed Agentsが中小企業にとって何を意味するか",
       "persona": "IT担当・経営企画（エンジニアなしでAI自動化を検討中）",
       "service_link": "/services/ai-ops/",
-      "status": "published",
-      "published_at": "2026-04-12"
+      "status": "published"
     },
     {
       "slug": "openclaw-platform-risk-governance",
