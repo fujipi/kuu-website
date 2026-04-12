@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+
+const BASE_URL = "https://kuucorp.com";
+const SITE_NAME = "Kuu株式会社";
+const DEFAULT_OGP_IMAGE = "/images/ogp.png";
+
+export type PageSeoProps = {
+	title: string;
+	description: string;
+	path: string;
+	ogpImage?: string;
+	noIndex?: boolean;
+};
+
+export function generateMetadata({
+	title,
+	description,
+	path,
+	ogpImage = DEFAULT_OGP_IMAGE,
+	noIndex = false,
+}: PageSeoProps): Metadata {
+	const url = `${BASE_URL}${path}`;
+
+	return {
+		// Use absolute to prevent layout.tsx template from appending "| Kuu株式会社" again
+		title: { absolute: title },
+		description,
+		robots: noIndex
+			? { index: false, follow: false }
+			: { index: true, follow: true },
+		alternates: {
+			canonical: url,
+		},
+		openGraph: {
+			title,
+			description,
+			url,
+			siteName: SITE_NAME,
+			locale: "ja_JP",
+			type: "website",
+			images: [
+				{
+					url: ogpImage,
+					width: 1200,
+					height: 630,
+					alt: title,
+				},
+			],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title,
+			description,
+			images: [ogpImage],
+		},
+	};
+}
+
+export const BASE_ORG = {
+	url: BASE_URL,
+	name: SITE_NAME,
+	logo: `${BASE_URL}/images/favicon-192.png`,
+	address: {
+		streetAddress: "東神田一丁目13番14号",
+		addressLocality: "千代田区",
+		addressRegion: "東京都",
+		addressCountry: "JP",
+	},
+	contactPoint: {
+		contactType: "customer service",
+		url: `${BASE_URL}/contact/`,
+		availableLanguage: "Japanese",
+	},
+	foundingDate: "2022",
+	founder: "藤平 賢人",
+};
