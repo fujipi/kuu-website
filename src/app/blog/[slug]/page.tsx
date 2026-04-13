@@ -231,7 +231,7 @@ export default async function BlogPostPage({ params }: Props) {
 					</nav>
 
 					{/* 記事ヘッダー */}
-					<header style={{ maxWidth: "720px", marginBottom: "3rem" }}>
+					<div style={{ maxWidth: "720px", marginBottom: "3rem" }}>
 						<time
 							dateTime={post.date}
 							className="fade-in"
@@ -281,7 +281,7 @@ export default async function BlogPostPage({ params }: Props) {
 								))}
 							</div>
 						)}
-					</header>
+					</div>
 
 					{/* 記事本文: ビルド時変換済みHTML（ローカルファイルのみ・外部入力なし） */}
 					<div
