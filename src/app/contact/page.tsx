@@ -90,7 +90,7 @@ export default function ContactPage() {
 					<div className="fade-in">
 						<form
 							className="contact-form"
-							action="https://formspree.io/f/fuji@kuucorp.com"
+							action="https://formspree.io/f/mojyqlak"
 							method="POST"
 						>
 							<input
