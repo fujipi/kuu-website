@@ -45,7 +45,7 @@ const homeJsonLd = [
 			url: `${BASE_URL}/contact/`,
 			availableLanguage: "Japanese",
 		},
-		sameAs: [],
+		sameAs: ["https://github.com/fujipi"],
 		founder: {
 			"@type": "Person",
 			name: "藤平 賢人",

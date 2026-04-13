@@ -3,6 +3,7 @@ import Link from "next/link";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts, getAllPostSlugs, getPostBySlug } from "@/lib/mdx";
 
@@ -205,8 +206,28 @@ export default async function BlogPostPage({ params }: Props) {
 	// ローカルMDXファイル（外部入力なし）をビルド時に変換したHTML
 	const contentHtml = mdToHtml(post.content);
 
+	const articleJsonLd = {
+		"@context": "https://schema.org",
+		"@type": "Article",
+		headline: post.title,
+		description: post.description,
+		author: {
+			"@type": "Organization",
+			name: "Kuu株式会社",
+			url: "https://kuucorp.com",
+		},
+		publisher: {
+			"@type": "Organization",
+			name: "Kuu株式会社",
+			url: "https://kuucorp.com",
+		},
+		datePublished: post.date,
+		url: `https://kuucorp.com/blog/${slug}/`,
+	};
+
 	return (
 		<>
+			<JsonLd data={articleJsonLd} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={navLinks} />
