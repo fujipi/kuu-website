@@ -8,9 +8,9 @@ import Stars from "@/components/Stars";
 import { generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
-	title: "Kuu株式会社 | AIエージェント導入・運用支援 | AI業務自動化",
+	title: "Kuu株式会社 | AIエージェント導入・運用支援 | AIエージェントガバナンス",
 	description:
-		"Kuu株式会社はAIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築、AI業務自動化で中小企業のDX推進をサポートします。",
+		"Kuu株式会社はAIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスサービスで中小企業のDX推進をサポートします。",
 	path: "/",
 });
 
@@ -31,7 +31,7 @@ const homeJsonLd = [
 		url: BASE_URL,
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		description:
-			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築、AI業務自動化で中小企業のDX推進をサポートします。",
+			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスで中小企業のDX推進をサポートします。",
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: "東神田一丁目13番14号",
@@ -69,7 +69,7 @@ const homeJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Service",
-		name: "AIエージェント導入・運用支援（Kuu AI Ops）",
+		name: "AIエージェントガバナンスサービス（Kuu）",
 		description:
 			"AIエージェントの設計・実装・ガバナンス構築・運用定着までを一貫支援。エージェントチームの構築と継続的改善をサポートします。",
 		provider: {
@@ -154,7 +154,7 @@ export default function Home() {
 						</div>
 
 						<div className="service-item fade-in-item">
-							<div className="service-name">AI業務自動化サービス（AI Ops）</div>
+							<div className="service-name">AIエージェントガバナンスサービス</div>
 							<div className="service-desc">
 								AIエージェントの設計・ガバナンス構築・継続改善まで。エージェントが正しく動き続ける仕組みをワンストップで支援します。
 							</div>

@@ -5,21 +5,21 @@ import Header from "@/components/Header";
 import Stars from "@/components/Stars";
 
 export const metadata: Metadata = {
-	title: "DX戦略コンサルティング・AI業務自動化 | AX/DX戦略",
+	title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略",
 	description:
 		"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進計画の立案・実行まで。AX（エージェントトランスフォーメーション）による組織変革で、事業競争力を根本から強化します。",
 	alternates: { canonical: "https://kuucorp.com/services/ax-dx/" },
 	openGraph: {
-		title: "DX戦略コンサルティング・AI業務自動化 | AX/DX戦略 | Kuu株式会社",
+		title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略 | Kuu株式会社",
 		description:
-			"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進・AI業務自動化の実行まで一貫支援。",
+			"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進・エージェントトランスフォーメーションの実行まで一貫支援。",
 		url: "https://kuucorp.com/services/ax-dx/",
 	},
 };
 
 const navLinks = [
 	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "AI Ops" },
+	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/blog/", label: "Blog" },
 	{ href: "/about/", label: "About" },
 	{ href: "/contact/", label: "Contact" },
@@ -61,7 +61,7 @@ export default function AxDxPage() {
 					<h1 className="page-title fade-in">
 						AX/DX戦略コンサルティング・
 						<br />
-						AI業務自動化
+						AIエージェント活用支援
 					</h1>
 
 					{/* 課題提起 */}
@@ -210,8 +210,8 @@ export default function AxDxPage() {
 										desc: "業務プロセス改革・システム統合の計画と実行",
 									},
 									{
-										title: "AI業務自動化",
-										desc: "カスタマーサポート・文書処理・データ分析等の自動化",
+										title: "AIエージェント活用",
+										desc: "カスタマーサポート・文書処理・データ分析等のエージェント自動化",
 									},
 									{
 										title: "内製化支援",
@@ -253,7 +253,7 @@ export default function AxDxPage() {
 
 					{/* 対象業務 */}
 					<section style={{ marginBottom: "5rem" }}>
-						<h2 className="section-label fade-in">AI業務自動化の対象範囲</h2>
+						<h2 className="section-label fade-in">AIエージェント活用の対象範囲</h2>
 						<div className="fade-in" style={{ maxWidth: "720px" }}>
 							<p
 								style={{

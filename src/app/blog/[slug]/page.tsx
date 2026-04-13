@@ -13,7 +13,7 @@ interface Props {
 const navLinks = [
 	{ href: "/", label: "Top" },
 	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "AI Ops" },
+	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/contact/", label: "Contact" },
 ];
 
@@ -58,39 +58,114 @@ function formatDate(dateStr: string): string {
  * 外部ユーザー入力は一切含まない。XSSリスクはゼロ。
  */
 function mdToHtml(md: string): string {
-	let html = md
-		.replace(/^#### (.+)$/gm, "<h4>$1</h4>")
-		.replace(/^### (.+)$/gm, "<h3>$1</h3>")
-		.replace(/^## (.+)$/gm, "<h2>$1</h2>")
-		.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-		.replace(/\*(.+?)\*/g, "<em>$1</em>")
-		.replace(/^[-*] (.+)$/gm, "<li>$1</li>")
-		.replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
-		.replace(/^---$/gm, "<hr />")
-		.replace(/`([^`]+)`/g, "<code>$1</code>");
+	// ブロック単位で処理するため、まず空行で分割
+	// 各ブロック内でインライン変換を行う
+	const rawBlocks = md.split(/\n\n+/);
 
-	// <li> をリストでラップ
-	html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>");
+	const processedBlocks: string[] = [];
 
-	// 空行区切りで段落化
-	const blocks = html.split(/\n\n+/);
-	html = blocks
-		.map((block) => {
-			const trimmed = block.trim();
-			if (!trimmed) return "";
-			if (
-				trimmed.startsWith("<h") ||
-				trimmed.startsWith("<ul") ||
-				trimmed.startsWith("<hr") ||
-				trimmed.startsWith("<li")
-			) {
-				return trimmed;
+	for (const rawBlock of rawBlocks) {
+		const block = rawBlock.trim();
+		if (!block) continue;
+
+		// 見出し
+		if (/^#{1,4} /.test(block)) {
+			const converted = block
+				.replace(/^#### (.+)$/gm, "<h4>$1</h4>")
+				.replace(/^### (.+)$/gm, "<h3>$1</h3>")
+				.replace(/^## (.+)$/gm, "<h2>$1</h2>")
+				.replace(/^# (.+)$/gm, "<h1>$1</h1>")
+				.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+				.replace(/\*(.+?)\*/g, "<em>$1</em>")
+				.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+				.replace(/`([^`]+)`/g, "<code>$1</code>");
+			processedBlocks.push(converted);
+			continue;
+		}
+
+		// 水平線
+		if (/^---$/.test(block)) {
+			processedBlocks.push("<hr />");
+			continue;
+		}
+
+		// リストブロック（番号付き・番号なし混在対応）
+		const lines = block.split("\n");
+		const isListBlock = lines.every(
+			(l) => /^[-*] /.test(l) || /^\d+\. /.test(l) || l.trim() === "",
+		);
+		if (isListBlock && lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))) {
+			const isOrdered = lines.some((l) => /^\d+\. /.test(l));
+			const tag = isOrdered ? "ol" : "ul";
+			const items = lines
+				.filter((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))
+				.map((l) => {
+					const text = l.replace(/^[-*] /, "").replace(/^\d+\. /, "");
+					const inline = text
+						.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+						.replace(/\*(.+?)\*/g, "<em>$1</em>")
+						.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+						.replace(/`([^`]+)`/g, "<code>$1</code>");
+					return `<li>${inline}</li>`;
+				})
+				.join("\n");
+			processedBlocks.push(`<${tag}>\n${items}\n</${tag}>`);
+			continue;
+		}
+
+		// 混在ブロック（太字ラベル行 + リスト行 が同一ブロック内に混在するケースなど）
+		// 行ごとに分解して再帰的に処理
+		const hasListLine = lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l));
+		if (hasListLine) {
+			let i = 0;
+			while (i < lines.length) {
+				const line = lines[i].trim();
+				if (!line) { i++; continue; }
+				if (/^[-*] /.test(line) || /^\d+\. /.test(line)) {
+					// 連続するリスト行をまとめる
+					const listLines: string[] = [];
+					const isOrdered = /^\d+\. /.test(line);
+					while (i < lines.length && (/^[-*] /.test(lines[i]) || /^\d+\. /.test(lines[i]))) {
+						listLines.push(lines[i]);
+						i++;
+					}
+					const tag = isOrdered ? "ol" : "ul";
+					const items = listLines
+						.map((l) => {
+							const text = l.replace(/^[-*] /, "").replace(/^\d+\. /, "");
+							const inline = text
+								.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+								.replace(/\*(.+?)\*/g, "<em>$1</em>")
+								.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+								.replace(/`([^`]+)`/g, "<code>$1</code>");
+							return `<li>${inline}</li>`;
+						})
+						.join("\n");
+					processedBlocks.push(`<${tag}>\n${items}\n</${tag}>`);
+				} else {
+					// 非リスト行はそのまま段落として処理
+					const inline = line
+						.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+						.replace(/\*(.+?)\*/g, "<em>$1</em>")
+						.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+						.replace(/`([^`]+)`/g, "<code>$1</code>");
+					processedBlocks.push(`<p>${inline}</p>`);
+					i++;
+				}
 			}
-			return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
-		})
-		.join("\n");
+			continue;
+		}
 
-	return html;
+		// 通常の段落
+		const inline = block
+			.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+			.replace(/\*(.+?)\*/g, "<em>$1</em>")
+			.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+			.replace(/`([^`]+)`/g, "<code>$1</code>");
+		processedBlocks.push(`<p>${inline.replace(/\n/g, "<br />")}</p>`);
+	}
+
+	return processedBlocks.join("\n");
 }
 
 export default async function BlogPostPage({ params }: Props) {

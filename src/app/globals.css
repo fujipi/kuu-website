@@ -502,18 +502,50 @@ footer {
 	flex-direction: column;
 	gap: 0.5rem;
 }
+.blog-content ol {
+	list-style: none;
+	counter-reset: ol-counter;
+	margin-bottom: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
 .blog-content li {
 	font-size: 0.875rem;
 	color: var(--gray-medium);
 	line-height: 1.8;
-	padding-left: 1rem;
+	padding-left: 1.5rem;
 	position: relative;
 }
-.blog-content li::before {
+.blog-content ul > li::before {
 	content: "—";
 	position: absolute;
 	left: 0;
 	color: var(--gray-dim);
+}
+.blog-content ol > li {
+	counter-increment: ol-counter;
+}
+.blog-content ol > li::before {
+	content: counter(ol-counter) ".";
+	position: absolute;
+	left: 0;
+	color: var(--gray-dim);
+	font-family: var(--font-heading);
+	font-size: 0.8rem;
+}
+.blog-content a {
+	color: var(--gray-light);
+	border-bottom: 1px solid var(--gray-dark);
+	padding-bottom: 0.05em;
+	transition:
+		color 0.3s,
+		border-color 0.3s;
+}
+.blog-content a:hover {
+	color: var(--white);
+	border-color: var(--gray-medium);
+	opacity: 1;
 }
 .blog-content code {
 	font-family: "Courier New", monospace;

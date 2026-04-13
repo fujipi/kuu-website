@@ -81,7 +81,7 @@ const aboutJsonLd = [
 
 const navLinks = [
 	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "AI Ops" },
+	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/services/ax-dx/", label: "AX/DX" },
 	{ href: "/blog/", label: "Blog" },
 	{ href: "/contact/", label: "Contact" },
@@ -124,8 +124,7 @@ export default function AboutPage() {
 							<div className="about-row">
 								<div className="about-label">事業内容</div>
 								<div className="about-value">
-									AIエージェント導入支援・エージェントガバナンス（AI
-									Ops）、AX/DX戦略コンサルティング、AI業務自動化
+									AIエージェントガバナンスサービス（導入支援・ガバナンス構築・継続改善）、AX/DX戦略コンサルティング
 								</div>
 							</div>
 							<div className="about-row">

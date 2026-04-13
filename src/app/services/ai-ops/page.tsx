@@ -5,14 +5,14 @@ import Header from "@/components/Header";
 import Stars from "@/components/Stars";
 
 export const metadata: Metadata = {
-	title: "AIエージェント導入支援・エージェントガバナンス | AI Ops",
+	title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援",
 	description:
-		"KuuのAI Opsサービス。AIエージェントの導入支援からエージェントガバナンスの構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
+		"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
 	alternates: { canonical: "https://kuucorp.com/services/ai-ops/" },
 	openGraph: {
-		title: "AIエージェント導入支援・エージェントガバナンス | AI Ops | Kuu株式会社",
+		title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
 		description:
-			"KuuのAI Opsサービス。AIエージェントの導入支援からエージェントガバナンスの構築・継続改善まで一貫支援。",
+			"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。",
 		url: "https://kuucorp.com/services/ai-ops/",
 	},
 };
@@ -59,9 +59,9 @@ export default function AiOpsPage() {
 				<div className="page-content">
 					{/* H1 */}
 					<h1 className="page-title fade-in">
-						AIエージェント導入支援・
+						AIエージェントガバナンスサービス
 						<br />
-						エージェントガバナンス（AI Ops）
+						（導入支援・ガバナンス構築・継続改善）
 					</h1>
 
 					{/* 課題提起 */}
@@ -163,7 +163,7 @@ export default function AiOpsPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								KuuのAI Opsサービスは、AIエージェントの
+								KuuのAIエージェントガバナンスサービスは、AIエージェントの
 								<strong style={{ color: "var(--white)" }}>
 									導入から運用・継続改善までを一貫支援
 								</strong>

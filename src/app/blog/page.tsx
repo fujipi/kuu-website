@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 const navLinks = [
 	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "AI Ops" },
+	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/services/ax-dx/", label: "AX/DX" },
 	{ href: "/about/", label: "About" },
 	{ href: "/contact/", label: "Contact" },

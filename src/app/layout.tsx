@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 		template: "%s | Kuu株式会社",
 	},
 	description:
-		"Kuu株式会社は、AX/DX戦略コンサルティング、AI業務自動化、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、技術と物語をあらゆる人に届けます。",
+		"Kuu株式会社は、AX/DX戦略コンサルティング、AIエージェントガバナンスサービス、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、技術と物語をあらゆる人に届けます。",
 	metadataBase: new URL("https://kuucorp.com"),
 	robots: { index: true, follow: true },
 	openGraph: {
