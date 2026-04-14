@@ -193,7 +193,7 @@ export default function Home() {
 							<div className="about-value">Kuu株式会社</div>
 						</div>
 						<div className="about-row">
-							<div className="about-label">役員</div>
+							<div className="about-label">代表者</div>
 							<div className="about-value">代表取締役 藤平賢人</div>
 						</div>
 						<div className="about-row">
