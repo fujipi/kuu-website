@@ -2,20 +2,16 @@ import type { Metadata } from "next";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-	title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援",
+export const metadata: Metadata = seoMetadata({
+	title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
 	description:
 		"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
-	alternates: { canonical: "https://kuucorp.com/services/ai-ops/" },
-	openGraph: {
-		title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
-		description:
-			"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。",
-		url: "https://kuucorp.com/services/ai-ops/",
-	},
-};
+	path: "/services/ai-ops/",
+});
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -48,9 +44,60 @@ const faqs = [
 	},
 ];
 
+const BASE_URL = "https://kuucorp.com";
+
+const aiOpsJsonLd = [
+	{
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: faqs.map((faq) => ({
+			"@type": "Question",
+			name: faq.q,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: faq.a,
+			},
+		})),
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: "AIエージェントガバナンスサービス",
+		description:
+			"AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
+		provider: {
+			"@type": "Organization",
+			name: "Kuu株式会社",
+			url: BASE_URL,
+		},
+		serviceType: "AIエージェントガバナンス",
+		areaServed: "JP",
+		url: `${BASE_URL}/services/ai-ops/`,
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: [
+			{
+				"@type": "ListItem",
+				position: 1,
+				name: "ホーム",
+				item: BASE_URL,
+			},
+			{
+				"@type": "ListItem",
+				position: 2,
+				name: "AIエージェントガバナンスサービス",
+				item: `${BASE_URL}/services/ai-ops/`,
+			},
+		],
+	},
+];
+
 export default function AiOpsPage() {
 	return (
 		<>
+			<JsonLd data={aiOpsJsonLd} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={navLinks} />

@@ -27,7 +27,13 @@ export function generateMetadata({
 		description,
 		robots: noIndex
 			? { index: false, follow: false }
-			: { index: true, follow: true },
+			: {
+					index: true,
+					follow: true,
+					"max-snippet": -1,
+					"max-image-preview": "large" as const,
+					"max-video-preview": -1,
+				},
 		alternates: {
 			canonical: url,
 		},
@@ -59,7 +65,9 @@ export function generateMetadata({
 export const BASE_ORG = {
 	url: BASE_URL,
 	name: SITE_NAME,
+	legalName: SITE_NAME,
 	logo: `${BASE_URL}/images/favicon-192.png`,
+	slogan: "技術と物語を、あらゆる人に届ける",
 	address: {
 		streetAddress: "東神田一丁目13番14号",
 		addressLocality: "千代田区",
@@ -71,6 +79,19 @@ export const BASE_ORG = {
 		url: `${BASE_URL}/contact/`,
 		availableLanguage: "Japanese",
 	},
+	knowsAbout: [
+		"AIエージェント",
+		"エージェントガバナンス",
+		"AI Agent Governance",
+		"DXコンサルティング",
+		"エージェントトランスフォーメーション",
+		"Managed Agents",
+		"LLM",
+	],
 	foundingDate: "2022",
 	founder: "藤平 賢人",
+	numberOfEmployees: {
+		minValue: 1,
+		maxValue: 10,
+	},
 };

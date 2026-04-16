@@ -9,6 +9,7 @@ export interface BlogPost {
 	title: string;
 	description: string;
 	date: string;
+	lastModified: string;
 	tags: string[];
 	content: string;
 }
@@ -18,6 +19,7 @@ export interface BlogPostMeta {
 	title: string;
 	description: string;
 	date: string;
+	lastModified: string;
 	tags: string[];
 }
 
@@ -43,6 +45,7 @@ export function getAllPosts(): BlogPostMeta[] {
 				title: data.title ?? "",
 				description: data.description ?? "",
 				date: data.date ?? "",
+				lastModified: data.lastModified ?? data.date ?? "",
 				tags: Array.isArray(data.tags) ? data.tags : [],
 			} satisfies BlogPostMeta;
 		})
@@ -67,6 +70,7 @@ export function getPostBySlug(slug: string): BlogPost | null {
 		title: data.title ?? "",
 		description: data.description ?? "",
 		date: data.date ?? "",
+		lastModified: data.lastModified ?? data.date ?? "",
 		tags: Array.isArray(data.tags) ? data.tags : [],
 		content,
 	};
