@@ -1,21 +1,67 @@
 /** @type {import('next-sitemap').IConfig} */
 const config = {
-  siteUrl: "https://kuucorp.com",
-  generateRobotsTxt: true,
-  outDir: "out",
-  trailingSlash: true,
-  changefreq: "weekly",
-  priority: 0.7,
-  sitemapSize: 5000,
-  exclude: [],
-  robotsTxtOptions: {
-    policies: [
-      {
-        userAgent: "*",
-        allow: "/",
-      },
-    ],
-  },
+	siteUrl: "https://kuucorp.com",
+	generateRobotsTxt: true,
+	outDir: "out",
+	trailingSlash: true,
+	changefreq: "weekly",
+	priority: 0.7,
+	sitemapSize: 5000,
+	exclude: [],
+	robotsTxtOptions: {
+		policies: [
+			{
+				userAgent: "*",
+				allow: "/",
+			},
+			{
+				userAgent: "GPTBot",
+				allow: "/",
+			},
+			{
+				userAgent: "ClaudeBot",
+				allow: "/",
+			},
+			{
+				userAgent: "PerplexityBot",
+				allow: "/",
+			},
+			{
+				userAgent: "Google-Extended",
+				allow: "/",
+			},
+			{
+				userAgent: "Amazonbot",
+				allow: "/",
+			},
+		],
+	},
+	transform: async (_config, path) => {
+		const p = path.replace(/\/$/, "") || "/";
+		const now = new Date().toISOString();
+		if (p === "/") {
+			return { loc: path, changefreq: "weekly", priority: 1.0, lastmod: now };
+		}
+		if (p.startsWith("/services/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
+		}
+		if (p === "/blog") {
+			return { loc: path, changefreq: "weekly", priority: 0.8, lastmod: now };
+		}
+		if (p.startsWith("/blog/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
+		}
+		if (p === "/contact") {
+			return { loc: path, changefreq: "monthly", priority: 0.8, lastmod: now };
+		}
+		if (p === "/about") {
+			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
+		}
+		if (p === "/privacy-policy") {
+			return { loc: path, changefreq: "yearly", priority: 0.3, lastmod: now };
+		}
+		return { loc: path, changefreq: "weekly", priority: 0.7, lastmod: now };
+	},
 };
 
 module.exports = config;

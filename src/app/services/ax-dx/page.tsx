@@ -2,20 +2,16 @@ import type { Metadata } from "next";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-	title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略",
+export const metadata: Metadata = seoMetadata({
+	title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略 | Kuu株式会社",
 	description:
 		"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進計画の立案・実行まで。AX（エージェントトランスフォーメーション）による組織変革で、事業競争力を根本から強化します。",
-	alternates: { canonical: "https://kuucorp.com/services/ax-dx/" },
-	openGraph: {
-		title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略 | Kuu株式会社",
-		description:
-			"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進・エージェントトランスフォーメーションの実行まで一貫支援。",
-		url: "https://kuucorp.com/services/ax-dx/",
-	},
-};
+	path: "/services/ax-dx/",
+});
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -48,9 +44,60 @@ const faqs = [
 	},
 ];
 
+const BASE_URL = "https://kuucorp.com";
+
+const axDxJsonLd = [
+	{
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: faqs.map((faq) => ({
+			"@type": "Question",
+			name: faq.q,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: faq.a,
+			},
+		})),
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: "AX/DX戦略コンサルティング",
+		description:
+			"AI活用戦略の策定からDX推進計画の立案まで。事業目標に基づいたロードマップ設計と実行支援を行います。",
+		provider: {
+			"@type": "Organization",
+			name: "Kuu株式会社",
+			url: BASE_URL,
+		},
+		serviceType: "DXコンサルティング",
+		areaServed: "JP",
+		url: `${BASE_URL}/services/ax-dx/`,
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: [
+			{
+				"@type": "ListItem",
+				position: 1,
+				name: "ホーム",
+				item: BASE_URL,
+			},
+			{
+				"@type": "ListItem",
+				position: 2,
+				name: "AX/DX戦略コンサルティング",
+				item: `${BASE_URL}/services/ax-dx/`,
+			},
+		],
+	},
+];
+
 export default function AxDxPage() {
 	return (
 		<>
+			<JsonLd data={axDxJsonLd} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={navLinks} />

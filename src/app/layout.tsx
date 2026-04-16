@@ -24,7 +24,13 @@ export const metadata: Metadata = {
 	description:
 		"Kuu株式会社は、AX/DX戦略コンサルティング、AIエージェントガバナンスサービス、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、技術と物語をあらゆる人に届けます。",
 	metadataBase: new URL("https://kuucorp.com"),
-	robots: { index: true, follow: true },
+	robots: {
+		index: true,
+		follow: true,
+		"max-snippet": -1,
+		"max-image-preview": "large" as const,
+		"max-video-preview": -1,
+	},
 	openGraph: {
 		siteName: "Kuu株式会社",
 		locale: "ja_JP",

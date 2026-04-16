@@ -28,10 +28,12 @@ const homeJsonLd = [
 		"@context": "https://schema.org",
 		"@type": "Organization",
 		name: "Kuu株式会社",
+		legalName: "Kuu株式会社",
 		url: BASE_URL,
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		description:
 			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスで中小企業のDX推進をサポートします。",
+		slogan: "技術と物語を、あらゆる人に届ける",
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: "東神田一丁目13番14号",
@@ -46,25 +48,40 @@ const homeJsonLd = [
 			availableLanguage: "Japanese",
 		},
 		sameAs: ["https://github.com/fujipi"],
+		knowsAbout: [
+			"AIエージェント",
+			"エージェントガバナンス",
+			"AI Agent Governance",
+			"DXコンサルティング",
+			"エージェントトランスフォーメーション",
+			"Managed Agents",
+			"LLM",
+		],
 		founder: {
 			"@type": "Person",
 			name: "藤平 賢人",
+			jobTitle: "代表取締役",
+			knowsAbout: [
+				"AIエージェント",
+				"エージェントガバナンス",
+				"DX戦略",
+			],
 		},
 		foundingDate: "2022",
+		numberOfEmployees: {
+			"@type": "QuantitativeValue",
+			minValue: 1,
+			maxValue: 10,
+		},
 	},
 	{
 		"@context": "https://schema.org",
 		"@type": "WebSite",
 		name: "Kuu株式会社",
 		url: BASE_URL,
-		potentialAction: {
-			"@type": "SearchAction",
-			target: {
-				"@type": "EntryPoint",
-				urlTemplate: `${BASE_URL}/?q={search_term_string}`,
-			},
-			"query-input": "required name=search_term_string",
-		},
+		inLanguage: "ja",
+		description:
+			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築で中小企業のDX推進をサポート。",
 	},
 	{
 		"@context": "https://schema.org",
