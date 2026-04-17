@@ -300,7 +300,9 @@ export default function AxDxPage() {
 
 					{/* 対象業務 */}
 					<section style={{ marginBottom: "5rem" }}>
-						<h2 className="section-label fade-in">AIエージェント活用の対象範囲</h2>
+						<h2 className="section-label fade-in">
+							AIエージェント活用の対象範囲
+						</h2>
 						<div className="fade-in" style={{ maxWidth: "720px" }}>
 							<p
 								style={{

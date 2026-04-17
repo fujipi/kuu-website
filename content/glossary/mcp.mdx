@@ -1,0 +1,32 @@
+---
+term: "MCP"
+reading: "えむしーぴー"
+english: "Model Context Protocol"
+short_definition: "Anthropic が公開したAIモデルと外部ツール・データソースを接続するためのオープン標準プロトコル。LSP のAI版と呼ばれる。"
+description: "Model Context Protocol (MCP) は Claude をはじめとするLLMが外部ツールや業務システムに安全に接続するための標準規格。中小企業が自社データとAIを接続する際の要となる技術。"
+related_terms: ["managed-agents", "agent-governance", "a2a-protocol"]
+sources:
+  - "https://modelcontextprotocol.io/"
+---
+
+## 定義
+
+MCP (Model Context Protocol) は、**AIモデルが外部のツールやデータソースに安全かつ標準的に接続するためのオープンプロトコル**で、Anthropic が2024年に公開・推進しています。LLM向けの LSP (Language Server Protocol) に相当すると説明されることが多く、ツール接続の仕様を統一します。
+
+## なぜ重要か
+
+従来、各AIモデル・各プラットフォームがツール呼び出しの仕様を独自に持っていたため、接続の再実装コストが大きく、ベンダーロックインの温床でした。MCP により以下が実現します。
+
+- **接続の互換性**: 一度MCPサーバを実装すれば複数のAIホストで利用可
+- **認証と権限管理の標準化**: 外部システムへのアクセスを統一的に制御
+- **セキュアな分離**: モデル本体と外部ツールを明確に分離して監査しやすい
+
+## 中小企業にとっての意義
+
+1. **ベンダーロックイン回避**: AIモデルを切り替えてもツール接続を流用可能
+2. **既存システム接続の低コスト化**: 社内データベース・SaaSとの接続が共通化
+3. **ガバナンス強化**: MCP層でアクセス権限を一元管理しやすい
+
+## 関連プロトコル
+
+A2A (Agent-to-Agent Protocol) はエージェント同士の協調を扱う別レイヤーの仕様で、MCP と組み合わせて使います。

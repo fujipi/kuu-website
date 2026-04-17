@@ -11,6 +11,10 @@ export interface BlogPost {
 	date: string;
 	lastModified: string;
 	tags: string[];
+	author: string;
+	pillar?: string;
+	series?: string;
+	seriesOrder?: number;
 	content: string;
 }
 
@@ -21,6 +25,10 @@ export interface BlogPostMeta {
 	date: string;
 	lastModified: string;
 	tags: string[];
+	author: string;
+	pillar?: string;
+	series?: string;
+	seriesOrder?: number;
 }
 
 export function getAllPostSlugs(): string[] {
@@ -47,6 +55,15 @@ export function getAllPosts(): BlogPostMeta[] {
 				date: data.date ?? "",
 				lastModified: data.lastModified ?? data.date ?? "",
 				tags: Array.isArray(data.tags) ? data.tags : [],
+				author: typeof data.author === "string" ? data.author : "kuu-editorial",
+				pillar: typeof data.pillar === "string" ? data.pillar : undefined,
+				series: typeof data.series === "string" ? data.series : undefined,
+				seriesOrder:
+					typeof data.series_order === "number"
+						? data.series_order
+						: typeof data.seriesOrder === "number"
+							? data.seriesOrder
+							: undefined,
 			} satisfies BlogPostMeta;
 		})
 		.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -72,6 +89,15 @@ export function getPostBySlug(slug: string): BlogPost | null {
 		date: data.date ?? "",
 		lastModified: data.lastModified ?? data.date ?? "",
 		tags: Array.isArray(data.tags) ? data.tags : [],
+		author: typeof data.author === "string" ? data.author : "kuu-editorial",
+		pillar: typeof data.pillar === "string" ? data.pillar : undefined,
+		series: typeof data.series === "string" ? data.series : undefined,
+		seriesOrder:
+			typeof data.series_order === "number"
+				? data.series_order
+				: typeof data.seriesOrder === "number"
+					? data.seriesOrder
+					: undefined,
 		content,
 	};
 }

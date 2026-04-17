@@ -4,8 +4,14 @@ import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
+import ReadingTime from "@/components/ReadingTime";
 import Stars from "@/components/Stars";
-import { getAllPosts, getAllPostSlugs, getPostBySlug } from "@/lib/mdx";
+import TableOfContents from "@/components/TableOfContents";
+import { getAuthorBySlug } from "@/lib/authors";
+import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
+import { readingTimeMinutes } from "@/lib/readingTime";
+import { slugifyTag } from "@/lib/tags";
+import { buildToc } from "@/lib/toc";
 
 interface Props {
 	params: Promise<{ slug: string }>;
@@ -80,13 +86,21 @@ function formatDate(dateStr: string): string {
  * MDX本文をシンプルなHTMLへ変換する。
  * コンテンツはビルド時にローカルの content/blog/ ディレクトリから読み込むため、
  * 外部ユーザー入力は一切含まない。XSSリスクはゼロ。
+ * idMap を渡すと H2/H3 に id 属性を付与する (TOC ジャンプ用)。
  */
-function mdToHtml(md: string): string {
+function mdToHtml(md: string, idMap?: Map<string, string>): string {
 	// ブロック単位で処理するため、まず空行で分割
 	// 各ブロック内でインライン変換を行う
 	const rawBlocks = md.split(/\n\n+/);
 
 	const processedBlocks: string[] = [];
+
+	const headingReplace = (level: 2 | 3, text: string): string => {
+		const id = idMap?.get(`${level}:${text.trim()}`);
+		return id
+			? `<h${level} id="${id}">${text}</h${level}>`
+			: `<h${level}>${text}</h${level}>`;
+	};
 
 	for (const rawBlock of rawBlocks) {
 		const block = rawBlock.trim();
@@ -96,8 +110,8 @@ function mdToHtml(md: string): string {
 		if (/^#{1,4} /.test(block)) {
 			const converted = block
 				.replace(/^#### (.+)$/gm, "<h4>$1</h4>")
-				.replace(/^### (.+)$/gm, "<h3>$1</h3>")
-				.replace(/^## (.+)$/gm, "<h2>$1</h2>")
+				.replace(/^### (.+)$/gm, (_m, t) => headingReplace(3, t))
+				.replace(/^## (.+)$/gm, (_m, t) => headingReplace(2, t))
 				.replace(/^# (.+)$/gm, "<h1>$1</h1>")
 				.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
 				.replace(/\*(.+?)\*/g, "<em>$1</em>")
@@ -118,7 +132,10 @@ function mdToHtml(md: string): string {
 		const isListBlock = lines.every(
 			(l) => /^[-*] /.test(l) || /^\d+\. /.test(l) || l.trim() === "",
 		);
-		if (isListBlock && lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))) {
+		if (
+			isListBlock &&
+			lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))
+		) {
 			const isOrdered = lines.some((l) => /^\d+\. /.test(l));
 			const tag = isOrdered ? "ol" : "ul";
 			const items = lines
@@ -139,17 +156,25 @@ function mdToHtml(md: string): string {
 
 		// 混在ブロック（太字ラベル行 + リスト行 が同一ブロック内に混在するケースなど）
 		// 行ごとに分解して再帰的に処理
-		const hasListLine = lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l));
+		const hasListLine = lines.some(
+			(l) => /^[-*] /.test(l) || /^\d+\. /.test(l),
+		);
 		if (hasListLine) {
 			let i = 0;
 			while (i < lines.length) {
 				const line = lines[i].trim();
-				if (!line) { i++; continue; }
+				if (!line) {
+					i++;
+					continue;
+				}
 				if (/^[-*] /.test(line) || /^\d+\. /.test(line)) {
 					// 連続するリスト行をまとめる
 					const listLines: string[] = [];
 					const isOrdered = /^\d+\. /.test(line);
-					while (i < lines.length && (/^[-*] /.test(lines[i]) || /^\d+\. /.test(lines[i]))) {
+					while (
+						i < lines.length &&
+						(/^[-*] /.test(lines[i]) || /^\d+\. /.test(lines[i]))
+					) {
 						listLines.push(lines[i]);
 						i++;
 					}
@@ -236,8 +261,15 @@ export default async function BlogPostPage({ params }: Props) {
 		.sort((a, b) => b.sharedTags - a.sharedTags)
 		.slice(0, 3);
 
+	// TOC 構築（H2/H3 の id 対応）
+	const { toc, idMap } = buildToc(post.content);
+	// 読了時間
+	const minutes = readingTimeMinutes(post.content);
+	// 著者メタ
+	const author = getAuthorBySlug(post.author);
+
 	// ローカルMDXファイル（外部入力なし）をビルド時に変換したHTML
-	const contentHtml = mdToHtml(post.content);
+	const contentHtml = mdToHtml(post.content, idMap);
 
 	const articleJsonLd = [
 		{
@@ -246,10 +278,16 @@ export default async function BlogPostPage({ params }: Props) {
 			headline: post.title,
 			description: post.description,
 			author: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: "https://kuucorp.com",
-				logo: "https://kuucorp.com/images/favicon-192.png",
+				"@type": "Person",
+				name: author.name,
+				jobTitle: author.role,
+				url: `https://kuucorp.com/authors/${author.slug}/`,
+				knowsAbout: author.expertise,
+				worksFor: {
+					"@type": "Organization",
+					name: "Kuu株式会社",
+					url: "https://kuucorp.com",
+				},
 			},
 			publisher: {
 				"@type": "Organization",
@@ -325,21 +363,29 @@ export default async function BlogPostPage({ params }: Props) {
 					</nav>
 
 					{/* 記事ヘッダー */}
-					<div style={{ maxWidth: "720px", marginBottom: "3rem" }}>
-						<time
-							dateTime={post.date}
+					<div style={{ maxWidth: "720px", marginBottom: "2rem" }}>
+						<div
 							className="fade-in"
 							style={{
-								display: "block",
-								fontSize: "0.7rem",
-								color: "var(--gray-dim)",
-								fontFamily: "var(--font-heading)",
-								letterSpacing: "0.05em",
+								display: "flex",
+								alignItems: "center",
+								flexWrap: "wrap",
 								marginBottom: "1rem",
 							}}
 						>
-							{formatDate(post.date)}
-						</time>
+							<time
+								dateTime={post.date}
+								style={{
+									fontSize: "0.7rem",
+									color: "var(--gray-dim)",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.05em",
+								}}
+							>
+								{formatDate(post.date)}
+							</time>
+							<ReadingTime minutes={minutes} />
+						</div>
 						<h1
 							className="fade-in"
 							style={{
@@ -352,14 +398,39 @@ export default async function BlogPostPage({ params }: Props) {
 						>
 							{post.title}
 						</h1>
+						<div
+							className="fade-in"
+							style={{
+								fontSize: "0.75rem",
+								color: "var(--gray-dim)",
+								marginBottom: "1rem",
+							}}
+						>
+							by{" "}
+							<Link
+								href={`/authors/${author.slug}/`}
+								style={{ color: "var(--gray-medium)" }}
+							>
+								{author.name}
+							</Link>
+							{post.lastModified && post.lastModified !== post.date && (
+								<>
+									{" · 更新日 "}
+									<time dateTime={post.lastModified}>
+										{formatDate(post.lastModified)}
+									</time>
+								</>
+							)}
+						</div>
 						{post.tags.length > 0 && (
 							<div
 								className="fade-in"
 								style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
 							>
 								{post.tags.map((tag) => (
-									<span
+									<Link
 										key={tag}
+										href={`/blog/tags/${slugifyTag(tag)}/`}
 										style={{
 											fontSize: "0.65rem",
 											color: "var(--gray-dim)",
@@ -371,11 +442,13 @@ export default async function BlogPostPage({ params }: Props) {
 										}}
 									>
 										{tag}
-									</span>
+									</Link>
 								))}
 							</div>
 						)}
 					</div>
+
+					<TableOfContents items={toc} />
 
 					{/* 記事本文: ビルド時変換済みHTML（ローカルファイルのみ・外部入力なし） */}
 					<article
@@ -499,9 +572,7 @@ export default async function BlogPostPage({ params }: Props) {
 										{rp.title}
 									</Link>
 								))}
-								<div
-									style={{ borderBottom: "1px solid var(--gray-dark)" }}
-								/>
+								<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
 							</div>
 						</section>
 					)}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Outfit } from "next/font/google";
+import Analytics from "@/components/Analytics";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -47,6 +48,16 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		images: ["/images/ogp.png"],
 	},
+	verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
+		? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
+		: undefined,
+	alternates: {
+		types: {
+			"application/rss+xml": "/feed.xml",
+			"application/atom+xml": "/atom.xml",
+			"application/json": "/feed.json",
+		},
+	},
 };
 
 export default function RootLayout({
@@ -79,8 +90,23 @@ export default function RootLayout({
 					sizes="192x192"
 				/>
 				<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+				<link
+					rel="alternate"
+					type="application/rss+xml"
+					title="Kuu株式会社 Blog RSS"
+					href="/feed.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/atom+xml"
+					title="Kuu株式会社 Blog Atom"
+					href="/atom.xml"
+				/>
 			</head>
-			<body>{children}</body>
+			<body>
+				<Analytics />
+				{children}
+			</body>
 		</html>
 	);
 }

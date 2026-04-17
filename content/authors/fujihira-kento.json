@@ -1,0 +1,15 @@
+{
+  "slug": "fujihira-kento",
+  "name": "藤平 賢人",
+  "role": "Kuu株式会社 代表取締役",
+  "bio": "Kuu株式会社 代表取締役。AIエージェントガバナンスとAX/DX戦略コンサルティングを中小企業向けに提供。Managed Agents の設計・運用、エージェント9軸評価フレームワークの策定を主導。",
+  "expertise": [
+    "AIエージェントガバナンス",
+    "Managed Agents 設計",
+    "AX / DX 戦略",
+    "中小企業のAI導入"
+  ],
+  "sameAs": [
+    "https://kuucorp.com/about/"
+  ]
+}

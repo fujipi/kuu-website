@@ -7,6 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { getAllTags } from "@/lib/tags";
 
 export const metadata: Metadata = seoMetadata({
 	title: "ブログ | AIエージェント・DX戦略コラム | Kuu株式会社",
@@ -37,6 +38,7 @@ const BASE_URL = "https://kuucorp.com";
 
 export default function BlogListPage() {
 	const posts = getAllPosts();
+	const tags = getAllTags().slice(0, 12);
 
 	const blogListJsonLd = [
 		{
@@ -91,6 +93,70 @@ export default function BlogListPage() {
 			<main>
 				<div className="page-content">
 					<h1 className="page-title fade-in">Blog</h1>
+
+					<div
+						className="fade-in"
+						style={{
+							display: "flex",
+							gap: "1rem",
+							fontSize: "0.7rem",
+							fontFamily: "var(--font-heading)",
+							letterSpacing: "0.05em",
+							color: "var(--gray-dim)",
+							marginBottom: "1.5rem",
+							flexWrap: "wrap",
+						}}
+					>
+						<a href="/feed.xml" style={{ color: "var(--gray-medium)" }}>
+							RSS
+						</a>
+						<a href="/atom.xml" style={{ color: "var(--gray-medium)" }}>
+							Atom
+						</a>
+						<a href="/feed.json" style={{ color: "var(--gray-medium)" }}>
+							JSON Feed
+						</a>
+						<Link href="/glossary/" style={{ color: "var(--gray-medium)" }}>
+							Glossary
+						</Link>
+						<Link
+							href="/ai-governance/"
+							style={{ color: "var(--gray-medium)" }}
+						>
+							Pillar
+						</Link>
+					</div>
+
+					{tags.length > 0 && (
+						<div
+							className="fade-in"
+							style={{
+								display: "flex",
+								gap: "0.5rem",
+								flexWrap: "wrap",
+								marginBottom: "2rem",
+								maxWidth: "720px",
+							}}
+						>
+							{tags.map((t) => (
+								<Link
+									key={t.slug}
+									href={`/blog/tags/${t.slug}/`}
+									style={{
+										fontSize: "0.65rem",
+										color: "var(--gray-dim)",
+										border: "1px solid var(--gray-dark)",
+										borderRadius: "2px",
+										padding: "0.2rem 0.6rem",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+									}}
+								>
+									#{t.tag} ({t.count})
+								</Link>
+							))}
+						</div>
+					)}
 
 					{posts.length === 0 ? (
 						<p
