@@ -17,6 +17,8 @@ import satori from "satori";
 const ROOT = process.cwd();
 const BLOG_DIR = path.join(ROOT, "content/blog");
 const GLOSSARY_DIR = path.join(ROOT, "content/glossary");
+const CASE_STUDIES_DIR = path.join(ROOT, "content/case-studies");
+const RESOURCES_DIR = path.join(ROOT, "content/resources");
 const OUT_DIR = path.join(ROOT, "public/og");
 const FONT_CACHE = path.join(ROOT, "scripts/.cache/fonts");
 const SITE = "Kuu株式会社";
@@ -185,6 +187,42 @@ function collectGlossary() {
 		});
 }
 
+function collectCaseStudies() {
+	if (!fs.existsSync(CASE_STUDIES_DIR)) return [];
+	return fs
+		.readdirSync(CASE_STUDIES_DIR)
+		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+		.map((f) => {
+			const slug = f.replace(/\.(mdx|md)$/, "");
+			const { data } = matter(
+				fs.readFileSync(path.join(CASE_STUDIES_DIR, f), "utf-8"),
+			);
+			return {
+				out: path.join(OUT_DIR, "case-studies", `${slug}.png`),
+				title: data.title ?? slug,
+				eyebrow: "Case Study",
+			};
+		});
+}
+
+function collectResources() {
+	if (!fs.existsSync(RESOURCES_DIR)) return [];
+	return fs
+		.readdirSync(RESOURCES_DIR)
+		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+		.map((f) => {
+			const slug = f.replace(/\.(mdx|md)$/, "");
+			const { data } = matter(
+				fs.readFileSync(path.join(RESOURCES_DIR, f), "utf-8"),
+			);
+			return {
+				out: path.join(OUT_DIR, "resources", `${slug}.png`),
+				title: data.title ?? slug,
+				eyebrow: "Resource",
+			};
+		});
+}
+
 const STATIC_JOBS = [
 	{ out: "default.png", title: SITE, eyebrow: TAGLINE },
 	{
@@ -197,8 +235,23 @@ const STATIC_JOBS = [
 		title: "Managed Agents 実装ガイド",
 		eyebrow: "Pillar",
 	},
+	{
+		out: "eu-ai-act-jp.png",
+		title: "EU AI Act 日本企業対応",
+		eyebrow: "Pillar",
+	},
 	{ out: "pricing.png", title: "料金プラン", eyebrow: "Pricing" },
 	{ out: "glossary.png", title: "AI Agent Glossary", eyebrow: "Glossary" },
+	{
+		out: "case-studies.png",
+		title: "AIエージェント導入事例",
+		eyebrow: "Case Studies",
+	},
+	{
+		out: "resources.png",
+		title: "AIガバナンス資料・テンプレート",
+		eyebrow: "Resources",
+	},
 	{ out: "blog.png", title: "Blog", eyebrow: SITE },
 	{ out: "about.png", title: "About Kuu株式会社", eyebrow: SITE },
 	{ out: "contact.png", title: "Contact", eyebrow: SITE },
@@ -211,11 +264,15 @@ async function main() {
 		fs.mkdirSync(OUT_DIR, { recursive: true });
 		fs.mkdirSync(path.join(OUT_DIR, "blog"), { recursive: true });
 		fs.mkdirSync(path.join(OUT_DIR, "glossary"), { recursive: true });
+		fs.mkdirSync(path.join(OUT_DIR, "case-studies"), { recursive: true });
+		fs.mkdirSync(path.join(OUT_DIR, "resources"), { recursive: true });
 
 		const jobs = [
 			...STATIC_JOBS.map((j) => ({ ...j, out: path.join(OUT_DIR, j.out) })),
 			...collectBlog(),
 			...collectGlossary(),
+			...collectCaseStudies(),
+			...collectResources(),
 		];
 
 		for (const job of jobs) {

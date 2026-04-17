@@ -1,0 +1,52 @@
+---
+term: "Agent Observability"
+reading: "エージェント オブザーバビリティ"
+english: "Agent Observability"
+short_definition: "AIエージェントの動作状態・意思決定・外部接続を可視化し、問題の早期検知と継続改善を可能にする運用技術分野。"
+description: "Agent Observabilityは、AIエージェントの推論過程・ツール呼び出し・外部API接続・コスト・遅延を時系列で可視化する運用技術です。従来のアプリケーション監視 (APM) と異なり、LLMの確率的動作や非決定性を扱うため、プロンプト・出力・中間推論ステップを含めた全ログの構造化保管と、品質指標のリアルタイム集約が求められます。"
+related_terms:
+  - "managed-agents"
+  - "agent-governance"
+  - "mcp"
+sources:
+  - "OpenTelemetry for LLMs (2025)"
+---
+
+## 概念
+
+Agent Observability は、AIエージェントの「何を考え・何をして・何が起きたか」を、あとから追跡可能な形で記録・可視化する技術領域です。決定性の高い従来プログラムと違い、LLMベースのエージェントは同じ入力でも出力が揺らぐため、単なるログ保管ではなく「品質指標付きログ」が必要になります。
+
+## なぜ重要か
+
+中小企業でAIエージェントを運用する場合、以下の理由で Observability は必須です。
+
+- 品質劣化の早期検知 (モデル更新・業務変化による精度低下)
+- インシデント調査 (誤出力・情報漏洩の原因特定)
+- コスト管理 (LLM API料金の可視化)
+- 規制対応 (EU AI Act・ISO 42001 が要求する監査ログ)
+
+## 主な計測対象
+
+- プロンプト・システムプロンプト全文
+- LLM応答 (複数候補があれば全て)
+- ツール呼び出しの入出力 (MCP準拠なら標準形式で記録)
+- トークン消費量・コスト
+- 応答時間 (p50/p95/p99)
+- ユーザフィードバック (採用・却下・修正)
+- 品質スコア ([9軸評価](/ai-governance/#9axis) の各軸)
+
+## 実装パターン
+
+- OpenTelemetry for LLMs: 業界標準の通信プロトコル
+- LangSmith / Langfuse / Helicone 等の専用SaaS
+- クラウドネイティブの統合監視 (GCP Cloud Trace・AWS CloudWatch 等)
+
+## 中小企業への示唆
+
+エージェント1-2本の段階では専用SaaSは過剰投資ですが、3本目以降、あるいは顧客接点に導入するタイミングで導入するのが合理的です。Managed Agents 契約では運用側が Observability を提供するケースが標準です。
+
+## 関連トピック
+
+- [エージェントガバナンス](/ai-governance/): 運用統制の全体像
+- [Managed Agents](/glossary/managed-agents/): 運用代行モデル
+- [AI-BCP](/glossary/ai-bcp/): 障害時の事業継続設計

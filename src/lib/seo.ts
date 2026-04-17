@@ -14,11 +14,13 @@ export type PageSeoProps = {
 
 /**
  * Resolve an OG image URL from a site path.
- *  - /blog/{slug}/   -> /og/blog/{slug}.png
- *  - /glossary/{s}/  -> /og/glossary/{s}.png
- *  - /ai-governance/ -> /og/ai-governance.png
- *  - /managed-agents/ -> /og/managed-agents.png
- *  - /pricing/, /about/, /contact/, /blog/, /glossary/ -> /og/{name}.png
+ *  - /blog/{slug}/         -> /og/blog/{slug}.png
+ *  - /glossary/{s}/        -> /og/glossary/{s}.png
+ *  - /case-studies/{s}/    -> /og/case-studies/{s}.png
+ *  - /resources/{s}/       -> /og/resources/{s}.png
+ *  - /ai-governance/, /managed-agents/, /eu-ai-act-jp/ -> /og/{name}.png
+ *  - /pricing/, /about/, /contact/, /blog/, /glossary/,
+ *    /case-studies/, /resources/ -> /og/{name}.png
  *  - else -> /og/default.png
  * Images are generated at build time by scripts/generate-og-images.mjs.
  */
@@ -28,8 +30,12 @@ export function resolveOgImage(pathname: string): string {
 	if (blog) return `/og/blog/${blog[1]}.png`;
 	const gloss = p.match(/^\/glossary\/([^/]+)$/);
 	if (gloss) return `/og/glossary/${gloss[1]}.png`;
+	const cs = p.match(/^\/case-studies\/([^/]+)$/);
+	if (cs) return `/og/case-studies/${cs[1]}.png`;
+	const res = p.match(/^\/resources\/([^/]+)$/);
+	if (res) return `/og/resources/${res[1]}.png`;
 	const simple = p.match(
-		/^\/(ai-governance|managed-agents|pricing|blog|glossary|about|contact)$/,
+		/^\/(ai-governance|managed-agents|eu-ai-act-jp|pricing|blog|glossary|about|contact|case-studies|resources)$/,
 	);
 	if (simple) return `/og/${simple[1]}.png`;
 	return "/og/default.png";
