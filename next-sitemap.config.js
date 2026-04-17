@@ -44,7 +44,11 @@ const config = {
 		if (p === "/") {
 			return { loc: path, changefreq: "weekly", priority: 1.0, lastmod: now };
 		}
-		if (p === "/ai-governance" || p === "/managed-agents") {
+		if (
+			p === "/ai-governance" ||
+			p === "/managed-agents" ||
+			p === "/eu-ai-act-jp"
+		) {
 			return { loc: path, changefreq: "monthly", priority: 0.95, lastmod: now };
 		}
 		if (p.startsWith("/services/")) {
@@ -53,8 +57,17 @@ const config = {
 		if (p === "/pricing") {
 			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
 		}
-		if (p.startsWith("/case-studies")) {
-			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
+		if (p === "/case-studies") {
+			return { loc: path, changefreq: "weekly", priority: 0.9, lastmod: now };
+		}
+		if (p.startsWith("/case-studies/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.85, lastmod: now };
+		}
+		if (p === "/resources") {
+			return { loc: path, changefreq: "weekly", priority: 0.85, lastmod: now };
+		}
+		if (p.startsWith("/resources/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.75, lastmod: now };
 		}
 		if (p === "/blog") {
 			return { loc: path, changefreq: "weekly", priority: 0.8, lastmod: now };

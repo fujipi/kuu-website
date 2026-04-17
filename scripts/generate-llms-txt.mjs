@@ -2,8 +2,8 @@
 /**
  * Generate llms.txt (overview + index) and llms-full.txt (full concatenated content).
  * Follows the emerging llms.txt spec for giving LLMs a clean canonical site map.
- * Reads from content/blog, content/glossary, content/pillars (if exist).
- * Writes to public/llms.txt and public/llms-full.txt.
+ * Reads from content/blog, content/glossary, content/case-studies, content/resources,
+ * content/pillars (if exist). Writes to public/llms.txt and public/llms-full.txt.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -37,6 +37,29 @@ const readCollection = (dir) => {
 const blog = readCollection("content/blog");
 const glossary = readCollection("content/glossary");
 const pillars = readCollection("content/pillars");
+const caseStudies = readCollection("content/case-studies");
+const resources = readCollection("content/resources");
+
+const inAppPillars = [
+	{
+		slug: "ai-governance",
+		title: "エージェントガバナンスとは (包括ガイド)",
+		description:
+			"AIエージェントを安全・継続的に運用するガバナンス設計ガイド。ポリシー・役割・監視・監査の全体像を中小企業向けに整理。",
+	},
+	{
+		slug: "managed-agents",
+		title: "Managed Agents 実装ガイド",
+		description:
+			"運用込みでAIエージェントを導入する Managed Agents モデルの実装手順・費用対効果・体制設計。",
+	},
+	{
+		slug: "eu-ai-act-jp",
+		title: "EU AI Act 日本企業対応ガイド",
+		description:
+			"EU AI Act が日本企業に及ぶ条件・リスク階層・対応ステップ・日本AI推進法との関係を解説。",
+	},
+];
 
 const sections = [];
 sections.push(`# Kuu株式会社 (kuucorp.com)
@@ -59,10 +82,39 @@ sections.push(`## Services
 - 会社情報: ${SITE}/about/
 `);
 
-if (pillars.length) {
+const allPillars = [
+	...inAppPillars,
+	...pillars.map((p) => ({
+		slug: p.slug,
+		title: p.title,
+		description: p.description,
+	})),
+];
+if (allPillars.length) {
 	sections.push(
-		`## Pillars (包括ガイド)\n\n${pillars
+		`## Pillars (包括ガイド)\n\n${allPillars
 			.map((p) => `- [${p.title}](${SITE}/${p.slug}/): ${p.description}`)
+			.join("\n")}\n`,
+	);
+}
+
+if (caseStudies.length) {
+	sections.push(
+		`## Case Studies (導入事例)\n\n${caseStudies
+			.map(
+				(c) =>
+					`- [${c.title}](${SITE}/case-studies/${c.slug}/): ${c.description}`,
+			)
+			.join("\n")}\n`,
+	);
+}
+
+if (resources.length) {
+	sections.push(
+		`## Resources (資料・テンプレート)\n\n${resources
+			.map(
+				(r) => `- [${r.title}](${SITE}/resources/${r.slug}/): ${r.description}`,
+			)
 			.join("\n")}\n`,
 	);
 }
@@ -101,6 +153,16 @@ for (const p of pillars) {
 		`\n---\n# [Pillar] ${p.title}\n\nURL: ${SITE}/${p.slug}/\n${p.description}\n\n${p.content}\n`,
 	);
 }
+for (const c of caseStudies) {
+	full.push(
+		`\n---\n# [Case Study] ${c.title}\n\nURL: ${SITE}/case-studies/${c.slug}/\n${c.description}\n\n${c.content}\n`,
+	);
+}
+for (const r of resources) {
+	full.push(
+		`\n---\n# [Resource] ${r.title}\n\nURL: ${SITE}/resources/${r.slug}/\n${r.description}\n\n${r.content}\n`,
+	);
+}
 for (const g of glossary) {
 	full.push(
 		`\n---\n# [Glossary] ${g.title}\n\nURL: ${SITE}/glossary/${g.slug}/\n${g.description}\n\n${g.content}\n`,
@@ -115,5 +177,5 @@ for (const b of blog) {
 fs.writeFileSync(path.join(OUT, "llms-full.txt"), full.join("\n"));
 
 console.log(
-	`[llms-txt] generated llms.txt (${blog.length} blog, ${glossary.length} glossary, ${pillars.length} pillars) and llms-full.txt`,
+	`[llms-txt] generated llms.txt (${blog.length} blog, ${glossary.length} glossary, ${allPillars.length} pillars, ${caseStudies.length} case-studies, ${resources.length} resources) and llms-full.txt`,
 );
