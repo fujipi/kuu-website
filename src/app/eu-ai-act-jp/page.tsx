@@ -85,6 +85,10 @@ const jsonLd = [
 		articleSection: "Pillar",
 		keywords:
 			"EU AI Act, 日本企業, ISO 42001, AI規制, 中小企業, 該当判定, リスク分類",
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: [".answer-block"],
+		},
 	},
 	{
 		"@context": "https://schema.org",
@@ -170,36 +174,12 @@ export default function EuAiActPillarPage() {
 						Last updated: 2026-04-17 · 約 10 分で読めます
 					</p>
 
-					{/* Direct Answer Block (GEO) */}
+					{/* Direct Answer Block (GEO/AEO: Speakable対象) */}
 					<div
-						className="fade-in"
-						style={{
-							border: "1px solid var(--gray-dark)",
-							padding: "1.5rem",
-							borderRadius: "6px",
-							marginBottom: "3rem",
-							background: "rgba(255,255,255,0.02)",
-							maxWidth: "760px",
-						}}
+						className="fade-in answer-block"
+						style={{ marginBottom: "3rem", maxWidth: "760px" }}
 					>
-						<div
-							style={{
-								fontSize: "0.65rem",
-								color: "var(--gray-dim)",
-								fontFamily: "var(--font-heading)",
-								letterSpacing: "0.1em",
-								marginBottom: "0.75rem",
-							}}
-						>
-							ANSWER
-						</div>
-						<p
-							style={{
-								fontSize: "0.95rem",
-								color: "var(--gray-light)",
-								lineHeight: "2",
-							}}
-						>
+						<p>
 							EU AI Actは2024年8月発効の包括的AI規制で、2025-2027年に段階施行されます。日本の中小企業でも、EU顧客・EU取引先・上場準備がある場合は該当判定と対応整備が必要です。リスク分類に応じて透明性義務〜高リスクAIの適合性評価まで要求範囲が変わり、違反時は最大売上7%の罰金が科されます。ISO/IEC
 							42001 と重なる部分が多いため同時整備が効率的です。
 						</p>

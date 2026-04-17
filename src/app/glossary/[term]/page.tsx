@@ -132,6 +132,10 @@ export default async function GlossaryTermPage({ params }: Props) {
 			description: t.shortDefinition,
 			url,
 			inDefinedTermSet: `${BASE_URL}/glossary/`,
+			speakable: {
+				"@type": "SpeakableSpecification",
+				cssSelector: [".short-def"],
+			},
 		},
 		{
 			"@context": "https://schema.org",
@@ -227,6 +231,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 							SHORT DEFINITION
 						</div>
 						<p
+							className="short-def"
 							style={{
 								fontSize: "0.9rem",
 								color: "var(--gray-light)",
