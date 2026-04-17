@@ -7,7 +7,8 @@ import Stars from "@/components/Stars";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
-	title: "AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
+	title:
+		"AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
 	description:
 		"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
 	path: "/services/ai-ops/",

@@ -8,7 +8,8 @@ import Stars from "@/components/Stars";
 import { generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
-	title: "Kuu株式会社 | AIエージェント導入・運用支援 | AIエージェントガバナンス",
+	title:
+		"Kuu株式会社 | AIエージェント導入・運用支援 | AIエージェントガバナンス",
 	description:
 		"Kuu株式会社はAIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスサービスで中小企業のDX推進をサポートします。",
 	path: "/",
@@ -61,11 +62,7 @@ const homeJsonLd = [
 			"@type": "Person",
 			name: "藤平 賢人",
 			jobTitle: "代表取締役",
-			knowsAbout: [
-				"AIエージェント",
-				"エージェントガバナンス",
-				"DX戦略",
-			],
+			knowsAbout: ["AIエージェント", "エージェントガバナンス", "DX戦略"],
 		},
 		foundingDate: "2022",
 		numberOfEmployees: {
@@ -171,7 +168,9 @@ export default function Home() {
 						</div>
 
 						<div className="service-item fade-in-item">
-							<div className="service-name">AIエージェントガバナンスサービス</div>
+							<div className="service-name">
+								AIエージェントガバナンスサービス
+							</div>
 							<div className="service-desc">
 								AIエージェントの設計・ガバナンス構築・継続改善まで。エージェントが正しく動き続ける仕組みをワンストップで支援します。
 							</div>

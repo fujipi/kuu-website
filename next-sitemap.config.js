@@ -8,7 +8,9 @@ const config = {
 	priority: 0.7,
 	sitemapSize: 5000,
 	exclude: [],
+	additionalSitemaps: [],
 	robotsTxtOptions: {
+		additionalSitemaps: ["https://kuucorp.com/sitemap.xml"],
 		policies: [
 			{
 				userAgent: "*",
@@ -42,14 +44,35 @@ const config = {
 		if (p === "/") {
 			return { loc: path, changefreq: "weekly", priority: 1.0, lastmod: now };
 		}
+		if (p === "/ai-governance" || p === "/managed-agents") {
+			return { loc: path, changefreq: "monthly", priority: 0.95, lastmod: now };
+		}
 		if (p.startsWith("/services/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
+		}
+		if (p === "/pricing") {
+			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
+		}
+		if (p.startsWith("/case-studies")) {
 			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
 		}
 		if (p === "/blog") {
 			return { loc: path, changefreq: "weekly", priority: 0.8, lastmod: now };
 		}
+		if (p.startsWith("/blog/tags/")) {
+			return { loc: path, changefreq: "weekly", priority: 0.5, lastmod: now };
+		}
 		if (p.startsWith("/blog/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
+		}
+		if (p === "/glossary") {
+			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
+		}
+		if (p.startsWith("/glossary/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.6, lastmod: now };
+		}
+		if (p.startsWith("/authors/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.6, lastmod: now };
 		}
 		if (p === "/contact") {
 			return { loc: path, changefreq: "monthly", priority: 0.8, lastmod: now };

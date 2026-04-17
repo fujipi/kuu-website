@@ -1,0 +1,15 @@
+{
+  "slug": "kuu-editorial",
+  "name": "Kuu株式会社 編集部",
+  "role": "Kuu株式会社 エージェントガバナンス編集部",
+  "bio": "Kuu株式会社の編集部。AIエージェントガバナンス、Managed Agents、AX/DX戦略に関する実践的な情報を、中小企業の経営者・管理職・IT担当者向けに発信しています。",
+  "expertise": [
+    "AIエージェントガバナンス",
+    "AX / DX 戦略",
+    "中小企業DX",
+    "生成AI 業務活用"
+  ],
+  "sameAs": [
+    "https://kuucorp.com/about/"
+  ]
+}
