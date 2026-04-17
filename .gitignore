@@ -26,6 +26,9 @@
 /public/sitemap.xml
 /public/sitemap-*.xml
 /public/robots.txt
+/public/og/
+/public/images/ogp.png
+/scripts/.cache/
 
 # production
 /build

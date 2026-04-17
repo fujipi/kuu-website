@@ -12,14 +12,38 @@ export type PageSeoProps = {
 	noIndex?: boolean;
 };
 
+/**
+ * Resolve an OG image URL from a site path.
+ *  - /blog/{slug}/   -> /og/blog/{slug}.png
+ *  - /glossary/{s}/  -> /og/glossary/{s}.png
+ *  - /ai-governance/ -> /og/ai-governance.png
+ *  - /managed-agents/ -> /og/managed-agents.png
+ *  - /pricing/, /about/, /contact/, /blog/, /glossary/ -> /og/{name}.png
+ *  - else -> /og/default.png
+ * Images are generated at build time by scripts/generate-og-images.mjs.
+ */
+export function resolveOgImage(pathname: string): string {
+	const p = pathname.replace(/\/+$/, "");
+	const blog = p.match(/^\/blog\/([^/]+)$/);
+	if (blog) return `/og/blog/${blog[1]}.png`;
+	const gloss = p.match(/^\/glossary\/([^/]+)$/);
+	if (gloss) return `/og/glossary/${gloss[1]}.png`;
+	const simple = p.match(
+		/^\/(ai-governance|managed-agents|pricing|blog|glossary|about|contact)$/,
+	);
+	if (simple) return `/og/${simple[1]}.png`;
+	return "/og/default.png";
+}
+
 export function generateMetadata({
 	title,
 	description,
 	path,
-	ogpImage = DEFAULT_OGP_IMAGE,
+	ogpImage,
 	noIndex = false,
 }: PageSeoProps): Metadata {
 	const url = `${BASE_URL}${path}`;
+	const image = ogpImage ?? resolveOgImage(path) ?? DEFAULT_OGP_IMAGE;
 
 	return {
 		// Use absolute to prevent layout.tsx template from appending "| Kuu株式会社" again
@@ -46,7 +70,7 @@ export function generateMetadata({
 			type: "website",
 			images: [
 				{
-					url: ogpImage,
+					url: image,
 					width: 1200,
 					height: 630,
 					alt: title,
@@ -57,7 +81,7 @@ export function generateMetadata({
 			card: "summary_large_image",
 			title,
 			description,
-			images: [ogpImage],
+			images: [image],
 		},
 	};
 }
