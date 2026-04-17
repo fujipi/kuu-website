@@ -51,6 +51,20 @@ export function mdToHtml(md: string, idMap?: Map<string, string>): string {
 			continue;
 		}
 
+		// Direct-Answer Block (blockquote): `> ...` で始まる塊
+		const bqLines = block.split("\n");
+		if (bqLines.every((l) => /^>\s?/.test(l) || l.trim() === "")) {
+			const inner = bqLines
+				.filter((l) => /^>\s?/.test(l))
+				.map((l) => l.replace(/^>\s?/, ""))
+				.join(" ")
+				.trim();
+			out.push(
+				`<blockquote class="answer-block"><p>${inline(inner)}</p></blockquote>`,
+			);
+			continue;
+		}
+
 		if (/^#{1,4} /.test(block)) {
 			out.push(
 				block

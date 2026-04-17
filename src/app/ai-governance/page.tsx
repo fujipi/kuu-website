@@ -87,6 +87,10 @@ const jsonLd = [
 		articleSection: "Pillar",
 		keywords:
 			"エージェントガバナンス, AIエージェント, Managed Agents, 中小企業, EU AI Act, ISO 42001",
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: [".answer-block"],
+		},
 	},
 	{
 		"@context": "https://schema.org",
@@ -213,36 +217,12 @@ export default function AiGovernancePillarPage() {
 						Last updated: 2026-04-17 · 約 12 分で読めます
 					</p>
 
-					{/* Direct Answer Block (GEO) */}
+					{/* Direct Answer Block (GEO/AEO: Speakable対象) */}
 					<div
-						className="fade-in"
-						style={{
-							border: "1px solid var(--gray-dark)",
-							padding: "1.5rem",
-							borderRadius: "6px",
-							marginBottom: "3rem",
-							background: "rgba(255,255,255,0.02)",
-							maxWidth: "760px",
-						}}
+						className="fade-in answer-block"
+						style={{ marginBottom: "3rem", maxWidth: "760px" }}
 					>
-						<div
-							style={{
-								fontSize: "0.65rem",
-								color: "var(--gray-dim)",
-								fontFamily: "var(--font-heading)",
-								letterSpacing: "0.1em",
-								marginBottom: "0.75rem",
-							}}
-						>
-							ANSWER
-						</div>
-						<p
-							style={{
-								fontSize: "0.95rem",
-								color: "var(--gray-light)",
-								lineHeight: "2",
-							}}
-						>
+						<p>
 							エージェントガバナンスとは、組織内で稼働する複数のAIエージェントを設計・管理・評価・改善する体系的な仕組みです。中小企業では「3本目のエージェント」を導入する前後に整備を始めると、属人化と品質劣化を防ぎながら全社展開に進めます。Kuu株式会社は9軸評価フレームワークと
 							Managed Agents
 							モデルで、エンジニア不在の組織でも実装可能な体制構築を支援しています。

@@ -4,17 +4,19 @@ import Analytics from "@/components/Analytics";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
-	weight: ["300", "400", "500", "700"],
+	weight: ["400", "500", "700"],
 	subsets: ["latin"],
 	variable: "--font-noto-sans-jp",
 	display: "swap",
+	preload: true,
 });
 
 const outfit = Outfit({
-	weight: ["300", "400", "500", "600", "700"],
+	weight: ["400", "500", "600", "700"],
 	subsets: ["latin"],
 	variable: "--font-outfit",
 	display: "swap",
+	preload: true,
 });
 
 export const metadata: Metadata = {

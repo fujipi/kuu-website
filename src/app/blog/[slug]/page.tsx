@@ -127,6 +127,25 @@ function mdToHtml(md: string, idMap?: Map<string, string>): string {
 			continue;
 		}
 
+		// Direct-Answer Block (blockquote) — `> ...` で始まる塊
+		const bqLines = block.split("\n");
+		if (bqLines.every((l) => /^>\s?/.test(l) || l.trim() === "")) {
+			const inner = bqLines
+				.filter((l) => /^>\s?/.test(l))
+				.map((l) => l.replace(/^>\s?/, ""))
+				.join(" ")
+				.trim();
+			const inlineHtml = inner
+				.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+				.replace(/\*(.+?)\*/g, "<em>$1</em>")
+				.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+				.replace(/`([^`]+)`/g, "<code>$1</code>");
+			processedBlocks.push(
+				`<blockquote class="answer-block"><p>${inlineHtml}</p></blockquote>`,
+			);
+			continue;
+		}
+
 		// リストブロック（番号付き・番号なし混在対応）
 		const lines = block.split("\n");
 		const isListBlock = lines.every(
@@ -309,6 +328,10 @@ export default async function BlogPostPage({ params }: Props) {
 			articleSection: post.tags[0] ?? "AIエージェント",
 			keywords: post.tags.join(", "),
 			inLanguage: "ja",
+			speakable: {
+				"@type": "SpeakableSpecification",
+				cssSelector: [".answer-block"],
+			},
 		},
 		{
 			"@context": "https://schema.org",

@@ -88,6 +88,10 @@ const jsonLd = [
 		articleSection: "Pillar",
 		keywords:
 			"Managed Agents, AIエージェント 外部委託, AI運用 BPO, 中小企業, SLA, エージェントガバナンス",
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: [".answer-block"],
+		},
 	},
 	{
 		"@context": "https://schema.org",
@@ -230,36 +234,12 @@ export default function ManagedAgentsPillarPage() {
 						Last updated: 2026-04-17 · 約 14 分で読めます
 					</p>
 
-					{/* Direct Answer Block (GEO) */}
+					{/* Direct Answer Block (GEO/AEO: Speakable対象) */}
 					<div
-						className="fade-in"
-						style={{
-							border: "1px solid var(--gray-dark)",
-							padding: "1.5rem",
-							borderRadius: "6px",
-							marginBottom: "3rem",
-							background: "rgba(255,255,255,0.02)",
-							maxWidth: "760px",
-						}}
+						className="fade-in answer-block"
+						style={{ marginBottom: "3rem", maxWidth: "760px" }}
 					>
-						<div
-							style={{
-								fontSize: "0.65rem",
-								color: "var(--gray-dim)",
-								fontFamily: "var(--font-heading)",
-								letterSpacing: "0.1em",
-								marginBottom: "0.75rem",
-							}}
-						>
-							ANSWER
-						</div>
-						<p
-							style={{
-								fontSize: "0.95rem",
-								color: "var(--gray-light)",
-								lineHeight: "2",
-							}}
-						>
+						<p>
 							Managed
 							Agentsは、AIエージェントの設計・運用・改善を継続契約で外部委託する実装モデルです。社内にAI人材を持たない中小企業が、エージェントの品質劣化を防ぎながら安全に業務展開するための現実解として2025年以降急速に広がりました。初期50-200万円・月額20-100万円を相場に、SLAと9軸評価を組み合わせた発注が標準化しています。
 						</p>

@@ -562,6 +562,39 @@ footer {
 	margin: 2.5rem 0;
 }
 
+/* Direct-Answer Block (AEO: LLM引用に最適化した40-60字の直接回答) */
+.blog-content .answer-block,
+.answer-block {
+	border: 1px solid var(--gray-dark);
+	border-left: 2px solid var(--white);
+	padding: 1rem 1.25rem;
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.02);
+	margin: 0.5rem 0 2rem 0;
+	max-width: 720px;
+}
+.blog-content .answer-block::before,
+.answer-block::before {
+	content: "ANSWER";
+	display: block;
+	font-family: var(--font-heading);
+	font-size: 0.6rem;
+	letter-spacing: 0.15em;
+	color: var(--gray-dim);
+	margin-bottom: 0.4rem;
+}
+.blog-content .answer-block p,
+.answer-block p {
+	font-size: 0.9rem;
+	color: var(--gray-light);
+	line-height: 1.85;
+	margin: 0;
+}
+.blog-content .answer-block strong,
+.answer-block strong {
+	color: var(--white);
+}
+
 /* Page: 404 */
 .error-page {
 	display: flex;
