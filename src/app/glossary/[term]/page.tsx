@@ -10,6 +10,7 @@ import {
 	getAllGlossaryTerms,
 	getGlossaryTermBySlug,
 } from "@/lib/glossary";
+import { getPostsMentioningTerm } from "@/lib/glossaryMentions";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 interface Props {
@@ -120,6 +121,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 	const relatedEntries = t.relatedTerms
 		.map((rslug) => all.find((x) => x.slug === rslug))
 		.filter((x): x is NonNullable<typeof x> => !!x);
+	const mentioningPosts = getPostsMentioningTerm(slug);
 
 	const url = `${BASE_URL}/glossary/${slug}/`;
 
@@ -278,6 +280,43 @@ export default async function GlossaryTermPage({ params }: Props) {
 										}}
 									>
 										{r.term} — {r.shortDefinition}
+									</Link>
+								))}
+								<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+							</div>
+						</section>
+					)}
+
+					{mentioningPosts.length > 0 && (
+						<section
+							className="fade-in"
+							style={{ maxWidth: "720px", marginBottom: "3rem" }}
+						>
+							<h2
+								style={{
+									fontSize: "0.8rem",
+									color: "var(--gray-light)",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.1em",
+									marginBottom: "1rem",
+								}}
+							>
+								この用語に言及している記事
+							</h2>
+							<div style={{ display: "flex", flexDirection: "column" }}>
+								{mentioningPosts.map((p) => (
+									<Link
+										key={p.slug}
+										href={`/blog/${p.slug}/`}
+										style={{
+											padding: "0.75rem 0",
+											borderTop: "1px solid var(--gray-dark)",
+											fontSize: "0.85rem",
+											color: "var(--gray-medium)",
+											lineHeight: "1.7",
+										}}
+									>
+										{p.title}
 									</Link>
 								))}
 								<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
