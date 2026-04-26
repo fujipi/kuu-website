@@ -68,6 +68,16 @@ export default async function AuthorPage({ params }: Props) {
 					url: "https://kuucorp.com",
 				},
 			},
+			hasPart: {
+				"@type": "ItemList",
+				numberOfItems: posts.length,
+				itemListElement: posts.map((p, i) => ({
+					"@type": "ListItem",
+					position: i + 1,
+					url: `https://kuucorp.com/blog/${p.slug}/`,
+					name: p.title,
+				})),
+			},
 		},
 		{
 			"@context": "https://schema.org",
