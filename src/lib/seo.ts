@@ -10,6 +10,12 @@ export type PageSeoProps = {
 	path: string;
 	ogpImage?: string;
 	noIndex?: boolean;
+	article?: {
+		publishedTime: string;
+		modifiedTime?: string;
+		authors?: string[];
+		tags?: string[];
+	};
 };
 
 /**
@@ -47,9 +53,34 @@ export function generateMetadata({
 	path,
 	ogpImage,
 	noIndex = false,
+	article,
 }: PageSeoProps): Metadata {
 	const url = `${BASE_URL}${path}`;
 	const image = ogpImage ?? resolveOgImage(path) ?? DEFAULT_OGP_IMAGE;
+
+	const openGraph: Metadata["openGraph"] = article
+		? {
+				title,
+				description,
+				url,
+				siteName: SITE_NAME,
+				locale: "ja_JP",
+				type: "article",
+				publishedTime: article.publishedTime,
+				modifiedTime: article.modifiedTime,
+				authors: article.authors,
+				tags: article.tags,
+				images: [{ url: image, width: 1200, height: 630, alt: title }],
+			}
+		: {
+				title,
+				description,
+				url,
+				siteName: SITE_NAME,
+				locale: "ja_JP",
+				type: "website",
+				images: [{ url: image, width: 1200, height: 630, alt: title }],
+			};
 
 	return {
 		// Use absolute to prevent layout.tsx template from appending "| Kuu株式会社" again
@@ -67,22 +98,7 @@ export function generateMetadata({
 		alternates: {
 			canonical: url,
 		},
-		openGraph: {
-			title,
-			description,
-			url,
-			siteName: SITE_NAME,
-			locale: "ja_JP",
-			type: "website",
-			images: [
-				{
-					url: image,
-					width: 1200,
-					height: 630,
-					alt: title,
-				},
-			],
-		},
+		openGraph,
 		twitter: {
 			card: "summary_large_image",
 			title,
