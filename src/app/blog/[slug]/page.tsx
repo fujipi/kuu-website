@@ -10,6 +10,7 @@ import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { readingTimeMinutes } from "@/lib/readingTime";
+import { generateMetadata as seoMetadata } from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
 
@@ -35,41 +36,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	if (!post) {
 		return { title: "記事が見つかりません" };
 	}
-	return {
-		title: post.title,
+	const author = getAuthorBySlug(post.author);
+	return seoMetadata({
+		title: `${post.title} | Kuu株式会社`,
 		description: post.description,
-		alternates: { canonical: `https://kuucorp.com/blog/${slug}/` },
-		openGraph: {
-			title: `${post.title} | Kuu株式会社`,
-			description: post.description,
-			url: `https://kuucorp.com/blog/${slug}/`,
-			type: "article",
+		path: `/blog/${slug}/`,
+		article: {
 			publishedTime: post.date,
-			siteName: "Kuu株式会社",
-			locale: "ja_JP",
-			images: [
-				{
-					url: "/images/ogp.png",
-					width: 1200,
-					height: 630,
-					alt: post.title,
-				},
-			],
+			modifiedTime: post.lastModified,
+			authors: [author.name],
+			tags: post.tags,
 		},
-		twitter: {
-			card: "summary_large_image",
-			title: `${post.title} | Kuu株式会社`,
-			description: post.description,
-			images: ["/images/ogp.png"],
-		},
-		robots: {
-			index: true,
-			follow: true,
-			"max-snippet": -1,
-			"max-image-preview": "large" as const,
-			"max-video-preview": -1,
-		},
-	};
+	});
 }
 
 function formatDate(dateStr: string): string {
