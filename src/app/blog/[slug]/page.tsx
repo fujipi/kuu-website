@@ -272,13 +272,17 @@ export default async function BlogPostPage({ params }: Props) {
 
 	const relatedPosts = allPosts
 		.filter((p) => p.slug !== slug)
-		.map((p) => ({
-			...p,
-			sharedTags: p.tags.filter((t) => post.tags.includes(t)).length,
-		}))
-		.filter((p) => p.sharedTags > 0)
-		.sort((a, b) => b.sharedTags - a.sharedTags)
-		.slice(0, 3);
+		.map((p) => {
+			const sharedTags = p.tags.filter((t) => post.tags.includes(t)).length;
+			const samePillar = post.pillar && p.pillar === post.pillar ? 1 : 0;
+			const sameSeries = post.series && p.series === post.series ? 1 : 0;
+			// Weight: series > pillar > tags. Series indicates explicit author intent.
+			const score = sameSeries * 10 + samePillar * 5 + sharedTags;
+			return { ...p, score };
+		})
+		.filter((p) => p.score > 0)
+		.sort((a, b) => b.score - a.score)
+		.slice(0, 4);
 
 	// TOC 構築（H2/H3 の id 対応）
 	const { toc, idMap } = buildToc(post.content);
