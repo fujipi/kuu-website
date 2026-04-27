@@ -102,3 +102,15 @@ git add content/blog/
 git commit -m "blog: {slug} を自動生成"
 git push origin main
 ```
+
+## 依存ファイル変更時の注意
+
+`package.json` を編集して依存を追加・更新・削除した場合は、**必ず同じコミットに `pnpm-lock.yaml` の更新も含める**こと。
+
+```
+pnpm install          # lockfile を package.json と同期
+git add package.json pnpm-lock.yaml
+git commit -m "..."
+```
+
+CI (`.github/workflows/deploy.yml`) は `pnpm install --frozen-lockfile` を使うため、両者がズレているとビルドが `ERR_PNPM_OUTDATED_LOCKFILE` で失敗し、サイト全体のデプロイが止まる。ブログ自動生成のフローでは通常 `package.json` を触らないが、テンプレート改善や新スクリプト追加で依存を増やしたときは要注意。
