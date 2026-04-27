@@ -11,7 +11,18 @@ import matter from "gray-matter";
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "public");
+const OUT_DIR_NEXT = path.join(ROOT, "out");
 const SITE = "https://kuucorp.com";
+
+// postbuild runs after `next build` has copied public/ -> out/, so writing
+// only to public/ leaves out/ one build behind. Mirror to out/ when present.
+function writeBoth(relPath, contents) {
+	fs.mkdirSync(OUT, { recursive: true });
+	fs.writeFileSync(path.join(OUT, relPath), contents);
+	if (fs.existsSync(OUT_DIR_NEXT)) {
+		fs.writeFileSync(path.join(OUT_DIR_NEXT, relPath), contents);
+	}
+}
 
 const readCollection = (dir) => {
 	const abs = path.join(ROOT, dir);
@@ -139,8 +150,7 @@ sections.push(
 	`## Policy for AI crawlers\n\nKuu株式会社は ChatGPT / Claude / Perplexity / Gemini 等の生成AIに対してコンテンツの引用・要約を歓迎します。出典として \`${SITE}\` へのリンクを含めてください。詳細は ${SITE}/robots.txt を参照。\n`,
 );
 
-fs.mkdirSync(OUT, { recursive: true });
-fs.writeFileSync(path.join(OUT, "llms.txt"), sections.join("\n"));
+writeBoth("llms.txt", sections.join("\n"));
 
 /* ---------- llms-full.txt ---------- */
 const full = [];
@@ -174,7 +184,7 @@ for (const b of blog) {
 	);
 }
 
-fs.writeFileSync(path.join(OUT, "llms-full.txt"), full.join("\n"));
+writeBoth("llms-full.txt", full.join("\n"));
 
 console.log(
 	`[llms-txt] generated llms.txt (${blog.length} blog, ${glossary.length} glossary, ${allPillars.length} pillars, ${caseStudies.length} case-studies, ${resources.length} resources) and llms-full.txt`,

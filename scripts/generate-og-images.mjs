@@ -19,10 +19,26 @@ const BLOG_DIR = path.join(ROOT, "content/blog");
 const GLOSSARY_DIR = path.join(ROOT, "content/glossary");
 const CASE_STUDIES_DIR = path.join(ROOT, "content/case-studies");
 const RESOURCES_DIR = path.join(ROOT, "content/resources");
-const OUT_DIR = path.join(ROOT, "public/og");
+const PUBLIC_OG = path.join(ROOT, "public/og");
+const OUT_OG = path.join(ROOT, "out/og");
+// postbuild runs after `next build` has copied public/ -> out/, so writing
+// only to public/ leaves out/ one build behind. Mirror to out/ when it
+// exists so the deployed artifact (out/) reflects the current run.
+const OUT_DIR = PUBLIC_OG;
 const FONT_CACHE = path.join(ROOT, "scripts/.cache/fonts");
 const SITE = "Kuu株式会社";
 const TAGLINE = "技術と物語を、あらゆる人に届ける";
+
+function writeAsset(absPublic, buf) {
+	fs.mkdirSync(path.dirname(absPublic), { recursive: true });
+	fs.writeFileSync(absPublic, buf);
+	const rel = path.relative(PUBLIC_OG, absPublic);
+	const absOut = path.join(OUT_OG, rel);
+	if (fs.existsSync(path.join(ROOT, "out"))) {
+		fs.mkdirSync(path.dirname(absOut), { recursive: true });
+		fs.writeFileSync(absOut, buf);
+	}
+}
 
 /* ---------- Font loading ---------- */
 async function loadFont(url, filename) {
@@ -277,14 +293,18 @@ async function main() {
 
 		for (const job of jobs) {
 			const png = await renderPng(job.title, job.eyebrow, fonts);
-			fs.mkdirSync(path.dirname(job.out), { recursive: true });
-			fs.writeFileSync(job.out, png);
+			writeAsset(job.out, png);
 		}
 
 		// Also copy default.png to /images/ogp.png for backward compat
 		const defaultPath = path.join(OUT_DIR, "default.png");
-		const legacyPath = path.join(ROOT, "public/images/ogp.png");
-		fs.copyFileSync(defaultPath, legacyPath);
+		const legacyPublic = path.join(ROOT, "public/images/ogp.png");
+		fs.copyFileSync(defaultPath, legacyPublic);
+		const legacyOut = path.join(ROOT, "out/images/ogp.png");
+		if (fs.existsSync(path.join(ROOT, "out"))) {
+			fs.mkdirSync(path.dirname(legacyOut), { recursive: true });
+			fs.copyFileSync(defaultPath, legacyOut);
+		}
 
 		console.log(`[og] generated ${jobs.length} images -> public/og/`);
 	} catch (err) {
