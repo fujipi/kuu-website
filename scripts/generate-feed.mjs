@@ -10,8 +10,20 @@ import matter from "gray-matter";
 
 const ROOT = process.cwd();
 const BLOG_DIR = path.join(ROOT, "content/blog");
-const OUT_DIR = path.join(ROOT, "public");
+const PUBLIC_DIR = path.join(ROOT, "public");
+const OUT_DIR_NEXT = path.join(ROOT, "out");
+const OUT_DIR = PUBLIC_DIR; // primary write target (for `next dev` and the next build's copy)
 const SITE = "https://kuucorp.com";
+
+// postbuild runs after `next build` has copied public/ -> out/, so writing
+// only to public/ leaves out/ one build behind. Mirror to out/ when present.
+function writeBoth(relPath, contents) {
+	fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+	fs.writeFileSync(path.join(PUBLIC_DIR, relPath), contents);
+	if (fs.existsSync(OUT_DIR_NEXT)) {
+		fs.writeFileSync(path.join(OUT_DIR_NEXT, relPath), contents);
+	}
+}
 const SITE_NAME = "Kuu株式会社";
 const SITE_DESC =
 	"AIエージェントガバナンス専門会社Kuu株式会社の公式ブログ。AX/DX戦略、Managed Agents、中小企業のAI導入実践を発信。";
@@ -127,14 +139,11 @@ const jsonFeed = {
 	})),
 };
 
-fs.mkdirSync(OUT_DIR, { recursive: true });
-fs.writeFileSync(path.join(OUT_DIR, "feed.xml"), rss);
-fs.writeFileSync(path.join(OUT_DIR, "atom.xml"), atom);
-fs.writeFileSync(
-	path.join(OUT_DIR, "feed.json"),
-	JSON.stringify(jsonFeed, null, 2),
-);
+writeBoth("feed.xml", rss);
+writeBoth("atom.xml", atom);
+writeBoth("feed.json", JSON.stringify(jsonFeed, null, 2));
 
+const target = fs.existsSync(OUT_DIR_NEXT) ? "public/+out/" : "public/";
 console.log(
-	`[feed] generated ${posts.length} items -> public/feed.xml, atom.xml, feed.json`,
+	`[feed] generated ${posts.length} items -> ${target}{feed.xml, atom.xml, feed.json}`,
 );
