@@ -279,6 +279,14 @@
       "persona": "人事・総務を兼任している中小企業の担当者・バックオフィス責任者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "ai-agent-permission-management-design",
+      "keyword": "AIエージェント 権限管理 設計",
+      "title_hint": "AIエージェントの権限管理設計入門——最小権限の原則で安全に自動化を進める方法",
+      "persona": "IT担当者・セキュリティ担当者（中小企業のAIシステム設計を担当する人）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
