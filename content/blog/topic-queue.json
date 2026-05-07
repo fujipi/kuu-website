@@ -287,6 +287,14 @@
       "persona": "IT担当者・セキュリティ担当者（中小企業のAIシステム設計を担当する人）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-agent-audit-log-management",
+      "keyword": "AIエージェント 監査 ログ 保管",
+      "title_hint": "AIエージェントの監査ログ管理——保管要件と設計3つの落とし穴",
+      "persona": "IT担当者・情報システム部長・中小企業のAIシステム設計担当者",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
