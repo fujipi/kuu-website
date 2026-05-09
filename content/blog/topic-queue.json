@@ -295,6 +295,14 @@
       "persona": "IT担当者・情報システム部長・中小企業のAIシステム設計担当者",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-red-teaming-sme-guide",
+      "keyword": "AIレッドチーミング 中小企業 手順",
+      "title_hint": "AIレッドチーミングとは？中小企業が今すぐ始める手順と実践ガイド",
+      "persona": "IT担当・セキュリティ担当（中小企業でAIシステムのリスク検証を担当する人）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
