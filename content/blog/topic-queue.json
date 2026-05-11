@@ -305,6 +305,16 @@
       "status": "published"
     }
   ],
+  "topics_from_keyword_bank": [
+    {
+      "slug": "logistics-warehouse-ai-automation",
+      "keyword": "物流 倉庫 AI 自動化",
+      "title_hint": "物流・倉庫業のAI自動化入門——在庫管理・入出荷・ピッキングを効率化する実践ステップ",
+      "persona": "物流・倉庫業の経営者・業務改善担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
+    }
+  ],
   "keyword_bank": [
     "Gemini Enterprise エージェントガバナンス 中小企業",
     "Manus AIエージェント デスクトップ ローカル実行",
