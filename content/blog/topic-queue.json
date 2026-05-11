@@ -313,6 +313,14 @@
       "persona": "物流・倉庫業の経営者・業務改善担当者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "nocode-ai-automation-tools-comparison",
+      "keyword": "ノーコード AI自動化 ツール 比較",
+      "title_hint": "ノーコードAI自動化ツール徹底比較——中小企業に合うツールの選び方2026年版",
+      "persona": "IT担当がいない中小企業の経営者・DX推進担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
