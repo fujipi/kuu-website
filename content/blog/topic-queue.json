@@ -329,6 +329,14 @@
       "persona": "IT担当がいない中小企業の経営者・DX推進担当者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "legal-professional-ai-efficiency",
+      "keyword": "士業 弁護士 税理士 AI 業務効率化",
+      "title_hint": "弁護士・税理士・社労士のAI業務効率化——士業事務所が最初に自動化すべき3つの業務",
+      "persona": "弁護士・税理士・社労士などの士業事務所の所長・管理担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
