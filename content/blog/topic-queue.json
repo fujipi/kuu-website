@@ -307,6 +307,14 @@
   ],
   "topics_from_keyword_bank": [
     {
+      "slug": "manus-ai-agent-desktop-local",
+      "keyword": "Manus AIエージェント デスクトップ ローカル実行",
+      "title_hint": "Manus AIエージェントのローカル実行とは——デスクトップで動く自律AIのガバナンス課題",
+      "persona": "IT担当・DX推進担当（AIエージェントをローカル環境で動かしたい担当者）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
+    },
+    {
       "slug": "logistics-warehouse-ai-automation",
       "keyword": "物流 倉庫 AI 自動化",
       "title_hint": "物流・倉庫業のAI自動化入門——在庫管理・入出荷・ピッキングを効率化する実践ステップ",
