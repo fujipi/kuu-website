@@ -337,6 +337,14 @@
       "persona": "弁護士・税理士・社労士などの士業事務所の所長・管理担当者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "ai-board-meeting-report-automation",
+      "keyword": "AI 経営会議 報告書 自動生成",
+      "title_hint": "経営会議の報告書をAIで自動生成——月15時間の作業を削減する3ステップ",
+      "persona": "管理部門責任者・経営企画担当（月次報告書作成の工数削減を検討中）",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
