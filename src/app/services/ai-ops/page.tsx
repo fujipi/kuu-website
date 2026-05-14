@@ -8,9 +8,9 @@ import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title:
-		"AIエージェントガバナンスサービス | AIエージェント導入・運用支援 | Kuu株式会社",
+		"AIエージェント実装・ガバナンス | ハーネス構築から9軸評価運用まで | Kuu株式会社",
 	description:
-		"KuuのAIエージェントガバナンスサービス。AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
+		"Kuuのファネル後半（Stage 03–04）。自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で品質・コスト・安全性を継続統治。エージェントを動かし続ける仕組みを組織に埋め込みます。",
 	path: "/services/ai-ops/",
 });
 
@@ -63,9 +63,9 @@ const aiOpsJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Service",
-		name: "AIエージェントガバナンスサービス",
+		name: "AIエージェント実装・ガバナンス",
 		description:
-			"AIエージェントの導入支援からガバナンス構築・継続改善まで一貫支援。9軸評価フレームワークで経営成果に直結するAI活用を実現します。",
+			"自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で品質・コスト・安全性を継続統治。エージェントを動かし続ける仕組みを組織に埋め込みます。",
 		provider: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -88,7 +88,7 @@ const aiOpsJsonLd = [
 			{
 				"@type": "ListItem",
 				position: 2,
-				name: "AIエージェントガバナンスサービス",
+				name: "AIエージェント実装・ガバナンス",
 				item: `${BASE_URL}/services/ai-ops/`,
 			},
 		],
@@ -105,11 +105,25 @@ export default function AiOpsPage() {
 
 			<main>
 				<div className="page-content">
+					{/* Stage indicator */}
+					<div
+						className="fade-in"
+						style={{
+							fontFamily: "var(--font-heading)",
+							fontSize: "0.7rem",
+							letterSpacing: "0.15em",
+							color: "var(--gray-dim)",
+							marginBottom: "1rem",
+						}}
+					>
+						STAGE 03–04 · HARNESS &amp; GOVERNANCE
+					</div>
+
 					{/* H1 */}
 					<h1 className="page-title fade-in">
-						AIエージェントガバナンスサービス
+						AIエージェント実装・ガバナンス
 						<br />
-						（導入支援・ガバナンス構築・継続改善）
+						（ハーネス構築・9軸評価運用）
 					</h1>
 
 					{/* 課題提起 */}
@@ -124,7 +138,7 @@ export default function AiOpsPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								ChatGPT・Claude・Geminiの登場以来、多くの企業が「AIを使わなければ」と動き始めています。しかし、単にLLMを導入しただけでは期待した成果が出ない、コストだけが膨らむ、という状況が続いています。
+								戦略を引き、ユースケースを特定し、PoCも回した——にもかかわらず、エージェントが本番で動き続けないという段階で詰まる企業が増えています。問題はAIの優秀さではなく、エージェントを既存システムに繋ぎ、品質を測り続ける「実装と運用」の側にあります。
 							</p>
 							<p
 								style={{
@@ -134,11 +148,15 @@ export default function AiOpsPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								問題の本質は、AIの「使い方」ではなく「設計と統治」にあります。AIエージェントが自律的に動く時代において、何をどこまで任せるか、品質・セキュリティ・コストをどう管理するか——この
+								Kuuが担うのは、ファネル後半の
 								<strong style={{ color: "var(--white)" }}>
-									エージェントガバナンス
+									ハーネス構築（Stage 03）
 								</strong>
-								を設計できている企業は、まだごくわずかです。
+								と
+								<strong style={{ color: "var(--white)" }}>
+									ガバナンス運用（Stage 04）
+								</strong>
+								。エージェントを動かす経営基盤を顧客のシステムに埋め込み、9軸評価で動かし続ける統治機能を提供します。
 							</p>
 							<div
 								style={{
@@ -211,11 +229,11 @@ export default function AiOpsPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								KuuのAIエージェントガバナンスサービスは、AIエージェントの
+								自律エージェントの実装と、それを「動かし続ける」ための統治機能をセットで提供します。AIガバナンスを単独のコンサル商品として切り売りしません——
 								<strong style={{ color: "var(--white)" }}>
-									導入から運用・継続改善までを一貫支援
+									ハーネス実装の中に統治レイヤを組み込む
 								</strong>
-								する、日本唯一のエージェントガバナンス専門サービスです。
+								のがKuuのスタイルです。
 							</p>
 							<p
 								style={{
@@ -225,7 +243,9 @@ export default function AiOpsPage() {
 									marginBottom: "2rem",
 								}}
 							>
-								単なるツール導入に留まらず、エージェントが自律的に動き続けるための「設計思想」と「統治の仕組み」を組織に埋め込みます。Kuuが構築・運用するハーネス（エージェント経営基盤）の知見をもとに、クライアントの組織に最適化されたガバナンスフレームワークを提供します。
+								FDE型ディスカバリ（Stage
+								02）で特定したユースケースを起点に、Managed
+								Agentsを基盤としたエージェント設計、既存システム（Slack・Notion・Salesforce・kintone・各種ERP等）への接続、9軸評価による継続運用までを担います。「現行踏襲」を求める現場の制約を前提に、動くものを作って動かし続けます。
 							</p>
 							<div
 								style={{
