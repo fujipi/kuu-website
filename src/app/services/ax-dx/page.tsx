@@ -7,9 +7,10 @@ import Stars from "@/components/Stars";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
-	title: "DX戦略コンサルティング・AI活用戦略 | AX/DX戦略 | Kuu株式会社",
+	title:
+		"AX/DX戦略・現場ディスカバリ | 経営課題から実装可能な計画へ | Kuu株式会社",
 	description:
-		"KuuのAX/DX戦略コンサルティング。AI活用戦略の策定からDX推進計画の立案・実行まで。AX（エージェントトランスフォーメーション）による組織変革で、事業競争力を根本から強化します。",
+		"Kuuのファネル前半（Stage 01–02）。経営課題から逆算したDX/AXロードマップを引き、顧客の業務・既存システムに深く入って実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。",
 	path: "/services/ax-dx/",
 });
 
@@ -62,9 +63,9 @@ const axDxJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Service",
-		name: "AX/DX戦略コンサルティング",
+		name: "AX/DX戦略・現場ディスカバリ",
 		description:
-			"AI活用戦略の策定からDX推進計画の立案まで。事業目標に基づいたロードマップ設計と実行支援を行います。",
+			"経営課題から逆算したDX/AXロードマップ設計と、顧客の業務・既存システムに深く入る現場ディスカバリ。実装可能な計画に落とすまで。",
 		provider: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -87,7 +88,7 @@ const axDxJsonLd = [
 			{
 				"@type": "ListItem",
 				position: 2,
-				name: "AX/DX戦略コンサルティング",
+				name: "AX/DX戦略・現場ディスカバリ",
 				item: `${BASE_URL}/services/ax-dx/`,
 			},
 		],
@@ -104,11 +105,25 @@ export default function AxDxPage() {
 
 			<main>
 				<div className="page-content">
+					{/* Stage indicator */}
+					<div
+						className="fade-in"
+						style={{
+							fontFamily: "var(--font-heading)",
+							fontSize: "0.7rem",
+							letterSpacing: "0.15em",
+							color: "var(--gray-dim)",
+							marginBottom: "1rem",
+						}}
+					>
+						STAGE 01–02 · STRATEGY &amp; DISCOVERY
+					</div>
+
 					{/* H1 */}
 					<h1 className="page-title fade-in">
-						AX/DX戦略コンサルティング・
+						AX/DX戦略・現場ディスカバリ
 						<br />
-						AIエージェント活用支援
+						（経営課題から実装可能な計画へ）
 					</h1>
 
 					{/* 課題提起 */}
@@ -123,7 +138,7 @@ export default function AxDxPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								「DXが必要だとはわかっている。でも、何から始めればいいのかわからない」——多くの企業経営者・管理職が抱えるこの問いは、2026年現在も解消されていません。
+								DXやAIの戦略資料は世にあふれています。問題はそこではなく、戦略を「顧客の業務とレガシーシステムに落とせるか」です。AIモデルの優秀さを語るだけで動かないし、現場の業務を知らない外部コンサルが書いた絵は実装段階で破綻します。
 							</p>
 							<p
 								style={{
@@ -135,7 +150,11 @@ export default function AxDxPage() {
 							>
 								DXの失敗は、多くの場合
 								<strong style={{ color: "var(--white)" }}>戦略の欠如</strong>
-								から始まります。ツール導入を目的化する、現場の課題を無視してシステムを決める、ROIを測定しないまま予算を投じる——こうしたパターンが繰り返されています。
+								ではなく
+								<strong style={{ color: "var(--white)" }}>
+									戦略と現場の断絶
+								</strong>
+								から始まります。「現行踏襲、でもいい感じにしてくれ」と求める現場と、「最新AI活用」を求める経営層の間には深い溝があり、ここを誰が泥まみれで埋めるかが本質的な問いです。
 							</p>
 							<p
 								style={{
@@ -145,11 +164,15 @@ export default function AxDxPage() {
 									marginBottom: "2rem",
 								}}
 							>
-								さらに、AIエージェントが登場した2026年において、DXの射程は大きく広がっています。単なるデジタル化ではなく、
+								Kuuが担うのは、ファネル前半の
 								<strong style={{ color: "var(--white)" }}>
-									AIエージェントによる業務の自律化（AX：エージェントトランスフォーメーション）
+									DX/AX戦略（Stage 01）
 								</strong>
-								を視野に入れた戦略が必要です。
+								と
+								<strong style={{ color: "var(--white)" }}>
+									現場ディスカバリ（Stage 02）
+								</strong>
+								。FDE型に顧客の業務・既存システムに深く入り込み、実装可能な計画に落とすまでを担当します。
 							</p>
 							<div
 								style={{
@@ -221,11 +244,11 @@ export default function AxDxPage() {
 									marginBottom: "1.5rem",
 								}}
 							>
-								KuuのAX/DX戦略コンサルティングは、
 								<strong style={{ color: "var(--white)" }}>
-									事業目標から逆算したDX戦略
+									戦略パワポで終わらせない
 								</strong>
-								を設計し、AIを活用した業務自動化の実装・定着まで一気通貫で支援します。
+								——これがKuuのDX/AX戦略の出発点です。経営課題から逆算したロードマップを引き、FDE型ディスカバリで顧客の業務・既存システム・データ資産に深く入り、Stage
+								03以降の実装可能な計画に落とします。
 							</p>
 							<p
 								style={{
@@ -235,7 +258,8 @@ export default function AxDxPage() {
 									marginBottom: "2rem",
 								}}
 							>
-								「コンサルが戦略を作って終わり」ではなく、クライアントの組織が自走できるまで伴走します。AI活用の内製化を最終ゴールとして設定し、依存関係を生まない支援モデルを徹底します。
+								Kuuがこの仕事を「作って終わり」にしない理由は、ファネル後半（Stage
+								03–04：ハーネス実装・ガバナンス運用）も自社で担うからです。実装段階で破綻する計画は、書いた本人が困る。だから現場の制約と「現行踏襲」の要請を、計画段階から織り込みます。
 							</p>
 							<div
 								style={{

@@ -129,10 +129,25 @@ section {
 	display: flex;
 	align-items: flex-end;
 	padding: 0 4rem 6rem;
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
+}
+
+.aurora-canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	pointer-events: none;
+	display: block;
 }
 
 .hero-content {
 	max-width: 720px;
+	position: relative;
+	z-index: 1;
 }
 
 .hero-heading {
@@ -179,9 +194,113 @@ section {
 	transform: translateY(0);
 }
 
+/* Approach (Funnel) — used inside .section-service */
+.approach-lede {
+	max-width: 720px;
+	margin-bottom: 4rem;
+}
+
+.approach-headline {
+	font-family: var(--font-body);
+	font-size: clamp(1.05rem, 2vw, 1.4rem);
+	font-weight: 500;
+	line-height: 1.6;
+	color: var(--white);
+	margin-bottom: 1.5rem;
+	letter-spacing: 0.02em;
+}
+
+.approach-body {
+	font-size: 0.875rem;
+	color: var(--gray-medium);
+	line-height: 2;
+}
+
+.funnel {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 1px;
+	border: 1px solid var(--gray-dark);
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--gray-dark);
+	margin-bottom: 3rem;
+	list-style: none;
+	padding: 0;
+}
+
+.funnel-step {
+	padding: 2rem 1.5rem 2.25rem;
+	background: var(--black);
+	display: flex;
+	flex-direction: column;
+	min-height: 220px;
+	position: relative;
+}
+
+.funnel-step-num {
+	font-family: var(--font-heading);
+	font-size: 0.7rem;
+	color: var(--gray-dim);
+	letter-spacing: 0.15em;
+	margin-bottom: 1.25rem;
+}
+
+.funnel-step-en {
+	font-family: var(--font-heading);
+	font-size: 0.7rem;
+	color: var(--gray-light);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	margin-bottom: 0.4rem;
+}
+
+.funnel-step-jp {
+	font-family: var(--font-body);
+	font-size: 0.95rem;
+	color: var(--white);
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	margin-bottom: 1rem;
+}
+
+.funnel-step-desc {
+	font-size: 0.78rem;
+	color: var(--gray-medium);
+	line-height: 1.85;
+}
+
+.approach-footnote {
+	max-width: 720px;
+	font-size: 0.8rem;
+	color: var(--gray-light);
+	line-height: 1.95;
+	border-left: 1px solid var(--gray-dark);
+	padding-left: 1.25rem;
+	margin-bottom: 5rem;
+}
+
 /* Service Section */
 .section-service {
 	padding: 8rem 4rem;
+}
+
+.service-offerings-label {
+	font-family: var(--font-heading);
+	font-size: 0.65rem;
+	color: var(--gray-dim);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	margin-bottom: 1.5rem;
+}
+
+.service-stage {
+	font-family: var(--font-heading);
+	font-size: 0.65rem;
+	color: var(--gray-dim);
+	letter-spacing: 0.15em;
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
 }
 
 .section-label {
@@ -640,6 +759,10 @@ footer {
 		padding: 6rem 2.5rem;
 	}
 
+	.funnel {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
 	footer {
 		padding: 3rem 2.5rem;
 	}
@@ -663,6 +786,15 @@ footer {
 	.section-service,
 	.section-about {
 		padding: 4rem 1.5rem;
+	}
+
+	.funnel {
+		grid-template-columns: 1fr;
+	}
+
+	.funnel-step {
+		min-height: auto;
+		padding: 1.5rem 1.25rem 1.75rem;
 	}
 
 	footer {

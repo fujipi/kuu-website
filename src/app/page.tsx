@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AuroraDrift from "@/components/AuroraDrift";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -9,9 +10,9 @@ import { generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title:
-		"Kuu株式会社 | AIエージェント導入・運用支援 | AIエージェントガバナンス",
+		"Kuu株式会社 | AIエージェント時代の伴走実装パートナー | AX/DX戦略から運用まで",
 	description:
-		"Kuu株式会社はAIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスサービスで中小企業のDX推進をサポートします。",
+		"Kuu株式会社は、AX/DX戦略・現場ディスカバリ・エージェント実装・ガバナンス運用までを一社で横串に担う実装パートナー。顧客の業務と既存システムに深く入り、エージェントを動かし続ける統治を組織に埋め込みます。",
 	path: "/",
 });
 
@@ -33,7 +34,7 @@ const homeJsonLd = [
 		url: BASE_URL,
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		description:
-			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築・AIエージェントガバナンスで中小企業のDX推進をサポートします。",
+			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用まで一社で横串に担う伴走実装パートナー。",
 		slogan: "技術と物語を、あらゆる人に届ける",
 		address: {
 			"@type": "PostalAddress",
@@ -78,34 +79,34 @@ const homeJsonLd = [
 		url: BASE_URL,
 		inLanguage: "ja",
 		description:
-			"AIエージェントの導入から運用までを一貫支援。エージェントガバナンス構築で中小企業のDX推進をサポート。",
+			"AX/DX戦略・現場ディスカバリ・エージェント実装・ガバナンス運用までを一社で横串に担う伴走実装パートナー。",
 	},
 	{
 		"@context": "https://schema.org",
 		"@type": "Service",
-		name: "AIエージェントガバナンスサービス（Kuu）",
+		name: "AIエージェント実装・ガバナンス（Kuu）",
 		description:
-			"AIエージェントの設計・実装・ガバナンス構築・運用定着までを一貫支援。エージェントチームの構築と継続的改善をサポートします。",
+			"自律エージェントの設計と既存システム接続（ハーネス）、9軸評価による品質・コスト・安全性の継続統治までを一貫実装。",
 		provider: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
 			url: BASE_URL,
 		},
-		serviceType: "AIエージェント導入支援",
+		serviceType: "AIエージェント実装・運用",
 		areaServed: "JP",
 	},
 	{
 		"@context": "https://schema.org",
 		"@type": "Service",
-		name: "AX・DXコンサルティング",
+		name: "AX・DX戦略・現場ディスカバリ",
 		description:
-			"AI活用戦略の策定からDX推進計画の立案まで。事業目標に基づいたロードマップ設計と実行支援を行います。",
+			"経営課題から逆算したDX/AXロードマップ設計と、顧客の業務・既存システムに深く入る現場ディスカバリ。実装可能な計画に落とすまで。",
 		provider: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
 			url: BASE_URL,
 		},
-		serviceType: "DXコンサルティング",
+		serviceType: "DX/AX戦略・ディスカバリ",
 		areaServed: "JP",
 	},
 	{
@@ -114,7 +115,7 @@ const homeJsonLd = [
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		description:
-			"AIエージェント導入・運用支援、AX/DX戦略コンサルティングを提供する東京のテクノロジー企業。",
+			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用までを横串に担う、東京の伴走実装パートナー。",
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: "東神田一丁目13番14号",
@@ -135,6 +136,7 @@ export default function Home() {
 
 			<main>
 				<section className="hero">
+					<AuroraDrift />
 					<div className="hero-content fade-in">
 						<h1 className="hero-heading">技術と物語を、あらゆる人に届ける</h1>
 						<p className="hero-sub">Technology &amp; Story for Everyone</p>
@@ -143,11 +145,65 @@ export default function Home() {
 
 				<section className="section-service" id="service">
 					<h2 className="section-label fade-in">Service</h2>
+
+					<div className="approach-lede fade-in">
+						<p className="approach-headline">
+							戦略から運用まで、4段を横串に担う実装パートナー。
+						</p>
+						<p className="approach-body">
+							AIモデルの優秀さを語ることで売れる時代は、すでに終わりかけています。エージェント導入のボトルネックは、顧客の業務とレガシーシステムに深く入り、動くものを作って動かし続けるための地道な仕事——いわゆる「ラストワンマイル」にあります。Kuuはこの泥の部分を、戦略フェーズから運用統治まで一社で担います。
+						</p>
+					</div>
+
+					<ol className="funnel fade-in-stagger" aria-label="サービスファネル">
+						<li className="funnel-step fade-in-item">
+							<div className="funnel-step-num">01</div>
+							<div className="funnel-step-en">Strategy</div>
+							<div className="funnel-step-jp">DX / AX戦略</div>
+							<p className="funnel-step-desc">
+								経営課題から逆算したロードマップとKPI設計。「ツール導入の目的化」を避け、事業目標に紐付ける。
+							</p>
+						</li>
+						<li className="funnel-step fade-in-item">
+							<div className="funnel-step-num">02</div>
+							<div className="funnel-step-en">Discovery</div>
+							<div className="funnel-step-jp">現場ディスカバリ</div>
+							<p className="funnel-step-desc">
+								顧客の業務・既存システム・データ資産に深く入り、エージェントが本当に解くべきユースケースを特定する。
+							</p>
+						</li>
+						<li className="funnel-step fade-in-item">
+							<div className="funnel-step-num">03</div>
+							<div className="funnel-step-en">Harness</div>
+							<div className="funnel-step-jp">エージェント実装</div>
+							<p className="funnel-step-desc">
+								Managed
+								Agentsを基盤に、自律エージェントを設計・統合し、既存システムに接続する経営基盤（ハーネス）を構築。
+							</p>
+						</li>
+						<li className="funnel-step fade-in-item">
+							<div className="funnel-step-num">04</div>
+							<div className="funnel-step-en">Governance</div>
+							<div className="funnel-step-jp">ガバナンス・運用</div>
+							<p className="funnel-step-desc">
+								9軸評価で品質・コスト・安全性を継続測定。エージェントを「動かし続ける」統治の仕組みを組織に埋め込む。
+							</p>
+						</li>
+					</ol>
+
+					<p className="approach-footnote fade-in">
+						エージェントガバナンスはKuuの中核技術ですが、それ単体では売れない——という前提で設計しています。戦略の言葉とレガシーの現実を一本に通すために、4段すべてを自社で担うのがKuuのスタイルです。
+					</p>
+
+					<div className="service-offerings-label fade-in">Offerings</div>
 					<div className="service-list fade-in-stagger">
 						<div className="service-item fade-in-item">
-							<div className="service-name">AX / DX戦略コンサルティング</div>
+							<div className="service-stage">
+								Stage 01–02 · Strategy &amp; Discovery
+							</div>
+							<div className="service-name">AX / DX戦略・現場ディスカバリ</div>
 							<div className="service-desc">
-								AI活用戦略の策定からDX推進計画の立案まで。事業目標に基づいたロードマップ設計と実行支援を行います。
+								経営課題から逆算したDX/AXロードマップを引き、顧客の業務・既存システムに入って実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
 							</div>
 							<Link
 								href="/services/ax-dx/"
@@ -168,11 +224,12 @@ export default function Home() {
 						</div>
 
 						<div className="service-item fade-in-item">
-							<div className="service-name">
-								AIエージェントガバナンスサービス
+							<div className="service-stage">
+								Stage 03–04 · Harness &amp; Governance
 							</div>
+							<div className="service-name">AIエージェント実装・ガバナンス</div>
 							<div className="service-desc">
-								AIエージェントの設計・ガバナンス構築・継続改善まで。エージェントが正しく動き続ける仕組みをワンストップで支援します。
+								自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で動かし続ける統治機能を組織に埋め込みます。AIガバナンスは「製品」ではなく、実装の中核に組み込む経営機能として提供します。
 							</div>
 							<Link
 								href="/services/ai-ops/"
@@ -193,6 +250,7 @@ export default function Home() {
 						</div>
 
 						<div className="service-item fade-in-item">
+							<div className="service-stage">Adjacent · Creative</div>
 							<div className="service-name">Yota mangaサービス</div>
 							<div className="service-desc">
 								AIを活用したマンガ制作サービス。企画・シナリオから作画まで、高品質なマンガコンテンツを提供します。
