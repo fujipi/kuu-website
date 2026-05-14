@@ -353,6 +353,14 @@
       "persona": "DX推進の途中で立ち止まっている中小企業の経営者・DX推進担当者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "generative-ai-business-guide-sme",
+      "keyword": "生成AI 業務活用 中小企業 ガイドライン",
+      "title_hint": "生成AI業務活用ガイド——中小企業が失敗しないための基本原則と5ステップ",
+      "persona": "生成AIを業務に活用したいが何から始めるか迷っている中小企業の経営者・IT担当者",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
