@@ -179,11 +179,7 @@ section {
 	transform: translateY(0);
 }
 
-/* Approach Section (Funnel) */
-.section-approach {
-	padding: 8rem 4rem 4rem;
-}
-
+/* Approach (Funnel) — used inside .section-service */
 .approach-lede {
 	max-width: 720px;
 	margin-bottom: 4rem;
@@ -266,11 +262,21 @@ section {
 	line-height: 1.95;
 	border-left: 1px solid var(--gray-dark);
 	padding-left: 1.25rem;
+	margin-bottom: 5rem;
 }
 
 /* Service Section */
 .section-service {
-	padding: 4rem 4rem 8rem;
+	padding: 8rem 4rem;
+}
+
+.service-offerings-label {
+	font-family: var(--font-heading);
+	font-size: 0.65rem;
+	color: var(--gray-dim);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	margin-bottom: 1.5rem;
 }
 
 .service-stage {
@@ -733,14 +739,7 @@ footer {
 		padding: 0 2.5rem 5rem;
 	}
 
-	.section-approach {
-		padding: 6rem 2.5rem 3rem;
-	}
-
-	.section-service {
-		padding: 3rem 2.5rem 6rem;
-	}
-
+	.section-service,
 	.section-about {
 		padding: 6rem 2.5rem;
 	}
@@ -769,14 +768,7 @@ footer {
 		padding: 0 1.5rem 4rem;
 	}
 
-	.section-approach {
-		padding: 5rem 1.5rem 2rem;
-	}
-
-	.section-service {
-		padding: 2rem 1.5rem 5rem;
-	}
-
+	.section-service,
 	.section-about {
 		padding: 4rem 1.5rem;
 	}

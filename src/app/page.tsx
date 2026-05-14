@@ -141,8 +141,9 @@ export default function Home() {
 					</div>
 				</section>
 
-				<section className="section-approach" id="approach">
-					<h2 className="section-label fade-in">Approach</h2>
+				<section className="section-service" id="service">
+					<h2 className="section-label fade-in">Service</h2>
+
 					<div className="approach-lede fade-in">
 						<p className="approach-headline">
 							戦略から運用まで、4段を横串に担う実装パートナー。
@@ -191,10 +192,8 @@ export default function Home() {
 					<p className="approach-footnote fade-in">
 						エージェントガバナンスはKuuの中核技術ですが、それ単体では売れない——という前提で設計しています。戦略の言葉とレガシーの現実を一本に通すために、4段すべてを自社で担うのがKuuのスタイルです。
 					</p>
-				</section>
 
-				<section className="section-service" id="service">
-					<h2 className="section-label fade-in">Service</h2>
+					<div className="service-offerings-label fade-in">Offerings</div>
 					<div className="service-list fade-in-stagger">
 						<div className="service-item fade-in-item">
 							<div className="service-stage">
