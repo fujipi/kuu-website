@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AuroraDrift from "@/components/AuroraDrift";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -135,6 +136,7 @@ export default function Home() {
 
 			<main>
 				<section className="hero">
+					<AuroraDrift />
 					<div className="hero-content fade-in">
 						<h1 className="hero-heading">技術と物語を、あらゆる人に届ける</h1>
 						<p className="hero-sub">Technology &amp; Story for Everyone</p>
