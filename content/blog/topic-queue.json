@@ -345,6 +345,14 @@
       "persona": "管理部門責任者・経営企画担当（月次報告書作成の工数削減を検討中）",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "dx-failure-cases-causes",
+      "keyword": "DX推進 失敗事例 原因",
+      "title_hint": "DX推進が失敗する本当の理由——中小企業の現場で見えた5つの原因と対策",
+      "persona": "DX推進の途中で立ち止まっている中小企業の経営者・DX推進担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
