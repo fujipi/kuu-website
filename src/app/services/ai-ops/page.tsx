@@ -16,6 +16,7 @@ export const metadata: Metadata = seoMetadata({
 
 const navLinks = [
 	{ href: "/", label: "Top" },
+	{ href: "/services/", label: "Service" },
 	{ href: "/services/ax-dx/", label: "AX/DX" },
 	{ href: "/blog/", label: "Blog" },
 	{ href: "/about/", label: "About" },

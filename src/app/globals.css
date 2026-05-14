@@ -134,7 +134,7 @@ section {
 	isolation: isolate;
 }
 
-.aurora-canvas {
+.constellation-canvas {
 	position: absolute;
 	inset: 0;
 	width: 100%;
@@ -301,6 +301,26 @@ section {
 	letter-spacing: 0.15em;
 	margin-bottom: 0.5rem;
 	text-transform: uppercase;
+}
+
+.service-overview-link {
+	display: inline-block;
+	margin-top: 3rem;
+	font-family: var(--font-heading);
+	font-size: 0.75rem;
+	color: var(--gray-light);
+	letter-spacing: 0.1em;
+	border-bottom: 1px solid var(--gray-dark);
+	padding-bottom: 0.25rem;
+	transition:
+		color 0.3s,
+		border-color 0.3s,
+		opacity 0.3s;
+}
+.service-overview-link:hover {
+	color: var(--white);
+	border-color: var(--gray-light);
+	opacity: 1;
 }
 
 .section-label {
