@@ -20,8 +20,7 @@ const BASE_URL = "https://kuucorp.com";
 const URL = `${BASE_URL}/eu-ai-act-jp/`;
 
 export const metadata: Metadata = seoMetadata({
-	title:
-		"EU AI Act 日本企業対応ガイド——該当判定から必要対応まで | Kuu株式会社",
+	title: "EU AI Act 日本企業対応ガイド——該当判定から必要対応まで | Kuu株式会社",
 	description:
 		"EU AI Actが日本の中小企業に与える影響、該当可能性の判定、リスク分類、必要な対応項目、ISO/IEC 42001 との関係を実務者向けに整理したピラーガイド。",
 	path: "/eu-ai-act-jp/",
@@ -180,7 +179,8 @@ export default function EuAiActPillarPage() {
 						style={{ marginBottom: "3rem", maxWidth: "760px" }}
 					>
 						<p>
-							EU AI Actは2024年8月発効の包括的AI規制で、2025-2027年に段階施行されます。日本の中小企業でも、EU顧客・EU取引先・上場準備がある場合は該当判定と対応整備が必要です。リスク分類に応じて透明性義務〜高リスクAIの適合性評価まで要求範囲が変わり、違反時は最大売上7%の罰金が科されます。ISO/IEC
+							EU AI
+							Actは2024年8月発効の包括的AI規制で、2025-2027年に段階施行されます。日本の中小企業でも、EU顧客・EU取引先・上場準備がある場合は該当判定と対応整備が必要です。リスク分類に応じて透明性義務〜高リスクAIの適合性評価まで要求範囲が変わり、違反時は最大売上7%の罰金が科されます。ISO/IEC
 							42001 と重なる部分が多いため同時整備が効率的です。
 						</p>
 					</div>
@@ -231,19 +231,23 @@ export default function EuAiActPillarPage() {
 					>
 						<h2 id="what">EU AI Act とは</h2>
 						<p>
-							EU AI Act (EU人工知能法) は、欧州連合が2024年8月に発効させた世界初の包括的AI規制です。AIシステムを「許容不可」「高リスク」「限定リスク」「最小リスク」の4段階に分類し、分類に応じた義務を課す構造になっています。域外適用の仕組みにより、EU市場に製品・サービスを提供する日本企業も対象となります。用語の詳細は{" "}
+							EU AI Act (EU人工知能法)
+							は、欧州連合が2024年8月に発効させた世界初の包括的AI規制です。AIシステムを「許容不可」「高リスク」「限定リスク」「最小リスク」の4段階に分類し、分類に応じた義務を課す構造になっています。域外適用の仕組みにより、EU市場に製品・サービスを提供する日本企業も対象となります。用語の詳細は{" "}
 							<Link href="/glossary/eu-ai-act/">EU AI Act (用語集)</Link>{" "}
 							をご参照ください。
 						</p>
 
 						<h2 id="applicability">日本企業への該当判定</h2>
 						<p>
-							日本の中小企業でも、以下のいずれかに該当する場合は EU AI Act の対象となる可能性があります。
+							日本の中小企業でも、以下のいずれかに該当する場合は EU AI Act
+							の対象となる可能性があります。
 						</p>
 						<ul>
 							<li>EU居住の顧客・従業員に対してAI機能を提供している</li>
 							<li>AI出力がEU市場の意思決定に使用されている</li>
-							<li>欧州の親会社・取引先からコンプライアンス対応を要請されている</li>
+							<li>
+								欧州の親会社・取引先からコンプライアンス対応を要請されている
+							</li>
 							<li>越境ECや海外向けSaaSでEU域内に販売している</li>
 							<li>将来的にEU市場進出を視野に入れている</li>
 						</ul>
@@ -284,7 +288,8 @@ export default function EuAiActPillarPage() {
 								<strong>2025年8月</strong>: 汎用AI (GPAI) のルール適用
 							</li>
 							<li>
-								<strong>2026年8月</strong>: 高リスクAIの本格規制開始 (大半の要求事項)
+								<strong>2026年8月</strong>: 高リスクAIの本格規制開始
+								(大半の要求事項)
 							</li>
 							<li>
 								<strong>2027年8月</strong>: 既存製品の高リスクAIへの全面適用
@@ -292,9 +297,7 @@ export default function EuAiActPillarPage() {
 						</ul>
 
 						<h2 id="actions">取るべき対応 優先度別</h2>
-						<p>
-							まずは以下の順で進めるのが中小企業にとって現実的です。
-						</p>
+						<p>まずは以下の順で進めるのが中小企業にとって現実的です。</p>
 						<ol>
 							<li>
 								<strong>該当可能性チェック</strong>:
@@ -309,21 +312,23 @@ export default function EuAiActPillarPage() {
 								該当がある場合は適合性評価・文書化の準備
 							</li>
 							<li>
-								<strong>透明性義務の実装</strong>:
-								限定リスク用途のAI利用明示
+								<strong>透明性義務の実装</strong>: 限定リスク用途のAI利用明示
 							</li>
 							<li>
-								<strong>ISO 42001 との統合</strong>:
-								同時整備でコストを最適化
+								<strong>ISO 42001 との統合</strong>: 同時整備でコストを最適化
 							</li>
 						</ol>
 
 						<h2 id="iso-relation">ISO/IEC 42001 との関係</h2>
 						<p>
-							ISO/IEC 42001 (AIマネジメントシステム) は EU AI Act の要求事項の多くをカバーします。リスク管理・ログ保管・監視・文書化・継続改善の観点では両者の要求が重なります。一方で EU AI Act
-							固有の要件 (CEマーキング・適合性評価・EU代理人) は ISO 42001 でカバーされません。中小企業では、ガバナンス基盤として ISO
-							42001 を整備しつつ、EU AI Act 固有要件を追加対応する形が効率的です。用語の詳細は{" "}
-							<Link href="/glossary/iso-42001/">ISO/IEC 42001</Link> をご参照ください。
+							ISO/IEC 42001 (AIマネジメントシステム) は EU AI Act
+							の要求事項の多くをカバーします。リスク管理・ログ保管・監視・文書化・継続改善の観点では両者の要求が重なります。一方で
+							EU AI Act 固有の要件 (CEマーキング・適合性評価・EU代理人) は ISO
+							42001 でカバーされません。中小企業では、ガバナンス基盤として ISO
+							42001 を整備しつつ、EU AI Act
+							固有要件を追加対応する形が効率的です。用語の詳細は{" "}
+							<Link href="/glossary/iso-42001/">ISO/IEC 42001</Link>{" "}
+							をご参照ください。
 						</p>
 
 						<h2 id="faq">よくある質問</h2>
@@ -338,7 +343,9 @@ export default function EuAiActPillarPage() {
 
 						<h2>まとめ</h2>
 						<p>
-							EU AI Act は「EU事業のある大企業だけの話」ではなく、中小企業でも段階的な準備が必要な規制です。該当可能性の判定と ISO 42001 との同時整備から着手するのが現実解になります。
+							EU AI Act
+							は「EU事業のある大企業だけの話」ではなく、中小企業でも段階的な準備が必要な規制です。該当可能性の判定と
+							ISO 42001 との同時整備から着手するのが現実解になります。
 						</p>
 						<p>
 							関連ピラーは{" "}
@@ -347,6 +354,58 @@ export default function EuAiActPillarPage() {
 							<Link href="/managed-agents/">Managed Agents</Link> からどうぞ。
 						</p>
 					</article>
+
+					<section
+						className="fade-in"
+						style={{ maxWidth: "760px", marginBottom: "3rem" }}
+					>
+						<h2
+							style={{
+								fontSize: "0.85rem",
+								color: "var(--gray-light)",
+								fontFamily: "var(--font-heading)",
+								letterSpacing: "0.1em",
+								marginBottom: "1.5rem",
+							}}
+						>
+							RELATED PILLARS
+						</h2>
+						<div style={{ display: "flex", flexDirection: "column" }}>
+							{[
+								{
+									href: "/ai-governance/",
+									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+								},
+								{
+									href: "/managed-agents/",
+									label: "Managed Agents（マネージドエージェント）",
+								},
+								{
+									href: "/fde/",
+									label: "FDE（Forward Deployed Engineer）とは",
+								},
+								{
+									href: "/ax/",
+									label: "AX（エージェントトランスフォーメーション）とは",
+								},
+							].map((p) => (
+								<Link
+									key={p.href}
+									href={p.href}
+									style={{
+										padding: "1rem 0",
+										borderTop: "1px solid var(--gray-dark)",
+										fontSize: "0.9rem",
+										color: "var(--gray-medium)",
+										lineHeight: "1.7",
+									}}
+								>
+									{p.label}
+								</Link>
+							))}
+							<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+						</div>
+					</section>
 
 					<section
 						className="fade-in"

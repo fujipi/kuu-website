@@ -410,6 +410,58 @@ export default function AiGovernancePillarPage() {
 								marginBottom: "1.5rem",
 							}}
 						>
+							RELATED PILLARS
+						</h2>
+						<div style={{ display: "flex", flexDirection: "column" }}>
+							{[
+								{
+									href: "/fde/",
+									label: "FDE（Forward Deployed Engineer）とは",
+								},
+								{
+									href: "/ax/",
+									label: "AX（エージェントトランスフォーメーション）とは",
+								},
+								{
+									href: "/managed-agents/",
+									label: "Managed Agents（マネージドエージェント）",
+								},
+								{
+									href: "/eu-ai-act-jp/",
+									label: "EU AI Act 日本企業対応ガイド",
+								},
+							].map((p) => (
+								<Link
+									key={p.href}
+									href={p.href}
+									style={{
+										padding: "1rem 0",
+										borderTop: "1px solid var(--gray-dark)",
+										fontSize: "0.9rem",
+										color: "var(--gray-medium)",
+										lineHeight: "1.7",
+									}}
+								>
+									{p.label}
+								</Link>
+							))}
+							<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+						</div>
+					</section>
+
+					<section
+						className="fade-in"
+						style={{ maxWidth: "760px", marginBottom: "3rem" }}
+					>
+						<h2
+							style={{
+								fontSize: "0.85rem",
+								color: "var(--gray-light)",
+								fontFamily: "var(--font-heading)",
+								letterSpacing: "0.1em",
+								marginBottom: "1.5rem",
+							}}
+						>
 							RELATED ARTICLES
 						</h2>
 						<div style={{ display: "flex", flexDirection: "column" }}>

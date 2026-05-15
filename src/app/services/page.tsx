@@ -193,6 +193,50 @@ export default function ServicesIndexPage() {
 						<p className="approach-footnote fade-in">
 							エージェントガバナンスはKuuの中核技術ですが、それ単体では売れない——という前提で設計しています。戦略の言葉とレガシーの現実を一本に通すために、4段すべてを自社で担うのがKuuのスタイルです。
 						</p>
+
+						<div
+							className="fade-in"
+							style={{
+								marginTop: "2.5rem",
+								display: "flex",
+								flexWrap: "wrap",
+								gap: "1.25rem",
+								fontSize: "0.75rem",
+								fontFamily: "var(--font-heading)",
+								letterSpacing: "0.05em",
+							}}
+						>
+							<Link
+								href="/fde/"
+								style={{
+									color: "var(--gray-light)",
+									borderBottom: "1px solid var(--gray-dark)",
+									paddingBottom: "0.15rem",
+								}}
+							>
+								FDE型ディスカバリとは →
+							</Link>
+							<Link
+								href="/ax/"
+								style={{
+									color: "var(--gray-light)",
+									borderBottom: "1px solid var(--gray-dark)",
+									paddingBottom: "0.15rem",
+								}}
+							>
+								AXとは（エージェントトランスフォーメーション） →
+							</Link>
+							<Link
+								href="/ai-governance/"
+								style={{
+									color: "var(--gray-light)",
+									borderBottom: "1px solid var(--gray-dark)",
+									paddingBottom: "0.15rem",
+								}}
+							>
+								エージェントガバナンスとは →
+							</Link>
+						</div>
 					</section>
 
 					<section style={{ marginBottom: "5rem" }}>
