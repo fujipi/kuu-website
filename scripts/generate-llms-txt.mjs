@@ -70,6 +70,18 @@ const inAppPillars = [
 		description:
 			"EU AI Act が日本企業に及ぶ条件・リスク階層・対応ステップ・日本AI推進法との関係を解説。",
 	},
+	{
+		slug: "fde",
+		title: "FDE（Forward Deployed Engineer）とは",
+		description:
+			"日本企業のAIエージェント導入における新しい実装責任者像。Palantir/OpenAI/Anthropic で広がるFDE型ディスカバリと、中小企業での活かし方。",
+	},
+	{
+		slug: "ax",
+		title: "AX（エージェントトランスフォーメーション）とは",
+		description:
+			"AIエージェントが業務を自律的に動かす段階への組織変革。DXとの違い、中小企業に必要な理由、3フェーズの導入プロセスを解説。",
+	},
 ];
 
 const sections = [];

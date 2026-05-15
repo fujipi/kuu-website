@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -157,7 +158,21 @@ export default function AiOpsPage() {
 								<strong style={{ color: "var(--white)" }}>
 									ガバナンス運用（Stage 04）
 								</strong>
-								。エージェントを動かす経営基盤を顧客のシステムに埋め込み、9軸評価で動かし続ける統治機能を提供します。
+								。エージェントを動かす経営基盤（
+								<Link
+									href="/glossary/agent-harness/"
+									style={{ color: "var(--gray-light)" }}
+								>
+									エージェントハーネス
+								</Link>
+								）を顧客のシステムに埋め込み、
+								<Link
+									href="/glossary/nine-axis-evaluation/"
+									style={{ color: "var(--gray-light)" }}
+								>
+									9軸評価
+								</Link>
+								で動かし続ける統治機能を提供します。
 							</p>
 							<div
 								style={{

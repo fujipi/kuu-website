@@ -256,6 +256,21 @@ const STATIC_JOBS = [
 		title: "EU AI Act 日本企業対応",
 		eyebrow: "Pillar",
 	},
+	{
+		out: "fde.png",
+		title: "FDE — Forward Deployed Engineer 完全ガイド",
+		eyebrow: "Pillar",
+	},
+	{
+		out: "ax.png",
+		title: "AX — エージェントトランスフォーメーション完全ガイド",
+		eyebrow: "Pillar",
+	},
+	{
+		out: "services.png",
+		title: "Service — 戦略から運用まで、4段を横串に担う",
+		eyebrow: "Service",
+	},
 	{ out: "pricing.png", title: "料金プラン", eyebrow: "Pricing" },
 	{ out: "glossary.png", title: "AI Agent Glossary", eyebrow: "Glossary" },
 	{

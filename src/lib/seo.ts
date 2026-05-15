@@ -41,7 +41,7 @@ export function resolveOgImage(pathname: string): string {
 	const res = p.match(/^\/resources\/([^/]+)$/);
 	if (res) return `/og/resources/${res[1]}.png`;
 	const simple = p.match(
-		/^\/(ai-governance|managed-agents|eu-ai-act-jp|pricing|blog|glossary|about|contact|case-studies|resources)$/,
+		/^\/(ai-governance|managed-agents|eu-ai-act-jp|fde|ax|pricing|blog|glossary|about|contact|case-studies|resources|services)$/,
 	);
 	if (simple) return `/og/${simple[1]}.png`;
 	return "/og/default.png";

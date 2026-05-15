@@ -20,7 +20,8 @@ const BASE_URL = "https://kuucorp.com";
 const URL = `${BASE_URL}/managed-agents/`;
 
 export const metadata: Metadata = seoMetadata({
-	title: "Managed Agents 実装ガイド——中小企業のAIエージェント外部委託 | Kuu株式会社",
+	title:
+		"Managed Agents 実装ガイド——中小企業のAIエージェント外部委託 | Kuu株式会社",
 	description:
 		"Managed Agentsとは何か、導入プロセス、SLA設計、内製との比較、費用相場、委託範囲の決め方まで。エンジニア不在の中小企業がAIエージェントを安全に運用するための実務ガイド。",
 	path: "/managed-agents/",
@@ -106,7 +107,8 @@ const jsonLd = [
 		"@context": "https://schema.org",
 		"@type": "HowTo",
 		name: "Managed Agents 導入 6ステップ",
-		description: "中小企業がManaged Agentsサービスを活用してAIエージェントを導入する実践ステップ",
+		description:
+			"中小企業がManaged Agentsサービスを活用してAIエージェントを導入する実践ステップ",
 		step: [
 			{
 				"@type": "HowToStep",
@@ -291,7 +293,8 @@ export default function ManagedAgentsPillarPage() {
 					>
 						<h2 id="definition">Managed Agents とは</h2>
 						<p>
-							Managed Agentsは「AIエージェントのマネージドサービス」を表す概念で、設計・開発・運用・改善の全工程を外部パートナーが継続的に担います。SaaSが「パッケージ化されたソフトウェア」をサービスとして提供するのに対し、Managed
+							Managed
+							Agentsは「AIエージェントのマネージドサービス」を表す概念で、設計・開発・運用・改善の全工程を外部パートナーが継続的に担います。SaaSが「パッケージ化されたソフトウェア」をサービスとして提供するのに対し、Managed
 							Agentsは「個社固有の業務に最適化したエージェント」を、継続する運用責任付きで提供します。詳しい定義は用語集の{" "}
 							<Link href="/glossary/managed-agents/">Managed Agents</Link>{" "}
 							を参照してください。
@@ -324,7 +327,8 @@ export default function ManagedAgentsPillarPage() {
 
 						<h2 id="scope">委託範囲の分解方法</h2>
 						<p>
-							Managed Agents の委託範囲は以下の6レイヤに分解して合意します。どこまでを外部、どこを社内に残すかを明示することで、契約後のトラブルを防げます。
+							Managed Agents
+							の委託範囲は以下の6レイヤに分解して合意します。どこまでを外部、どこを社内に残すかを明示することで、契約後のトラブルを防げます。
 						</p>
 						<ol>
 							<li>
@@ -344,8 +348,7 @@ export default function ManagedAgentsPillarPage() {
 								9軸スコアリング、回帰テスト、ユーザFB集約
 							</li>
 							<li>
-								<strong>継続改善</strong>:
-								プロンプト改訂、モデル更新、機能追加
+								<strong>継続改善</strong>: プロンプト改訂、モデル更新、機能追加
 							</li>
 							<li>
 								<strong>ガバナンス・監査</strong>:
@@ -355,12 +358,12 @@ export default function ManagedAgentsPillarPage() {
 
 						<h2 id="sla">SLA設計の勘所</h2>
 						<p>
-							Managed AgentsのSLAは、従来のITサービスSLAとは異なる特殊性があります。AI出力の「品質」は一意に測れないため、複数指標の組み合わせで評価するのが標準です。
+							Managed
+							AgentsのSLAは、従来のITサービスSLAとは異なる特殊性があります。AI出力の「品質」は一意に測れないため、複数指標の組み合わせで評価するのが標準です。
 						</p>
 						<ul>
 							<li>
-								<strong>応答時間</strong>: p95 レスポンスタイム
-								(例: 5秒以内95%)
+								<strong>応答時間</strong>: p95 レスポンスタイム (例: 5秒以内95%)
 							</li>
 							<li>
 								<strong>稼働率</strong>: 月間稼働率 99.5%以上
@@ -381,7 +384,8 @@ export default function ManagedAgentsPillarPage() {
 
 						<h2 id="cost">費用相場と内訳</h2>
 						<p>
-							2026年時点の中小企業向けManaged Agentsの相場は以下の通りです。エージェントの本数・複雑度・SLAレベルで変動します。
+							2026年時点の中小企業向けManaged
+							Agentsの相場は以下の通りです。エージェントの本数・複雑度・SLAレベルで変動します。
 						</p>
 						<ul>
 							<li>
@@ -415,8 +419,7 @@ export default function ManagedAgentsPillarPage() {
 								AI化候補業務の洗い出しとスコアリング
 							</li>
 							<li>
-								<strong>委託範囲の決定</strong>:
-								6レイヤでの内外分担を明文化
+								<strong>委託範囲の決定</strong>: 6レイヤでの内外分担を明文化
 							</li>
 							<li>
 								<strong>SLA/KPI設定</strong>:
@@ -448,11 +451,14 @@ export default function ManagedAgentsPillarPage() {
 
 						<h2>まとめ</h2>
 						<p>
-							Managed Agentsは、AIエージェントの継続的な品質劣化を防ぎながら中小企業が現実的に運用するための標準モデルです。内製・外部委託を極端に捉えず、業務単位でハイブリッド設計する視点が成功の分かれ目になります。
+							Managed
+							Agentsは、AIエージェントの継続的な品質劣化を防ぎながら中小企業が現実的に運用するための標準モデルです。内製・外部委託を極端に捉えず、業務単位でハイブリッド設計する視点が成功の分かれ目になります。
 						</p>
 						<p>
 							エージェントガバナンスとの関係は{" "}
-							<Link href="/ai-governance/">エージェントガバナンス完全ガイド</Link>
+							<Link href="/ai-governance/">
+								エージェントガバナンス完全ガイド
+							</Link>
 							、サービス詳細は{" "}
 							<Link href="https://kuucorp.com/services/ai-ops/">
 								AIエージェントガバナンスサービス
@@ -461,6 +467,58 @@ export default function ManagedAgentsPillarPage() {
 							からお問い合わせください。
 						</p>
 					</article>
+
+					<section
+						className="fade-in"
+						style={{ maxWidth: "760px", marginBottom: "3rem" }}
+					>
+						<h2
+							style={{
+								fontSize: "0.85rem",
+								color: "var(--gray-light)",
+								fontFamily: "var(--font-heading)",
+								letterSpacing: "0.1em",
+								marginBottom: "1.5rem",
+							}}
+						>
+							RELATED PILLARS
+						</h2>
+						<div style={{ display: "flex", flexDirection: "column" }}>
+							{[
+								{
+									href: "/ai-governance/",
+									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+								},
+								{
+									href: "/fde/",
+									label: "FDE（Forward Deployed Engineer）とは",
+								},
+								{
+									href: "/ax/",
+									label: "AX（エージェントトランスフォーメーション）とは",
+								},
+								{
+									href: "/eu-ai-act-jp/",
+									label: "EU AI Act 日本企業対応ガイド",
+								},
+							].map((p) => (
+								<Link
+									key={p.href}
+									href={p.href}
+									style={{
+										padding: "1rem 0",
+										borderTop: "1px solid var(--gray-dark)",
+										fontSize: "0.9rem",
+										color: "var(--gray-medium)",
+										lineHeight: "1.7",
+									}}
+								>
+									{p.label}
+								</Link>
+							))}
+							<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+						</div>
+					</section>
 
 					<section
 						className="fade-in"

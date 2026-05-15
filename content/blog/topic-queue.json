@@ -303,6 +303,54 @@
       "persona": "IT担当・セキュリティ担当（中小企業でAIシステムのリスク検証を担当する人）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "fde-japan-introduction",
+      "keyword": "FDE Forward Deployed Engineer 日本 中小企業",
+      "title_hint": "Forward Deployed Engineerが日本のAIエージェント導入を変える——FDEの定義と中小企業での活かし方",
+      "persona": "AIエージェント導入を検討しているがSIとコンサルどちらにも違和感がある経営者・IT担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "queued"
+    },
+    {
+      "slug": "fde-vs-si-engineer",
+      "keyword": "FDE SIエンジニア 違い 実装責任",
+      "title_hint": "FDEとSIエンジニアは何が違うか——AI時代の実装責任者像を再定義する",
+      "persona": "SIerとの付き合い方を見直しているDX推進担当・経営企画",
+      "service_link": "/services/ax-dx/",
+      "status": "queued"
+    },
+    {
+      "slug": "fde-recruitment-internal-vs-external",
+      "keyword": "FDE 採用 内製 外部委託 中小企業",
+      "title_hint": "FDE人材は採用すべきか外部委託すべきか——中小企業の現実的な選択肢",
+      "persona": "AI人材採用を検討中だが年収レンジに悩む中小企業の経営者",
+      "service_link": "/services/ax-dx/",
+      "status": "queued"
+    },
+    {
+      "slug": "ax-vs-dx-comprehensive",
+      "keyword": "AX DX 違い エージェントトランスフォーメーション",
+      "title_hint": "DXとAXは何が違うのか——エージェントトランスフォーメーションが切り拓く次の段階",
+      "persona": "DX推進中だがAIの位置付けに悩む経営層・DX推進責任者",
+      "service_link": "/services/ax-dx/",
+      "status": "queued"
+    },
+    {
+      "slug": "ax-roadmap-sme",
+      "keyword": "AX ロードマップ 中小企業 段階的 導入",
+      "title_hint": "中小企業のためのAX導入ロードマップ——3フェーズ12ヶ月で動かす実践計画",
+      "persona": "AX導入を検討しているがどこから始めるか分からない中小企業の経営者",
+      "service_link": "/services/ax-dx/",
+      "status": "queued"
+    },
+    {
+      "slug": "agent-harness-architecture",
+      "keyword": "エージェントハーネス 経営基盤 設計 アーキテクチャ",
+      "title_hint": "エージェントハーネスとは何か——AIエージェントを動かし続ける経営基盤の設計図",
+      "persona": "AIエージェント実装のアーキテクチャを設計する中堅企業のCTO・IT責任者",
+      "service_link": "/services/ai-ops/",
+      "status": "queued"
     }
   ],
   "topics_from_keyword_bank": [

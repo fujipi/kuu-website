@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -248,7 +249,15 @@ export default function AxDxPage() {
 								<strong style={{ color: "var(--white)" }}>
 									戦略パワポで終わらせない
 								</strong>
-								——これがKuuのDX/AX戦略の出発点です。経営課題から逆算したロードマップを引き、FDE型ディスカバリで顧客の業務・既存システム・データ資産に深く入り、Stage
+								——これがKuuの{" "}
+								<Link href="/ax/" style={{ color: "var(--gray-light)" }}>
+									AX/DX戦略
+								</Link>{" "}
+								の出発点です。経営課題から逆算したロードマップを引き、
+								<Link href="/fde/" style={{ color: "var(--gray-light)" }}>
+									FDE型ディスカバリ
+								</Link>
+								で顧客の業務・既存システム・データ資産に深く入り、Stage
 								03以降の実装可能な計画に落とします。
 							</p>
 							<p

@@ -47,7 +47,9 @@ const config = {
 		if (
 			p === "/ai-governance" ||
 			p === "/managed-agents" ||
-			p === "/eu-ai-act-jp"
+			p === "/eu-ai-act-jp" ||
+			p === "/fde" ||
+			p === "/ax"
 		) {
 			return { loc: path, changefreq: "monthly", priority: 0.95, lastmod: now };
 		}
