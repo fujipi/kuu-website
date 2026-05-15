@@ -361,6 +361,14 @@
       "persona": "生成AIを業務に活用したいが何から始めるか迷っている中小企業の経営者・IT担当者",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-chatbot-customer-support-cost",
+      "keyword": "AIチャットボット 顧客対応 費用",
+      "title_hint": "AIチャットボットの顧客対応費用はいくら？初期・月額・回収期間を解説",
+      "persona": "AIチャットボット導入の費用感を把握したい中小企業のIT担当者・経営者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
