@@ -417,6 +417,14 @@
       "persona": "AIチャットボット導入の費用感を把握したい中小企業のIT担当者・経営者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "sme-dx-success-guide",
+      "keyword": "中小企業 DX 失敗しない 進め方",
+      "title_hint": "中小企業のDXを失敗させない進め方——最初の90日で決まる立ち上げの鉄則",
+      "persona": "DX推進の途中で立ち止まっている中小企業の経営者・DX推進担当者",
+      "service_link": "/services/ax-dx/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
