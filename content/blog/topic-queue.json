@@ -425,6 +425,14 @@
       "persona": "DX推進の途中で立ち止まっている中小企業の経営者・DX推進担当者",
       "service_link": "/services/ax-dx/",
       "status": "published"
+    },
+    {
+      "slug": "chatgpt-codex-super-app-enterprise",
+      "keyword": "ChatGPT Codex スーパーアプリ 企業活用",
+      "title_hint": "ChatGPT Codexが変える企業の業務自動化——スーパーアプリ化の全体像と活用パターン",
+      "persona": "IT担当・経営者（ChatGPTの企業活用を検討している人）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
