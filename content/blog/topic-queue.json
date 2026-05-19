@@ -433,6 +433,14 @@
       "persona": "IT担当・経営者（ChatGPTの企業活用を検討している人）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "startup-ai-team-structure",
+      "keyword": "スタートアップ AI 体制構築",
+      "title_hint": "スタートアップのAI体制構築——人材・ツール・プロセスを3ヶ月で整える実践手順",
+      "persona": "スタートアップの経営者・CTO・AI推進担当者",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
