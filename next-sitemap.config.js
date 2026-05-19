@@ -74,6 +74,9 @@ const config = {
 		if (p === "/blog") {
 			return { loc: path, changefreq: "weekly", priority: 0.8, lastmod: now };
 		}
+		if (p.startsWith("/blog/page/")) {
+			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
+		}
 		if (p.startsWith("/blog/tags/")) {
 			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
 		}
