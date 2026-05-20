@@ -12,14 +12,14 @@ const navLinks = [
 	{ href: "/", label: "Top" },
 	{ href: "/ai-governance/", label: "Agent Governance" },
 	{ href: "/managed-agents/", label: "Managed Agents" },
-	{ href: "/pricing/", label: "Pricing" },
 	{ href: "/contact/", label: "Contact" },
 ];
 
 const BASE_URL = "https://kuucorp.com";
 
 export const metadata: Metadata = seoMetadata({
-	title: "導入事例 | AIエージェントガバナンス・Managed Agents 活用例 | Kuu株式会社",
+	title:
+		"導入事例 | AIエージェントガバナンス・Managed Agents 活用例 | Kuu株式会社",
 	description:
 		"製造業・士業・EC小売など、中小企業のAIエージェント導入事例。工数削減・品質改善・CVR向上など定量成果を事例ごとに公開しています。",
 	path: "/case-studies/",
@@ -94,7 +94,10 @@ export default function CaseStudiesIndexPage() {
 							事例を準備中です。
 						</p>
 					) : (
-						<div className="fade-in-stagger blog-list" style={{ maxWidth: "720px" }}>
+						<div
+							className="fade-in-stagger blog-list"
+							style={{ maxWidth: "720px" }}
+						>
 							{cases.map((c) => (
 								<Link
 									key={c.slug}

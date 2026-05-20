@@ -11,7 +11,6 @@ import { generateMetadata as seoMetadata } from "@/lib/seo";
 const navLinks = [
 	{ href: "/", label: "Top" },
 	{ href: "/ai-governance/", label: "Agent Governance" },
-	{ href: "/pricing/", label: "Pricing" },
 	{ href: "/blog/", label: "Blog" },
 	{ href: "/contact/", label: "Contact" },
 ];
@@ -48,7 +47,7 @@ const faqs = [
 	},
 	{
 		q: "費用はいくらくらいかかりますか？",
-		a: "エージェントの複雑度と運用頻度で変動しますが、初期構築50-200万円、月額運用20-100万円が一般的な相場です。Kuuのプラン例は/pricing/をご確認ください。LLM API費は実費で別途、使用量に応じて変動します。",
+		a: "エージェントの複雑度と運用頻度で変動しますが、初期構築50-200万円、月額運用20-100万円が一般的な相場です。Kuuのプラン例は無料相談でご案内します。LLM API費は実費で別途、使用量に応じて変動します。",
 	},
 	{
 		q: "委託すると社内にノウハウが残らないのでは？",
@@ -404,8 +403,8 @@ export default function ManagedAgentsPillarPage() {
 							</li>
 						</ul>
 						<p>
-							Kuuのプラン別料金は <Link href="/pricing/">料金プラン</Link>{" "}
-							でご確認ください。詳細な費用対効果は{" "}
+							Kuuのプラン別料金は <Link href="/contact/">無料相談</Link>{" "}
+							でご案内します。詳細な費用対効果は{" "}
 							<Link href="/blog/managed-agents-cost-benefit/">
 								Managed Agents の費用対効果
 							</Link>{" "}

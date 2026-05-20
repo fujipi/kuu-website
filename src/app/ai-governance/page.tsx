@@ -391,8 +391,7 @@ export default function AiGovernancePillarPage() {
 						</p>
 						<p>
 							具体的な導入方法、料金、サポート範囲については{" "}
-							<Link href="/services/ai-ops/">サービス詳細</Link>、
-							<Link href="/pricing/">料金プラン</Link>、または{" "}
+							<Link href="/services/ai-ops/">サービス詳細</Link>、または{" "}
 							<Link href="/contact/">無料相談</Link> をご覧ください。
 						</p>
 					</article>

@@ -25,7 +25,7 @@ export type PageSeoProps = {
  *  - /case-studies/{s}/    -> /og/case-studies/{s}.png
  *  - /resources/{s}/       -> /og/resources/{s}.png
  *  - /ai-governance/, /managed-agents/, /eu-ai-act-jp/ -> /og/{name}.png
- *  - /pricing/, /about/, /contact/, /blog/, /glossary/,
+ *  - /about/, /contact/, /blog/, /glossary/,
  *    /case-studies/, /resources/ -> /og/{name}.png
  *  - else -> /og/default.png
  * Images are generated at build time by scripts/generate-og-images.mjs.
@@ -41,7 +41,7 @@ export function resolveOgImage(pathname: string): string {
 	const res = p.match(/^\/resources\/([^/]+)$/);
 	if (res) return `/og/resources/${res[1]}.png`;
 	const simple = p.match(
-		/^\/(ai-governance|managed-agents|eu-ai-act-jp|fde|ax|pricing|blog|glossary|about|contact|case-studies|resources|services)$/,
+		/^\/(ai-governance|managed-agents|eu-ai-act-jp|fde|ax|blog|glossary|about|contact|case-studies|resources|services)$/,
 	);
 	if (simple) return `/og/${simple[1]}.png`;
 	return "/og/default.png";

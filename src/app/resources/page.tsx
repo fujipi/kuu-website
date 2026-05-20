@@ -12,14 +12,14 @@ const navLinks = [
 	{ href: "/", label: "Top" },
 	{ href: "/ai-governance/", label: "Agent Governance" },
 	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/pricing/", label: "Pricing" },
 	{ href: "/contact/", label: "Contact" },
 ];
 
 const BASE_URL = "https://kuucorp.com";
 
 export const metadata: Metadata = seoMetadata({
-	title: "リソースセンター | 生成AI規程・チェックリスト・テンプレート | Kuu株式会社",
+	title:
+		"リソースセンター | 生成AI規程・チェックリスト・テンプレート | Kuu株式会社",
 	description:
 		"生成AI利用規程テンプレート・エージェントガバナンスチェックリスト・EU AI Act対応資料など、中小企業がすぐ使える実務資料を無料提供。",
 	path: "/resources/",
@@ -100,7 +100,10 @@ export default function ResourcesIndexPage() {
 							資料を準備中です。
 						</p>
 					) : (
-						<div className="fade-in-stagger blog-list" style={{ maxWidth: "720px" }}>
+						<div
+							className="fade-in-stagger blog-list"
+							style={{ maxWidth: "720px" }}
+						>
 							{resources.map((r) => (
 								<Link
 									key={r.slug}

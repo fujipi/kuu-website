@@ -271,7 +271,6 @@ const STATIC_JOBS = [
 		title: "Service — 戦略から運用まで、4段を横串に担う",
 		eyebrow: "Service",
 	},
-	{ out: "pricing.png", title: "料金プラン", eyebrow: "Pricing" },
 	{ out: "glossary.png", title: "AI Agent Glossary", eyebrow: "Glossary" },
 	{
 		out: "case-studies.png",

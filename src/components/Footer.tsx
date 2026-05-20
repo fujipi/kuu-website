@@ -11,7 +11,6 @@ const columns: { heading: string; links: { href: string; label: string }[] }[] =
 					href: "/services/ai-ops/",
 					label: "AIエージェント実装・ガバナンス",
 				},
-				{ href: "/pricing/", label: "Pricing" },
 			],
 		},
 		{

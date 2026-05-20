@@ -22,7 +22,6 @@ const navLinks = [
 	{ href: "/ai-governance/", label: "Agent Governance" },
 	{ href: "/managed-agents/", label: "Managed Agents" },
 	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/pricing/", label: "Pricing" },
 	{ href: "/contact/", label: "Contact" },
 ];
 
@@ -293,7 +292,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 								無料相談
 							</Link>
 							<Link
-								href="/pricing/"
+								href="/services/"
 								style={{
 									fontSize: "0.8rem",
 									color: "var(--gray-light)",
@@ -303,7 +302,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 									letterSpacing: "0.05em",
 								}}
 							>
-								料金プラン
+								サービス概要
 							</Link>
 						</div>
 					</section>

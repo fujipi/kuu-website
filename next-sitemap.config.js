@@ -56,9 +56,6 @@ const config = {
 		if (p.startsWith("/services/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
 		}
-		if (p === "/pricing") {
-			return { loc: path, changefreq: "monthly", priority: 0.9, lastmod: now };
-		}
 		if (p === "/case-studies") {
 			return { loc: path, changefreq: "weekly", priority: 0.9, lastmod: now };
 		}
