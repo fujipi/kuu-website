@@ -22,7 +22,6 @@ const navLinks = [
 	{ href: "/ai-governance/", label: "Agent Governance" },
 	{ href: "/resources/", label: "Resources" },
 	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/pricing/", label: "Pricing" },
 	{ href: "/contact/", label: "Contact" },
 ];
 
@@ -83,7 +82,11 @@ export default async function ResourceDetailPage({ params }: Props) {
 			numberOfPages: r.pages || undefined,
 			keywords: r.tags.join(", "),
 			author: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
-			publisher: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
+			publisher: {
+				"@type": "Organization",
+				name: "Kuu株式会社",
+				url: BASE_URL,
+			},
 			offers: {
 				"@type": "Offer",
 				price: "0",
@@ -158,12 +161,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 							marginBottom: "2rem",
 						}}
 					>
-						{[
-							r.category,
-							r.format,
-							r.pages ? `${r.pages} pages` : null,
-							"無料",
-						]
+						{[r.category, r.format, r.pages ? `${r.pages} pages` : null, "無料"]
 							.filter((x): x is string => !!x)
 							.map((tag) => (
 								<span
@@ -221,7 +219,8 @@ export default async function ResourceDetailPage({ params }: Props) {
 								marginBottom: "1.25rem",
 							}}
 						>
-							本資料はお問い合わせフォームからご請求いただけます。御社のご状況をヒアリングのうえ、最新版をメールでお送りします (数営業日以内)。
+							本資料はお問い合わせフォームからご請求いただけます。御社のご状況をヒアリングのうえ、最新版をメールでお送りします
+							(数営業日以内)。
 						</p>
 						<Link
 							href="/contact/"
