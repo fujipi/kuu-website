@@ -98,7 +98,7 @@ const config = {
 		if (p === "/about") {
 			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
 		}
-		if (p === "/privacy-policy") {
+		if (p === "/privacy-policy" || p === "/security") {
 			return { loc: path, changefreq: "yearly", priority: 0.3, lastmod: now };
 		}
 		return { loc: path, changefreq: "weekly", priority: 0.7, lastmod: now };
