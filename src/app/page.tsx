@@ -9,10 +9,9 @@ import Stars from "@/components/Stars";
 import { generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
-	title:
-		"Kuu株式会社 | AIエージェント時代の伴走実装パートナー | AX/DX戦略から運用まで",
+	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",
 	description:
-		"Kuu株式会社は、AX/DX戦略・現場ディスカバリ・エージェント実装・ガバナンス運用までを一社で横串に担う実装パートナー。顧客の業務と既存システムに深く入り、エージェントを動かし続ける統治を組織に埋め込みます。",
+		"Kuu株式会社は、AIネイティブなAX/DX戦略からFDE（Forward Deployed Engineer）、エージェント実装、運用、ガバナンスまでを一社で包括実行。経営課題に直結する自律型AI導入を伴走します。",
 	path: "/",
 });
 
