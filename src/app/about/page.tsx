@@ -7,9 +7,10 @@ import Stars from "@/components/Stars";
 import { generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
-	title: "会社情報 | Kuu株式会社 - AIエージェント運用のプロフェッショナル",
+	title:
+		"会社情報｜Kuu株式会社｜AX/DX戦略からエージェント実装・ガバナンスまで包括実行",
 	description:
-		"Kuu株式会社の会社情報。代表・藤平賢人が2022年に設立。AIエージェント導入支援・AX/DXコンサルを提供する東京のテクノロジー企業です。",
+		"Kuu株式会社の会社情報。代表・藤平賢人が2022年に設立。AIネイティブAX/DX戦略・FDE・AIエージェント実装・ガバナンス運用までを一社で包括実行する東京のテクノロジー企業です。",
 	path: "/about/",
 });
 
