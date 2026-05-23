@@ -441,6 +441,14 @@
       "persona": "スタートアップの経営者・CTO・AI推進担当者",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "generative-ai-data-clean-room-sme",
+      "keyword": "生成AI データクリーンルーム 中小企業",
+      "title_hint": "生成AIとデータクリーンルーム——機密情報を守りながら中小企業がAIを活用する3つの方法",
+      "persona": "IT担当・経営者（生成AIへのデータ提供リスクを整理したい中小企業担当者）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
