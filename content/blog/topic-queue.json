@@ -449,6 +449,14 @@
       "persona": "IT担当・経営者（生成AIへのデータ提供リスクを整理したい中小企業担当者）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "vertex-ai-agent-builder-vs-bedrock-agentcore",
+      "keyword": "Vertex AI Agent Builder Bedrock AgentCore 比較",
+      "title_hint": "Vertex AI Agent BuilderとBedrock AgentCore比較——中小企業向けAIエージェント基盤の選び方",
+      "persona": "IT担当・経営企画（AIエージェント基盤を選定している中小企業）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [

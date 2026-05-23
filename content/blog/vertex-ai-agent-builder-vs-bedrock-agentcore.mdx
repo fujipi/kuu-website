@@ -1,0 +1,62 @@
+---
+title: "Vertex AI Agent BuilderとBedrock AgentCore比較——中小企業向けAIエージェント基盤の選び方"
+description: "Vertex AI Agent BuilderとBedrock AgentCoreを機能・コスト・運用の3軸で比較。エンジニアが少ない中小企業がクラウドAIエージェント基盤を選ぶための実践的な判断基準を解説します。"
+date: "2026-05-23"
+lastModified: "2026-05-23"
+tags: ["Vertex AI", "Bedrock AgentCore", "AIエージェント", "クラウド比較"]
+author: "kuu-editorial"
+pillar: "ai-governance"
+---
+
+AIエージェントを本番環境で動かすとき、基盤となるクラウドプラットフォームの選択が長期的なコストと運用負荷を大きく左右します。GoogleのVertex AI Agent BuilderとAWSのBedrock AgentCoreはどちらも2025年以降に急速に機能拡張され、中小企業でも現実的な選択肢となっています。選定を誤ると後から移行するコストが大きくなるため、早い段階で正しく比較することが重要です。
+
+## Vertex AI Agent BuilderとBedrock AgentCoreとは何か
+
+> 両者は2025年に急成長した本番AIエージェント基盤で、LLM・メモリ・ツールを一元管理します。
+
+**Vertex AI Agent Builder**は、Google CloudでAIエージェントを構築・デプロイするためのフルマネージドプラットフォームです。GeminiモデルとのネイティブIntegration、BigQueryによる大量データアクセスが特徴で、Google Workspaceとの連携が求められる業務で強みを発揮します。
+
+**Bedrock AgentCore**は、AWSがAmazon Bedrockの上に構築したエージェント実行環境です。Claude、Llama、Command R+など複数のモデルを同一APIで切り替えられる柔軟性が強みです。AWS Lambda、S3、DynamoDBなどの既存インフラとシームレスに連携するため、すでにAWSを使っている組織には自然な選択肢となります。
+
+## 機能比較——3つの選択軸
+
+> 3軸比較では、Google基盤は深い統合が強く、AWS基盤はマルチモデルの柔軟性が強みです。
+
+### ツール接続とMCP対応
+
+Vertex AI Agent BuilderはExtensions APIとFunction CallingでGoogle CloudサービスやREST APIへのツール呼び出しを管理し、Model Context Protocol（MCP）による標準化接続もサポートしています。Bedrock AgentCoreはAction GroupsとToolUseでAWS Lambda経由の任意処理を登録でき、既存MCPサーバーをそのまま活用しやすい設計です。
+
+### メモリ管理
+
+Vertex AI Agent Builderはインメモリと外部データストア（Firestore / BigQuery）の選択式で、長期記憶の保持コストが比較的予測しやすい設計です。
+
+Bedrock AgentCoreはMemory APIとBedrock Knowledge Basesを組み合わせて会話履歴の自動要約と長期保持ができますが、トラフィック量でコストが変動するため事前試算が必要です。
+
+### モデル選択
+
+Vertex AI Agent BuilderはGeminiシリーズが主軸で、用途に合わせて高速・低コストから高精度モデルまで選択できます。Claudeモデルも利用可能ですが、Anthropic直接APIより割高になるケースがあります。
+
+Bedrock AgentCoreはClaude、Llama、Command R+など10種類以上のモデルを同一APIで切り替えられます。[Managed Agentsの活用事例](/blog/claude-managed-agents-for-sme/)と組み合わせて、コストと精度を柔軟に調整できます。
+
+## 中小企業はどちらを選ぶべきか
+
+> 既存クラウド基盤で選ぶのが鉄則です。GoogleならVertex AI、AWSならBedrockが現実的です。
+
+**Vertex AI Agent Builderが向く組織:**
+- Google Workspace（Gmail、Drive、Spreadsheet）を業務の中核に使っている
+- BigQueryや既存のGCPインフラに投資済みの企業
+
+**Bedrock AgentCoreが向く組織:**
+- AWS上にすでに顧客DB・ERPシステムが稼働している
+- 複数のLLMモデルを用途別に使い分けたい
+- IAMによる細粒度の[権限管理設計](/blog/ai-agent-permission-management-design/)を優先する
+
+コスト面では、どちらも従量課金モデルのため月次利用量の予測精度が採用判断の鍵となります。Kuu株式会社では、自社環境に最適なAIエージェント基盤の選定から運用設計まで一貫して支援しています。詳細は[AIオペレーションサービス](https://kuucorp.com/services/ai-ops/)をご参照ください。
+
+## まとめ
+
+Vertex AI Agent BuilderとBedrock AgentCoreはどちらも2026年時点で本番運用に耐えるAIエージェント基盤に成長しています。選択のポイントは「現在のクラウド投資を活かせるか」「モデルの柔軟性が必要か」の2点に集約されます。
+
+GoogleエコシステムにいるならVertex AI Agent Builder、AWSインフラ活用やマルチモデルを優先するならBedrock AgentCoreが第一候補です。どちらを選んでも、[エージェントガバナンス](/glossary/agent-governance/)体制の整備は必須です。
+
+AIエージェント基盤の選定・運用設計のご相談は[Kuu株式会社のAIオペレーションサービス](https://kuucorp.com/services/ai-ops/)からどうぞ。
