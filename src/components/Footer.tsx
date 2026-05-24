@@ -52,23 +52,25 @@ export default function Footer() {
 								</li>
 							))}
 						</ul>
+						{col.heading === "Company" ? (
+							<div
+								className="footer-security-action"
+								aria-label="SECURITY ACTION 二つ星 セキュリティ対策自己宣言"
+							>
+								<img
+									src="/images/security_action_futatsuboshi-large_bw.png"
+									alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
+									width={60}
+									height={60}
+									loading="lazy"
+								/>
+							</div>
+						) : null}
 					</div>
 				))}
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>
-				<div
-					className="footer-security-action"
-					aria-label="SECURITY ACTION 二つ星 セキュリティ対策自己宣言"
-				>
-					<img
-						src="/images/security_action_futatsuboshi-large_bw.png"
-						alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
-						width={56}
-						height={56}
-						loading="lazy"
-					/>
-				</div>
 			</div>
 		</footer>
 	);
