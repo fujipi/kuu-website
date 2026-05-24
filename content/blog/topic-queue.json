@@ -457,6 +457,14 @@
       "persona": "IT担当・経営企画（AIエージェント基盤を選定している中小企業）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "claude-api-business-guide",
+      "keyword": "Claude API ビジネス活用",
+      "title_hint": "Claude APIで始める業務自動化——中小企業がビジネス活用を実現する3つの切り口",
+      "persona": "IT担当・経営企画（エンジニアなしでAI自動化を検討中）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
