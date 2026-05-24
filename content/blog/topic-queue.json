@@ -465,6 +465,14 @@
       "persona": "IT担当・経営企画（エンジニアなしでAI自動化を検討中）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "iso-42001-certification-roadmap",
+      "keyword": "ISO 42001 取得 ロードマップ",
+      "title_hint": "ISO 42001認証取得ロードマップ——中小企業が6ヶ月で達成する7ステップ",
+      "persona": "IT担当・情報システム部長・経営者（AIマネジメントシステムの認証取得を検討している中小企業）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
