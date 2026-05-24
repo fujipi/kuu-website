@@ -474,6 +474,26 @@ footer {
 	letter-spacing: 0.05em;
 }
 
+.footer-security-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--white);
+	padding: 0.35rem;
+	border-radius: 4px;
+	line-height: 0;
+	opacity: 0.7;
+	transition: opacity 0.3s;
+}
+.footer-security-action:hover {
+	opacity: 1;
+}
+.footer-security-action img {
+	width: 56px;
+	height: 56px;
+	display: block;
+}
+
 /* Page styles (subpages) */
 .page-content {
 	padding: 8rem 4rem 4rem;
