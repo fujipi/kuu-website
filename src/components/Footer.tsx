@@ -57,9 +57,12 @@ export default function Footer() {
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>
-				<div className="footer-security-action" aria-label="SECURITY ACTION 二つ星 セキュリティ対策自己宣言">
+				<div
+					className="footer-security-action"
+					aria-label="SECURITY ACTION 二つ星 セキュリティ対策自己宣言"
+				>
 					<img
-						src="/images/security-action-2star.png"
+						src="/images/security_action_futatsuboshi-large_bw.png"
 						alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
 						width={56}
 						height={56}
