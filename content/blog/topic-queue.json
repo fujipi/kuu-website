@@ -481,6 +481,14 @@
       "persona": "IT担当・総務・経営者（ChatGPT社内利用規程の作成を検討している中小企業担当者）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "eu-ai-act-japan-business-guide",
+      "keyword": "EU AI Act 日本企業 該当例",
+      "title_hint": "EU AI Act、日本企業への影響を整理する——どの業種・規模が「該当」するか",
+      "persona": "DX推進担当・法務担当・IT担当（EUへの事業展開または欧州顧客を持つ中小企業）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
