@@ -473,6 +473,14 @@
       "persona": "IT担当・情報システム部長・経営者（AIマネジメントシステムの認証取得を検討している中小企業）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "chatgpt-usage-policy-template",
+      "keyword": "ChatGPT 社内利用 規程 テンプレート",
+      "title_hint": "ChatGPT社内利用規程を今すぐ作る——中小企業向けテンプレートと3つの必須条項",
+      "persona": "IT担当・総務・経営者（ChatGPT社内利用規程の作成を検討している中小企業担当者）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
