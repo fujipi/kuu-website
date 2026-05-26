@@ -489,6 +489,14 @@
       "persona": "DX推進担当・法務担当・IT担当（EUへの事業展開または欧州顧客を持つ中小企業）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "generative-ai-internal-policy-guide",
+      "keyword": "生成AI 社内規程 ひな形",
+      "title_hint": "生成AI社内規程のひな形——コピーして使える条文例と業種別カスタマイズガイド",
+      "persona": "IT担当・総務・経営者（生成AI社内規程の条文ひな形を探している中小企業担当者）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
