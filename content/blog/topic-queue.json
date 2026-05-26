@@ -497,6 +497,14 @@
       "persona": "IT担当・総務・経営者（生成AI社内規程の条文ひな形を探している中小企業担当者）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-agent-cost-optimization-sme",
+      "keyword": "AIエージェント コスト最適化 中小企業",
+      "title_hint": "AIエージェントの運用コストを抑える——中小企業のためのコスト最適化5施策",
+      "persona": "AIエージェント運用コストの増大に悩む中小企業のIT担当者・経営者",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
