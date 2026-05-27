@@ -513,6 +513,14 @@
       "persona": "IT担当・セキュリティ担当（中小企業でAIシステムのセキュリティを担当する人）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "shadow-ai-countermeasures-enterprise",
+      "keyword": "shadow AI 対策 企業",
+      "title_hint": "企業がシャドーAIに即応するための対策ガイド——発見から封じ込め・再発防止まで",
+      "persona": "IT担当・情報システム部長（シャドーAI利用の対応策を実装したい中小企業担当者）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
