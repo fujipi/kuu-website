@@ -505,6 +505,14 @@
       "persona": "AIエージェント運用コストの増大に悩む中小企業のIT担当者・経営者",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-agent-prompt-injection-defense",
+      "keyword": "AIエージェント プロンプトインジェクション 対策",
+      "title_hint": "AIエージェントへのプロンプトインジェクション攻撃——中小企業が実装すべき5つの防御策",
+      "persona": "IT担当・セキュリティ担当（中小企業でAIシステムのセキュリティを担当する人）",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
