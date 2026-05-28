@@ -153,22 +153,6 @@ export default function Home() {
 							<div className="service-desc">
 								経営課題から逆算したAX/DXロードマップを設計し、実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
 							</div>
-							<Link
-								href="/services/ax-dx/"
-								style={{
-									display: "inline-block",
-									marginTop: "0.75rem",
-									fontSize: "0.7rem",
-									color: "var(--gray-dim)",
-									fontFamily: "var(--font-heading)",
-									letterSpacing: "0.05em",
-									borderBottom: "1px solid var(--gray-dark)",
-									paddingBottom: "0.1rem",
-									transition: "color 0.3s, border-color 0.3s",
-								}}
-							>
-								詳しく見る →
-							</Link>
 						</div>
 
 						<div className="service-item fade-in-item">
@@ -181,22 +165,6 @@ export default function Home() {
 							<div className="service-desc">
 								FDE（Forward Deployed Engineer）が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から9軸評価による継続ガバナンスまで、実装と運用を一気通貫で担います。
 							</div>
-							<Link
-								href="/services/ai-ops/"
-								style={{
-									display: "inline-block",
-									marginTop: "0.75rem",
-									fontSize: "0.7rem",
-									color: "var(--gray-dim)",
-									fontFamily: "var(--font-heading)",
-									letterSpacing: "0.05em",
-									borderBottom: "1px solid var(--gray-dark)",
-									paddingBottom: "0.1rem",
-									transition: "color 0.3s, border-color 0.3s",
-								}}
-							>
-								詳しく見る →
-							</Link>
 						</div>
 
 						<div className="service-item fade-in-item">

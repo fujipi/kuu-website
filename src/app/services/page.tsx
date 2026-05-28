@@ -3,6 +3,20 @@ import Link from "next/link";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import {
+	BuildCatIcon,
+	ClaudeMark,
+	ContentCatIcon,
+	DiscoveryIcon,
+	FdeIcon,
+	GovernanceIcon,
+	HarnessIcon,
+	MangaIcon,
+	OpenAiMark,
+	ShieldCatIcon,
+	StrategyCatIcon,
+	StrategyIcon,
+} from "@/components/icons/ServiceIcons";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
@@ -54,14 +68,45 @@ const servicesJsonLd = [
 			{
 				"@type": "ListItem",
 				position: 1,
-				name: "AX / DX戦略・現場ディスカバリ",
+				name: "AX/DX戦略コンサルティング",
 				url: `${BASE_URL}/services/ax-dx/`,
 			},
 			{
 				"@type": "ListItem",
 				position: 2,
-				name: "AIエージェント実装・ガバナンス",
+				name: "RDEディスカバリ",
+			},
+			{
+				"@type": "ListItem",
+				position: 3,
+				name: "AIエージェント実装・FDE",
 				url: `${BASE_URL}/services/ai-ops/`,
+			},
+			{
+				"@type": "ListItem",
+				position: 4,
+				name: "AIエージェントガバナンス運用",
+				url: `${BASE_URL}/services/ai-ops/`,
+			},
+			{
+				"@type": "ListItem",
+				position: 5,
+				name: "Claude 法人導入・活用支援",
+			},
+			{
+				"@type": "ListItem",
+				position: 6,
+				name: "ChatGPT / Codex 法人活用支援",
+			},
+			{
+				"@type": "ListItem",
+				position: 7,
+				name: "エージェントハーネス設計・MCP連携",
+			},
+			{
+				"@type": "ListItem",
+				position: 8,
+				name: "Yota mangaコンテンツ",
 			},
 		],
 	},
@@ -97,17 +142,110 @@ const servicesJsonLd = [
 	},
 ];
 
-const linkStyle = {
-	display: "inline-block",
-	marginTop: "0.75rem",
-	fontSize: "0.7rem",
-	color: "var(--gray-dim)",
-	fontFamily: "var(--font-heading)",
-	letterSpacing: "0.05em",
-	borderBottom: "1px solid var(--gray-dark)",
-	paddingBottom: "0.1rem",
-	transition: "color 0.3s, border-color 0.3s",
-} as const;
+type ServiceCard = {
+	title: string;
+	desc: string;
+	href?: string;
+	icon: React.ReactNode;
+	iconAccent?: "claude" | "openai";
+};
+
+const SERVICE_CARDS: ServiceCard[] = [
+	{
+		title: "AX/DX戦略コンサルティング",
+		desc: "経営課題から逆算したAX/DXロードマップを設計し、実装可能な計画に落とします。戦略パワポで終わらせず、実装・運用まで自社で担います。",
+		href: "/services/ax-dx/",
+		icon: <StrategyIcon />,
+	},
+	{
+		title: "RDEディスカバリ",
+		desc: "Reinvention Deployed Engineering が業務・既存システム・データに深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。",
+		icon: <DiscoveryIcon />,
+	},
+	{
+		title: "AIエージェント実装・FDE",
+		desc: "Forward Deployed Engineer が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から運用定着まで一気通貫で担います。",
+		href: "/services/ai-ops/",
+		icon: <FdeIcon />,
+	},
+	{
+		title: "AIエージェントガバナンス運用",
+		desc: "9軸評価で品質・コスト・安全性を継続測定し、エージェントを「動かし続ける」統治の仕組みを組織に埋め込みます。",
+		href: "/services/ai-ops/",
+		icon: <GovernanceIcon />,
+	},
+	{
+		title: "Claude 法人導入・活用支援",
+		desc: "Enterprise / Cowork / Code / API（Bedrock）。Anthropic Claude の製品選定から定着までワンストップで支援します。",
+		icon: <ClaudeMark />,
+		iconAccent: "claude",
+	},
+	{
+		title: "ChatGPT / Codex 法人活用支援",
+		desc: "ChatGPT Business・Codex の業務組込みから社内規程・ガバナンス整備まで、OpenAI 製品の安全な企業活用を支援します。",
+		icon: <OpenAiMark />,
+		iconAccent: "openai",
+	},
+	{
+		title: "エージェントハーネス設計・MCP連携",
+		desc: "Model Context Protocol、サブエージェント、外部システム接続を経営基盤として設計。エージェントを動かし続ける土台を構築します。",
+		icon: <HarnessIcon />,
+	},
+	{
+		title: "Yota mangaコンテンツ",
+		desc: "AIを活用したマンガ制作。企画・シナリオから作画まで、物語で伝える高品質なコンテンツを提供します。",
+		icon: <MangaIcon />,
+	},
+];
+
+type ServiceCategory = {
+	head: string;
+	icon: React.ReactNode;
+	items: string[];
+};
+
+const SERVICE_CATEGORIES: ServiceCategory[] = [
+	{
+		head: "戦略・ディスカバリ",
+		icon: <StrategyCatIcon />,
+		items: [
+			"AX/DX戦略コンサル",
+			"RDEディスカバリ",
+			"現場ヒアリング",
+			"ロードマップ設計",
+		],
+	},
+	{
+		head: "実装・統合",
+		icon: <BuildCatIcon />,
+		items: [
+			"FDE実装",
+			"エージェントハーネス",
+			"MCP連携",
+			"サブエージェント設計",
+		],
+	},
+	{
+		head: "ガバナンス・運用",
+		icon: <ShieldCatIcon />,
+		items: [
+			"9軸評価",
+			"AI監査ログ",
+			"AIレッドチーミング",
+			"シャドーAI対策",
+		],
+	},
+	{
+		head: "周辺・コンテンツ",
+		icon: <ContentCatIcon />,
+		items: [
+			"Yota manga",
+			"AI研修",
+			"社内ポリシー策定",
+			"AIer人材紹介",
+		],
+	},
+];
 
 export default function ServicesIndexPage() {
 	return (
@@ -241,44 +379,60 @@ export default function ServicesIndexPage() {
 
 					<section style={{ marginBottom: "5rem" }}>
 						<h2 className="section-label fade-in">Offerings</h2>
-						<div className="service-list fade-in-stagger">
-							<div className="service-item fade-in-item">
-								<div className="service-stage">
-									Stage 01–02 · Strategy &amp; Discovery
-								</div>
-								<div className="service-name">
-									AX / DX戦略・現場ディスカバリ
-								</div>
-								<div className="service-desc">
-									経営課題から逆算したDX/AXロードマップを引き、顧客の業務・既存システムに入って実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
-								</div>
-								<Link href="/services/ax-dx/" style={linkStyle}>
-									詳しく見る →
-								</Link>
-							</div>
+						<div className="service-grid fade-in-stagger">
+							{SERVICE_CARDS.map((card) => {
+								const iconClass = card.iconAccent
+									? `service-card-icon service-card-icon--accent-${card.iconAccent}`
+									: "service-card-icon";
+								const content = (
+									<>
+										<div className={iconClass}>{card.icon}</div>
+										<div className="service-card-content">
+											<h3 className="service-card-title">{card.title}</h3>
+											<p className="service-card-desc">{card.desc}</p>
+											{card.href ? (
+												<span className="service-card-arrow">→</span>
+											) : null}
+										</div>
+									</>
+								);
+								return card.href ? (
+									<Link
+										key={card.title}
+										href={card.href}
+										className="service-card fade-in-item"
+									>
+										{content}
+									</Link>
+								) : (
+									<div
+										key={card.title}
+										className="service-card fade-in-item"
+									>
+										{content}
+									</div>
+								);
+							})}
+						</div>
 
-							<div className="service-item fade-in-item">
-								<div className="service-stage">
-									Stage 03–04 · Harness &amp; Governance
+						<div className="service-categories fade-in-stagger">
+							{SERVICE_CATEGORIES.map((cat) => (
+								<div
+									key={cat.head}
+									className="service-category-col fade-in-item"
+								>
+									<div className="service-category-head">
+										{cat.icon}
+										<span>{cat.head}</span>
+									</div>
+									{cat.items.map((item) => (
+										<span key={item} className="service-category-link">
+											<span>{item}</span>
+											<span className="service-category-link-arrow">→</span>
+										</span>
+									))}
 								</div>
-								<div className="service-name">
-									AIエージェント実装・ガバナンス
-								</div>
-								<div className="service-desc">
-									自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で動かし続ける統治機能を組織に埋め込みます。AIガバナンスは「製品」ではなく、実装の中核に組み込む経営機能として提供します。
-								</div>
-								<Link href="/services/ai-ops/" style={linkStyle}>
-									詳しく見る →
-								</Link>
-							</div>
-
-							<div className="service-item fade-in-item">
-								<div className="service-stage">Adjacent · Creative</div>
-								<div className="service-name">Yota mangaサービス</div>
-								<div className="service-desc">
-									AIを活用したマンガ制作サービス。企画・シナリオから作画まで、高品質なマンガコンテンツを提供します。
-								</div>
-							</div>
+							))}
 						</div>
 					</section>
 
