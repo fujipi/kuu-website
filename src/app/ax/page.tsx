@@ -6,7 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -17,8 +22,7 @@ const navLinks = [
 	{ href: "/contact/", label: "Contact" },
 ];
 
-const BASE_URL = "https://kuucorp.com";
-const URL = `${BASE_URL}/ax/`;
+const PAGE_URL = `${BASE_URL}/ax/`;
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -68,11 +72,7 @@ const jsonLd = [
 			"AX（エージェントトランスフォーメーション）とは——中小企業向け完全ガイド",
 		description:
 			"AXの定義、DXとの違い、中小企業に必要な理由、3段階の導入プロセス、推進体制まで完全解説。",
-		author: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -84,8 +84,8 @@ const jsonLd = [
 		},
 		datePublished: "2026-05-14",
 		dateModified: "2026-05-14",
-		mainEntityOfPage: { "@type": "WebPage", "@id": URL },
-		url: URL,
+		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
+		url: PAGE_URL,
 		inLanguage: "ja",
 		articleSection: "Pillar",
 		keywords:
@@ -130,19 +130,10 @@ const jsonLd = [
 			},
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "AX（エージェントトランスフォーメーション）",
-				item: URL,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "AX（エージェントトランスフォーメーション）", path: "/ax/" },
+	]),
 ];
 
 export default function AxPillarPage() {

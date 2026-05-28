@@ -5,7 +5,12 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -74,8 +79,6 @@ const faqs = [
 	},
 ];
 
-const BASE_URL = "https://kuucorp.com";
-
 const aiOpsJsonLd = [
 	{
 		"@context": "https://schema.org",
@@ -95,11 +98,7 @@ const aiOpsJsonLd = [
 		name: "AIエージェント実装・ガバナンス",
 		description:
 			"自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で品質・コスト・安全性を継続統治。エージェントを動かし続ける仕組みを組織に埋め込みます。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "AIエージェントガバナンス",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ai-ops/`,
@@ -121,24 +120,10 @@ const aiOpsJsonLd = [
 			"Managed Agents",
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "AIエージェント実装・ガバナンス",
-				item: `${BASE_URL}/services/ai-ops/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "AIエージェント実装・ガバナンス", path: "/services/ai-ops/" },
+	]),
 ];
 
 export default function AiOpsPage() {

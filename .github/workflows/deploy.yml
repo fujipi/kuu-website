@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint & typecheck
+        run: |
+          pnpm exec biome check src/
+          pnpm exec tsc --noEmit
+
       - name: Build
         run: pnpm build
 

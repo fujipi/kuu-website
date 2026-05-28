@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata } from "@/lib/seo";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "お問い合わせ | Kuu株式会社 - AI導入のご相談",
@@ -12,8 +12,6 @@ export const metadata: Metadata = generateMetadata({
 		"Kuu株式会社へのお問い合わせ。AIエージェント導入・AX/DX戦略のご相談、業務提携、採用など。通常1〜2営業日以内にご返信いたします。",
 	path: "/contact/",
 });
-
-const BASE_URL = "https://kuucorp.com";
 
 const contactJsonLd = [
 	{
@@ -50,24 +48,10 @@ const contactJsonLd = [
 			},
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "お問い合わせ",
-				item: `${BASE_URL}/contact/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "お問い合わせ", path: "/contact/" },
+	]),
 ];
 
 const navLinks = [

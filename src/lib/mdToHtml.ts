@@ -68,10 +68,22 @@ export function mdToHtml(md: string, idMap?: Map<string, string>): string {
 		if (/^#{1,4} /.test(block)) {
 			out.push(
 				block
-					.replace(/^#### (.+)$/gm, (_m, t) => `<h4${headingIdAttr(t)}>${inline(t)}</h4>`)
-					.replace(/^### (.+)$/gm, (_m, t) => `<h3${headingIdAttr(t)}>${inline(t)}</h3>`)
-					.replace(/^## (.+)$/gm, (_m, t) => `<h2${headingIdAttr(t)}>${inline(t)}</h2>`)
-					.replace(/^# (.+)$/gm, (_m, t) => `<h1${headingIdAttr(t)}>${inline(t)}</h1>`),
+					.replace(
+						/^#### (.+)$/gm,
+						(_m, t) => `<h4${headingIdAttr(t)}>${inline(t)}</h4>`,
+					)
+					.replace(
+						/^### (.+)$/gm,
+						(_m, t) => `<h3${headingIdAttr(t)}>${inline(t)}</h3>`,
+					)
+					.replace(
+						/^## (.+)$/gm,
+						(_m, t) => `<h2${headingIdAttr(t)}>${inline(t)}</h2>`,
+					)
+					.replace(
+						/^# (.+)$/gm,
+						(_m, t) => `<h1${headingIdAttr(t)}>${inline(t)}</h1>`,
+					),
 			);
 			continue;
 		}
@@ -85,7 +97,10 @@ export function mdToHtml(md: string, idMap?: Map<string, string>): string {
 			const tag = ordered ? "ol" : "ul";
 			const items = lines
 				.filter((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))
-				.map((l) => `<li>${inline(l.replace(/^[-*] /, "").replace(/^\d+\. /, ""))}</li>`)
+				.map(
+					(l) =>
+						`<li>${inline(l.replace(/^[-*] /, "").replace(/^\d+\. /, ""))}</li>`,
+				)
 				.join("\n");
 			out.push(`<${tag}>\n${items}\n</${tag}>`);
 			continue;

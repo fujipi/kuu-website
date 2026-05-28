@@ -6,7 +6,11 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllGlossaryTerms } from "@/lib/glossary";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -14,8 +18,6 @@ const navLinks = [
 	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export const metadata: Metadata = seoMetadata({
 	title: "AIエージェント・エージェントガバナンス用語集 | Kuu株式会社",
@@ -44,14 +46,10 @@ export default function GlossaryIndexPage() {
 				inDefinedTermSet: url,
 			})),
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{ "@type": "ListItem", position: 2, name: "用語集", item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "用語集", path: "/glossary/" },
+		]),
 	];
 
 	return (

@@ -168,6 +168,21 @@ section {
 	letter-spacing: 0.2em;
 }
 
+/* Hero reveal — JS-independent, runs on first paint (compositor-driven) */
+.hero-reveal {
+	animation: hero-fade-in 0.8s ease both;
+}
+@keyframes hero-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 /* Fade-in animation */
 .fade-in {
 	opacity: 0;
@@ -384,7 +399,10 @@ section {
 	border: 1px solid var(--gray-dark);
 	border-radius: 6px;
 	background: var(--black);
-	transition: border-color 0.3s, background 0.3s, transform 0.3s;
+	transition:
+		border-color 0.3s,
+		background 0.3s,
+		transform 0.3s;
 	text-decoration: none;
 	color: inherit;
 	min-width: 0;
@@ -436,6 +454,7 @@ a.service-bento-card:hover {
 	color: #ededed;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: base rule grouped with sibling bento styles; accent/hero variants have higher specificity and win regardless of source order */
 .service-bento-icon {
 	color: var(--gray-light);
 	margin-bottom: 1rem;
@@ -538,7 +557,9 @@ a.service-bento-card:hover {
 	font-size: 0.72rem;
 	color: var(--gray-light);
 	background: var(--black);
-	transition: border-color 0.3s, color 0.3s;
+	transition:
+		border-color 0.3s,
+		color 0.3s;
 }
 
 a.service-category-link:hover {
@@ -898,6 +919,9 @@ footer {
 		animation: none;
 		opacity: 0.4;
 	}
+	.hero-reveal {
+		animation: none;
+	}
 	.fade-in {
 		transition: none;
 		opacity: 1;
@@ -1120,8 +1144,8 @@ footer {
 }
 
 /* Direct-Answer Block (AEO: LLM引用に最適化した40-60字の直接回答) */
-.blog-content .answer-block,
-.answer-block {
+.answer-block,
+.blog-content .answer-block {
 	border: 1px solid var(--gray-dark);
 	border-left: 2px solid var(--white);
 	padding: 1rem 1.25rem;
@@ -1130,8 +1154,8 @@ footer {
 	margin: 0.5rem 0 2rem 0;
 	max-width: 720px;
 }
-.blog-content .answer-block::before,
-.answer-block::before {
+.answer-block::before,
+.blog-content .answer-block::before {
 	content: "ANSWER";
 	display: block;
 	font-family: var(--font-heading);

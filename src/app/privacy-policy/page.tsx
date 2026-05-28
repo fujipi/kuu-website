@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata } from "@/lib/seo";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "プライバシーポリシー | Kuu株式会社",
@@ -12,8 +12,6 @@ export const metadata: Metadata = generateMetadata({
 		"Kuu株式会社のプライバシーポリシー。個人情報の取得目的・利用方法・第三者提供方針・安全管理措置・開示請求について記載しています。",
 	path: "/privacy-policy/",
 });
-
-const BASE_URL = "https://kuucorp.com";
 
 const privacyJsonLd = [
 	{
@@ -30,24 +28,10 @@ const privacyJsonLd = [
 		},
 		datePublished: "2026-03-08",
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "プライバシーポリシー",
-				item: `${BASE_URL}/privacy-policy/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "プライバシーポリシー", path: "/privacy-policy/" },
+	]),
 ];
 
 const navLinks = [

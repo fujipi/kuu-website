@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata } from "@/lib/seo";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "情報セキュリティ基本方針 | Kuu株式会社",
@@ -12,8 +12,6 @@ export const metadata: Metadata = generateMetadata({
 		"Kuu株式会社の情報セキュリティ基本方針。AI関連およびDXサービス事業者として情報資産を保護するための経営者責任・社内体制・従業員教育・法令遵守・事故対応の方針を公開しています。",
 	path: "/security/",
 });
-
-const BASE_URL = "https://kuucorp.com";
 
 const securityJsonLd = [
 	{
@@ -30,24 +28,10 @@ const securityJsonLd = [
 		},
 		datePublished: "2026-05-20",
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "情報セキュリティ基本方針",
-				item: `${BASE_URL}/security/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "情報セキュリティ基本方針", path: "/security/" },
+	]),
 ];
 
 const navLinks = [

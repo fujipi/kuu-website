@@ -18,7 +18,12 @@ import Header from "@/components/Header";
 import { ClaudeMark, OpenAiMark } from "@/components/icons/ServiceIcons";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -69,28 +74,11 @@ const navLinks = [
 	{ href: "/contact/", label: "Contact" },
 ];
 
-const BASE_URL = "https://kuucorp.com";
-const URL = `${BASE_URL}/services/`;
-
 const servicesJsonLd = [
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Service",
-				item: URL,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "Service", path: "/services/" },
+	]),
 	{
 		"@context": "https://schema.org",
 		"@type": "ItemList",
@@ -148,11 +136,7 @@ const servicesJsonLd = [
 		name: "AX/DX戦略・現場ディスカバリ",
 		description:
 			"経営課題から逆算したDX/AXロードマップ設計と、顧客の業務・既存システムに深く入る現場ディスカバリ。実装可能な計画に落とすまで。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "DX/AX戦略・ディスカバリ",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ax-dx/`,
@@ -174,11 +158,7 @@ const servicesJsonLd = [
 		name: "RDEディスカバリ",
 		description:
 			"Reinvention Deployed Engineering で業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出する変革型ディスカバリ。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "AI実装ディスカバリ",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/rde/`,
@@ -199,11 +179,7 @@ const servicesJsonLd = [
 		name: "AIエージェント実装・ガバナンス",
 		description:
 			"自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で品質・コスト・安全性を継続統治。エージェントを動かし続ける仕組みを組織に埋め込みます。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "AIエージェント実装・運用",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ai-ops/`,
@@ -455,22 +431,12 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
 	{
 		head: "ガバナンス・運用",
 		icon: <Shield size={14} strokeWidth={1.6} />,
-		items: [
-			"9軸評価",
-			"AI監査ログ",
-			"AIレッドチーミング",
-			"シャドーAI対策",
-		],
+		items: ["9軸評価", "AI監査ログ", "AIレッドチーミング", "シャドーAI対策"],
 	},
 	{
 		head: "周辺・コンテンツ",
 		icon: <Workflow size={14} strokeWidth={1.6} />,
-		items: [
-			"Yota manga",
-			"AI研修",
-			"社内ポリシー策定",
-			"AIer人材紹介",
-		],
+		items: ["Yota manga", "AI研修", "社内ポリシー策定", "AIer人材紹介"],
 	},
 ];
 
@@ -630,11 +596,7 @@ export default function ServicesIndexPage() {
 									</>
 								);
 								return card.href ? (
-									<Link
-										key={card.title}
-										href={card.href}
-										className={className}
-									>
+									<Link key={card.title} href={card.href} className={className}>
 										{content}
 									</Link>
 								) : (
@@ -678,7 +640,10 @@ export default function ServicesIndexPage() {
 								marginBottom: "2.5rem",
 							}}
 						>
-							Kuu が業務に組み込む LLM、プロトコル、エージェントパターン、周辺ツールのエコシステム。AI モデル単体ではなく、ハーネス・パターン・ナレッジまで含めて設計するのが Kuu のスタイルです。
+							Kuu が業務に組み込む
+							LLM、プロトコル、エージェントパターン、周辺ツールのエコシステム。AI
+							モデル単体ではなく、ハーネス・パターン・ナレッジまで含めて設計するのが
+							Kuu のスタイルです。
 						</p>
 
 						<div className="tech-stack-grid fade-in-stagger">
@@ -700,10 +665,7 @@ export default function ServicesIndexPage() {
 											return (
 												<li key={item.name} className="tech-stack-item">
 													{item.href ? (
-														<Link
-															href={item.href}
-															className="tech-stack-link"
-														>
+														<Link href={item.href} className="tech-stack-link">
 															{inner}
 														</Link>
 													) : (

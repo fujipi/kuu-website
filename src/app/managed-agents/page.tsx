@@ -6,7 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -15,8 +20,7 @@ const navLinks = [
 	{ href: "/contact/", label: "Contact" },
 ];
 
-const BASE_URL = "https://kuucorp.com";
-const URL = `${BASE_URL}/managed-agents/`;
+const PAGE_URL = `${BASE_URL}/managed-agents/`;
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -66,11 +70,7 @@ const jsonLd = [
 		headline: "Managed Agents 実装ガイド——中小企業のAIエージェント外部委託",
 		description:
 			"Managed Agentsの定義・内製比較・SLA設計・費用相場・導入ステップを中小企業向けに解説。",
-		author: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -82,8 +82,8 @@ const jsonLd = [
 		},
 		datePublished: "2026-04-17",
 		dateModified: "2026-04-17",
-		mainEntityOfPage: { "@type": "WebPage", "@id": URL },
-		url: URL,
+		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
+		url: PAGE_URL,
 		inLanguage: "ja",
 		articleSection: "Pillar",
 		keywords:
@@ -152,25 +152,16 @@ const jsonLd = [
 		"@type": "Service",
 		serviceType: "Managed AI Agents",
 		name: "Managed Agents",
-		provider: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
+		provider: ORG_REF,
 		areaServed: { "@type": "Country", name: "Japan" },
 		description:
 			"AIエージェントの設計・開発・運用・改善を継続契約で外部委託する Managed Agents サービス。中小企業向け。",
-		url: URL,
+		url: PAGE_URL,
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Managed Agents",
-				item: URL,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "Managed Agents", path: "/managed-agents/" },
+	]),
 ];
 
 export default function ManagedAgentsPillarPage() {

@@ -249,6 +249,7 @@ function Pagination({
 					{numbers.map((n, i) =>
 						n === "…" ? (
 							<li
+								// biome-ignore lint/suspicious/noArrayIndexKey: static pagination gap, list does not reorder
 								key={`gap-${i}`}
 								className="blog-pagination-gap"
 								aria-hidden="true"

@@ -11,7 +11,12 @@ import {
 	getCaseStudyBySlug,
 } from "@/lib/caseStudies";
 import { mdToHtml } from "@/lib/mdToHtml";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ slug: string }>;
@@ -24,8 +29,6 @@ const navLinks = [
 	{ href: "/case-studies/", label: "Cases" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export async function generateStaticParams() {
 	return getAllCaseStudySlugs().map((slug) => ({ slug }));
@@ -80,11 +83,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 			url,
 			inLanguage: "ja",
 			articleSection: "Case Study",
-			author: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: BASE_URL,
-			},
+			author: ORG_REF,
 			publisher: {
 				"@type": "Organization",
 				name: "Kuu株式会社",
@@ -106,20 +105,11 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 				.filter(Boolean)
 				.join(", "),
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "導入事例",
-					item: `${BASE_URL}/case-studies/`,
-				},
-				{ "@type": "ListItem", position: 3, name: c.title, item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "導入事例", path: "/case-studies/" },
+			{ name: c.title, path: `/case-studies/${slug}/` },
+		]),
 	];
 
 	return (
@@ -243,6 +233,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 						style={{ maxWidth: "760px", marginBottom: "4rem" }}
 					>
 						<section
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown
 							dangerouslySetInnerHTML={{ __html: contentHtml }}
 							suppressHydrationWarning
 						/>

@@ -5,7 +5,12 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -66,8 +71,6 @@ const faqs = [
 	},
 ];
 
-const BASE_URL = "https://kuucorp.com";
-
 const axDxJsonLd = [
 	{
 		"@context": "https://schema.org",
@@ -87,11 +90,7 @@ const axDxJsonLd = [
 		name: "AX/DX戦略・現場ディスカバリ",
 		description:
 			"経営課題から逆算したDX/AXロードマップ設計と、顧客の業務・既存システムに深く入る現場ディスカバリ。実装可能な計画に落とすまで。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "DXコンサルティング",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ax-dx/`,
@@ -108,24 +107,10 @@ const axDxJsonLd = [
 			"AIロードマップ",
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "AX/DX戦略・現場ディスカバリ",
-				item: `${BASE_URL}/services/ax-dx/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "AX/DX戦略・現場ディスカバリ", path: "/services/ax-dx/" },
+	]),
 ];
 
 export default function AxDxPage() {

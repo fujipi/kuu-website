@@ -1,8 +1,29 @@
 import type { Metadata } from "next";
 
-const BASE_URL = "https://kuucorp.com";
-const SITE_NAME = "Kuu株式会社";
+export const BASE_URL = "https://kuucorp.com";
+export const SITE_NAME = "Kuu株式会社";
 const DEFAULT_OGP_IMAGE = "/images/ogp.png";
+
+/** Reusable schema.org Organization reference for `provider` / `author` fields. */
+export const ORG_REF = {
+	"@type": "Organization",
+	name: SITE_NAME,
+	url: BASE_URL,
+};
+
+/** Build a schema.org BreadcrumbList from an ordered list of crumbs. */
+export function buildBreadcrumb(items: { name: string; path: string }[]) {
+	return {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: items.map((it, i) => ({
+			"@type": "ListItem",
+			position: i + 1,
+			name: it.name,
+			item: `${BASE_URL}${it.path === "/" ? "" : it.path}`,
+		})),
+	};
+}
 
 export const DEFAULT_KEYWORDS = [
 	"AIエージェント",

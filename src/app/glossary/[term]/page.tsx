@@ -11,7 +11,11 @@ import {
 	getGlossaryTermBySlug,
 } from "@/lib/glossary";
 import { getPostsMentioningTerm } from "@/lib/glossaryMentions";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ term: string }>;
@@ -23,8 +27,6 @@ const navLinks = [
 	{ href: "/services/ai-ops/", label: "Agent Governance" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export async function generateStaticParams() {
 	return getAllGlossarySlugs().map((term) => ({ term }));
@@ -139,20 +141,11 @@ export default async function GlossaryTermPage({ params }: Props) {
 				cssSelector: [".short-def"],
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "用語集",
-					item: `${BASE_URL}/glossary/`,
-				},
-				{ "@type": "ListItem", position: 3, name: t.term, item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "用語集", path: "/glossary/" },
+			{ name: t.term, path: `/glossary/${slug}/` },
+		]),
 	];
 
 	const contentHtml = mdToHtml(t.content);

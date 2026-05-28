@@ -5,7 +5,12 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -67,8 +72,6 @@ const faqs = [
 	},
 ];
 
-const BASE_URL = "https://kuucorp.com";
-
 const rdeJsonLd = [
 	{
 		"@context": "https://schema.org",
@@ -88,11 +91,7 @@ const rdeJsonLd = [
 		name: "RDEディスカバリ",
 		description:
 			"Reinvention Deployed Engineering で業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出する変革型ディスカバリ。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "AI実装ディスカバリ",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/rde/`,
@@ -109,30 +108,11 @@ const rdeJsonLd = [
 			"Manus",
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "Service",
-				item: `${BASE_URL}/services/`,
-			},
-			{
-				"@type": "ListItem",
-				position: 3,
-				name: "RDEディスカバリ",
-				item: `${BASE_URL}/services/rde/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "Service", path: "/services/" },
+		{ name: "RDEディスカバリ", path: "/services/rde/" },
+	]),
 ];
 
 export default function RdePage() {
@@ -158,10 +138,7 @@ export default function RdePage() {
 							Home
 						</Link>
 						<span style={{ margin: "0 0.5rem" }}>/</span>
-						<Link
-							href="/services/"
-							style={{ color: "var(--gray-medium)" }}
-						>
+						<Link href="/services/" style={{ color: "var(--gray-medium)" }}>
 							Service
 						</Link>
 						<span style={{ margin: "0 0.5rem" }}>/</span>
@@ -191,12 +168,18 @@ export default function RdePage() {
 					<section style={{ marginBottom: "5rem" }}>
 						<div className="approach-lede fade-in">
 							<p className="approach-headline">
-								AI のボトルネックは性能ではなく、業務フローへの実装可能性に移った。
+								AI
+								のボトルネックは性能ではなく、業務フローへの実装可能性に移った。
 							</p>
 							<p className="approach-body">
-								モデルの賢さはもう十分です。それでも企業の現場では「データがサイロ化して LLM に食わせられない」「PoC は動くが本番に乗らない」「現行業務に AI を載せただけで何も変わらない」という壁にぶつかります。a16z が「テック界で最もホットな職種」と呼ぶ FDE
-								が急増しているのは、まさにこのギャップが顕在化したからです。Kuu の RDE
-								ディスカバリは、Reinvention Deployed Engineering の名のとおり、業務フローそのものを AI 前提で再設計するための「変革型ディスカバリ」です。
+								モデルの賢さはもう十分です。それでも企業の現場では「データがサイロ化して
+								LLM に食わせられない」「PoC は動くが本番に乗らない」「現行業務に
+								AI を載せただけで何も変わらない」という壁にぶつかります。a16z
+								が「テック界で最もホットな職種」と呼ぶ FDE
+								が急増しているのは、まさにこのギャップが顕在化したからです。Kuu
+								の RDE ディスカバリは、Reinvention Deployed Engineering
+								の名のとおり、業務フローそのものを AI
+								前提で再設計するための「変革型ディスカバリ」です。
 							</p>
 						</div>
 
@@ -232,17 +215,21 @@ export default function RdePage() {
 								}}
 							>
 								<li>
-									・ ChatGPT / Claude / Gemini を入れたが、業務の生産性指標は変わらなかった
+									・ ChatGPT / Claude / Gemini
+									を入れたが、業務の生産性指標は変わらなかった
 								</li>
 								<li>・ PoC は動いたが、本番フェーズでスケールせず立ち消えた</li>
 								<li>
-									・ 業務フローを変えずに AI を載せたため、人間がチェックする工程が増えた
+									・ 業務フローを変えずに AI
+									を載せたため、人間がチェックする工程が増えた
 								</li>
 								<li>
-									・ 業界知識を持つコンサルと、コードを書けるエンジニアが分断していて、提案が業務とズレる
+									・
+									業界知識を持つコンサルと、コードを書けるエンジニアが分断していて、提案が業務とズレる
 								</li>
 								<li>
-									・ 「どこから自動化すべきか」のディスカバリが表層に留まり、再設計に踏み込めていない
+									・
+									「どこから自動化すべきか」のディスカバリが表層に留まり、再設計に踏み込めていない
 								</li>
 							</ul>
 						</div>
@@ -250,9 +237,7 @@ export default function RdePage() {
 
 					{/* RDE 4 つの価値 */}
 					<section style={{ marginBottom: "5rem" }}>
-						<h2 className="section-label fade-in">
-							RDEが提供する4つの価値
-						</h2>
+						<h2 className="section-label fade-in">RDEが提供する4つの価値</h2>
 						<p
 							className="fade-in"
 							style={{
@@ -263,15 +248,17 @@ export default function RdePage() {
 								marginBottom: "2.5rem",
 							}}
 						>
-							Reinvention Deployed Engineering は、エリートのエンジニア人材と業界知見を掛け合わせ、パイロットから成果へ一気に引き上げる方法論です。FDE が「製品と現場のギャップ」を埋めるのに対し、RDE は「変革そのものを現場に実装する」と位置づけられます。
+							Reinvention Deployed Engineering
+							は、エリートのエンジニア人材と業界知見を掛け合わせ、パイロットから成果へ一気に引き上げる方法論です。FDE
+							が「製品と現場のギャップ」を埋めるのに対し、RDE
+							は「変革そのものを現場に実装する」と位置づけられます。
 						</p>
 
 						<div
 							className="fade-in-stagger"
 							style={{
 								display: "grid",
-								gridTemplateColumns:
-									"repeat(auto-fit, minmax(280px, 1fr))",
+								gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
 								gap: "1.25rem",
 							}}
 						>
@@ -515,7 +502,8 @@ export default function RdePage() {
 									marginBottom: "1rem",
 								}}
 							>
-								業務フローを AI 前提で組み替えるには、まず現状を解像することから始まります。
+								業務フローを AI
+								前提で組み替えるには、まず現状を解像することから始まります。
 							</p>
 							<Link
 								href="/contact/"

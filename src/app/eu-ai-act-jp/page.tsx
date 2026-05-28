@@ -6,7 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -16,8 +21,7 @@ const navLinks = [
 	{ href: "/contact/", label: "Contact" },
 ];
 
-const BASE_URL = "https://kuucorp.com";
-const URL = `${BASE_URL}/eu-ai-act-jp/`;
+const PAGE_URL = `${BASE_URL}/eu-ai-act-jp/`;
 
 export const metadata: Metadata = seoMetadata({
 	title: "EU AI Act 日本企業対応ガイド——該当判定から必要対応まで | Kuu株式会社",
@@ -66,7 +70,7 @@ const jsonLd = [
 		headline: "EU AI Act 日本企業対応ガイド",
 		description:
 			"EU AI Actの日本企業への影響と必要対応を実務者向けに解説するピラーガイド。",
-		author: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
+		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -78,8 +82,8 @@ const jsonLd = [
 		},
 		datePublished: "2026-04-17",
 		dateModified: "2026-04-17",
-		mainEntityOfPage: { "@type": "WebPage", "@id": URL },
-		url: URL,
+		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
+		url: PAGE_URL,
 		inLanguage: "ja",
 		articleSection: "Pillar",
 		keywords:
@@ -98,19 +102,10 @@ const jsonLd = [
 			acceptedAnswer: { "@type": "Answer", text: f.a },
 		})),
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "EU AI Act 対応",
-				item: URL,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "EU AI Act 対応", path: "/eu-ai-act-jp/" },
+	]),
 ];
 
 export default function EuAiActPillarPage() {
