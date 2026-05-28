@@ -521,6 +521,14 @@
       "persona": "IT担当・情報システム部長（シャドーAI利用の対応策を実装したい中小企業担当者）",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "ai-agent-hallucination-governance",
+      "keyword": "AIエージェント ハルシネーション 対策 ガバナンス",
+      "title_hint": "AIエージェントのハルシネーション対策——中小企業が今すぐ実装すべき検知と防止の5ステップ",
+      "persona": "AIエージェント導入後に誤出力リスクを管理したい中小企業のIT担当者・経営者",
+      "service_link": "/services/ai-ops/",
+      "status": "published"
     }
   ],
   "keyword_bank": [
