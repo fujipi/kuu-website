@@ -34,7 +34,7 @@ const homeJsonLd = [
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		description:
 			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用まで一社で横串に担う伴走実装パートナー。",
-		slogan: "しくみを事業に浸透させて、あらゆる人の自由をつくる",
+		slogan: "しくみが事業に浸透し、あらゆる人の自由をつくる",
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: "東神田一丁目13番14号",
@@ -137,7 +137,7 @@ export default function Home() {
 				<section className="hero">
 					<Constellation />
 					<div className="hero-content fade-in">
-						<h1 className="hero-heading">しくみを事業に浸透させて、あらゆる人の自由をつくる</h1>
+						<h1 className="hero-heading">しくみが事業に浸透し、あらゆる人の自由をつくる</h1>
 						<p className="hero-sub">Embedded Systems, Freedom for All</p>
 					</div>
 				</section>
@@ -147,11 +147,11 @@ export default function Home() {
 					<div className="service-list fade-in-stagger">
 						<div className="service-item fade-in-item">
 							<div className="service-stage">
-								Stage 01–02 · Strategy &amp; Discovery
+								Stage 01 · Strategy
 							</div>
-							<div className="service-name">AX / DX戦略・現場ディスカバリ</div>
+							<div className="service-name">AX/DX戦略コンサルティング</div>
 							<div className="service-desc">
-								経営課題から逆算したDX/AXロードマップを引き、顧客の業務・既存システムに入って実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
+								経営課題から逆算したAX/DXロードマップを設計し、実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
 							</div>
 							<Link
 								href="/services/ax-dx/"
@@ -175,9 +175,11 @@ export default function Home() {
 							<div className="service-stage">
 								Stage 03–04 · Harness &amp; Governance
 							</div>
-							<div className="service-name">AIエージェント実装・ガバナンス</div>
+							<div className="service-name">
+								AIエージェント実装・ガバナンスFDE
+							</div>
 							<div className="service-desc">
-								自律エージェントの設計と既存システム接続（ハーネス）を実装し、9軸評価で動かし続ける統治機能を組織に埋め込みます。AIガバナンスは「製品」ではなく、実装の中核に組み込む経営機能として提供します。
+								FDE（Forward Deployed Engineer）が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から9軸評価による継続ガバナンスまで、実装と運用を一気通貫で担います。
 							</div>
 							<Link
 								href="/services/ai-ops/"
@@ -198,10 +200,20 @@ export default function Home() {
 						</div>
 
 						<div className="service-item fade-in-item">
-							<div className="service-stage">Adjacent · Creative</div>
-							<div className="service-name">Yota mangaサービス</div>
+							<div className="service-stage">
+								Stage 02 · Discovery
+							</div>
+							<div className="service-name">RDEディスカバリ</div>
 							<div className="service-desc">
-								AIを活用したマンガ制作サービス。企画・シナリオから作画まで、高品質なマンガコンテンツを提供します。
+								RDE（Reinvention Deployed Engineering）が顧客の業務・既存システム・データ資産に深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。発見と再構想を両輪で進める変革型ディスカバリです。
+							</div>
+						</div>
+
+						<div className="service-item fade-in-item">
+							<div className="service-stage">Adjacent · Creative</div>
+							<div className="service-name">Yota mangaコンテンツ</div>
+							<div className="service-desc">
+								AIを活用したマンガ制作。企画・シナリオから作画まで、物語で伝える高品質なコンテンツを提供します。
 							</div>
 						</div>
 					</div>
