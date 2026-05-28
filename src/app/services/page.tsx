@@ -1,22 +1,21 @@
+import {
+	BookOpen,
+	Compass,
+	Flag,
+	Hammer,
+	Network,
+	Search,
+	Shield,
+	ShieldCheck,
+	Workflow,
+	Wrench,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import {
-	BuildCatIcon,
-	ClaudeMark,
-	ContentCatIcon,
-	DiscoveryIcon,
-	FdeIcon,
-	GovernanceIcon,
-	HarnessIcon,
-	MangaIcon,
-	OpenAiMark,
-	ShieldCatIcon,
-	StrategyCatIcon,
-	StrategyIcon,
-} from "@/components/icons/ServiceIcons";
+import { ClaudeMark, OpenAiMark } from "@/components/icons/ServiceIcons";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { generateMetadata as seoMetadata } from "@/lib/seo";
@@ -75,6 +74,7 @@ const servicesJsonLd = [
 				"@type": "ListItem",
 				position: 2,
 				name: "RDEディスカバリ",
+				url: `${BASE_URL}/services/rde/`,
 			},
 			{
 				"@type": "ListItem",
@@ -142,59 +142,88 @@ const servicesJsonLd = [
 	},
 ];
 
+type BentoSize = "hero" | "tall" | "half" | "full";
+
 type ServiceCard = {
+	stage: string;
 	title: string;
 	desc: string;
+	products?: string;
 	href?: string;
 	icon: React.ReactNode;
-	iconAccent?: "claude" | "openai";
+	size: BentoSize;
+	accent?: "claude" | "openai";
 };
 
 const SERVICE_CARDS: ServiceCard[] = [
 	{
+		stage: "Stage 01 · Strategy",
 		title: "AX/DX戦略コンサルティング",
-		desc: "経営課題から逆算したAX/DXロードマップを設計し、実装可能な計画に落とします。戦略パワポで終わらせず、実装・運用まで自社で担います。",
+		desc: "経営課題から逆算した AX/DX ロードマップを設計し、実装可能な計画に落とします。Claude / ChatGPT / Gemini など適切な LLM 選定から、Codex・Skills・MCP を組み合わせた実装計画まで一気通貫で。戦略パワポで終わらせない理由は、Kuu がこの先の実装・運用まで自社で担うからです。",
+		products: "Claude · ChatGPT · Gemini · Codex · Skills · MCP",
 		href: "/services/ax-dx/",
-		icon: <StrategyIcon />,
+		icon: <Compass size={48} strokeWidth={1.4} />,
+		size: "hero",
 	},
 	{
+		stage: "Stage 02 · Discovery",
 		title: "RDEディスカバリ",
-		desc: "Reinvention Deployed Engineering が業務・既存システム・データに深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。",
-		icon: <DiscoveryIcon />,
+		desc: "Reinvention Deployed Engineering で業務・既存システム・データ資産に深く入り込み、業務フローごと AI 前提で再設計する仮説と機会を抽出します。",
+		products: "Obsidian · Notion · Genspark",
+		href: "/services/rde/",
+		icon: <Search size={32} strokeWidth={1.4} />,
+		size: "tall",
 	},
 	{
+		stage: "Stage 03 · Harness",
 		title: "AIエージェント実装・FDE",
-		desc: "Forward Deployed Engineer が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から運用定着まで一気通貫で担います。",
+		desc: "FDE が顧客環境に常駐し、Claude Code・Codex・Manus・Genspark を組み合わせて MCP・サブエージェント・Routine 設計まで実装と運用を一気通貫で担います。",
+		products: "Claude Code · Codex · Manus · Genspark",
 		href: "/services/ai-ops/",
-		icon: <FdeIcon />,
+		icon: <Wrench size={32} strokeWidth={1.4} />,
+		size: "tall",
 	},
 	{
+		stage: "Stage 04 · Governance",
 		title: "AIエージェントガバナンス運用",
-		desc: "9軸評価で品質・コスト・安全性を継続測定し、エージェントを「動かし続ける」統治の仕組みを組織に埋め込みます。",
+		desc: "9軸評価・AIレッドチーミング・シャドーAI対策で品質・コスト・安全性を継続統治。エージェントを動かし続ける統治の仕組みを組織に埋め込みます。",
+		products: "9軸評価 · Red Teaming · Audit Log",
 		href: "/services/ai-ops/",
-		icon: <GovernanceIcon />,
+		icon: <ShieldCheck size={32} strokeWidth={1.4} />,
+		size: "half",
 	},
 	{
+		stage: "Product · Anthropic",
 		title: "Claude 法人導入・活用支援",
-		desc: "Enterprise / Cowork / Code / API（Bedrock）。Anthropic Claude の製品選定から定着までワンストップで支援します。",
-		icon: <ClaudeMark />,
-		iconAccent: "claude",
+		desc: "Enterprise / Cowork / Code / API（Bedrock）。Anthropic Claude の製品選定から Skills・MCP・サブエージェント設計、社内定着までワンストップで支援。",
+		products: "Enterprise · Cowork · Code · API",
+		icon: <ClaudeMark size={40} />,
+		size: "half",
+		accent: "claude",
 	},
 	{
-		title: "ChatGPT / Codex 法人活用支援",
-		desc: "ChatGPT Business・Codex の業務組込みから社内規程・ガバナンス整備まで、OpenAI 製品の安全な企業活用を支援します。",
-		icon: <OpenAiMark />,
-		iconAccent: "openai",
-	},
-	{
+		stage: "Integration · Foundation",
 		title: "エージェントハーネス設計・MCP連携",
-		desc: "Model Context Protocol、サブエージェント、外部システム接続を経営基盤として設計。エージェントを動かし続ける土台を構築します。",
-		icon: <HarnessIcon />,
+		desc: "Model Context Protocol、Skills、プラグイン、サブエージェント、Routine、オーケストレーションを組み合わせ、エージェントを動かし続ける経営基盤を設計します。",
+		products: "MCP · Skills · Routine",
+		icon: <Network size={32} strokeWidth={1.4} />,
+		size: "half",
 	},
 	{
+		stage: "Product · OpenAI",
+		title: "ChatGPT / Codex 法人活用支援",
+		desc: "ChatGPT Business・Codex の業務組込みから社内規程・ガバナンス整備、Custom GPTs・AgentKit の構築まで支援。",
+		products: "ChatGPT Business · Codex · AgentKit",
+		icon: <OpenAiMark size={40} />,
+		size: "half",
+		accent: "openai",
+	},
+	{
+		stage: "Adjacent · Creative",
 		title: "Yota mangaコンテンツ",
-		desc: "AIを活用したマンガ制作。企画・シナリオから作画まで、物語で伝える高品質なコンテンツを提供します。",
-		icon: <MangaIcon />,
+		desc: "AI を活用したマンガ制作。企画・シナリオから作画まで、物語で伝える高品質なコンテンツを提供します。",
+		icon: <BookOpen size={32} strokeWidth={1.4} />,
+		size: "full",
 	},
 ];
 
@@ -207,7 +236,7 @@ type ServiceCategory = {
 const SERVICE_CATEGORIES: ServiceCategory[] = [
 	{
 		head: "戦略・ディスカバリ",
-		icon: <StrategyCatIcon />,
+		icon: <Flag size={14} strokeWidth={1.6} />,
 		items: [
 			"AX/DX戦略コンサル",
 			"RDEディスカバリ",
@@ -217,7 +246,7 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
 	},
 	{
 		head: "実装・統合",
-		icon: <BuildCatIcon />,
+		icon: <Hammer size={14} strokeWidth={1.6} />,
 		items: [
 			"FDE実装",
 			"エージェントハーネス",
@@ -227,7 +256,7 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
 	},
 	{
 		head: "ガバナンス・運用",
-		icon: <ShieldCatIcon />,
+		icon: <Shield size={14} strokeWidth={1.6} />,
 		items: [
 			"9軸評価",
 			"AI監査ログ",
@@ -237,7 +266,7 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
 	},
 	{
 		head: "周辺・コンテンツ",
-		icon: <ContentCatIcon />,
+		icon: <Workflow size={14} strokeWidth={1.6} />,
 		items: [
 			"Yota manga",
 			"AI研修",
@@ -379,36 +408,39 @@ export default function ServicesIndexPage() {
 
 					<section style={{ marginBottom: "5rem" }}>
 						<h2 className="section-label fade-in">Offerings</h2>
-						<div className="service-grid fade-in-stagger">
+						<div className="service-bento fade-in-stagger">
 							{SERVICE_CARDS.map((card) => {
-								const iconClass = card.iconAccent
-									? `service-card-icon service-card-icon--accent-${card.iconAccent}`
-									: "service-card-icon";
+								const sizeClass = `service-bento-${card.size}`;
+								const accentClass = card.accent
+									? ` service-bento-accent-${card.accent}`
+									: "";
+								const className = `service-bento-card ${sizeClass}${accentClass} fade-in-item`;
 								const content = (
 									<>
-										<div className={iconClass}>{card.icon}</div>
-										<div className="service-card-content">
-											<h3 className="service-card-title">{card.title}</h3>
-											<p className="service-card-desc">{card.desc}</p>
-											{card.href ? (
-												<span className="service-card-arrow">→</span>
-											) : null}
-										</div>
+										<div className="service-bento-icon">{card.icon}</div>
+										<div className="service-bento-stage">{card.stage}</div>
+										<h3 className="service-bento-title">{card.title}</h3>
+										<p className="service-bento-desc">{card.desc}</p>
+										{card.products ? (
+											<div className="service-bento-products">
+												{card.products}
+											</div>
+										) : null}
+										{card.href ? (
+											<span className="service-bento-arrow">→</span>
+										) : null}
 									</>
 								);
 								return card.href ? (
 									<Link
 										key={card.title}
 										href={card.href}
-										className="service-card fade-in-item"
+										className={className}
 									>
 										{content}
 									</Link>
 								) : (
-									<div
-										key={card.title}
-										className="service-card fade-in-item"
-									>
+									<div key={card.title} className={className}>
 										{content}
 									</div>
 								);
