@@ -4,10 +4,30 @@ const BASE_URL = "https://kuucorp.com";
 const SITE_NAME = "Kuu株式会社";
 const DEFAULT_OGP_IMAGE = "/images/ogp.png";
 
+export const DEFAULT_KEYWORDS = [
+	"AIエージェント",
+	"エージェントガバナンス",
+	"エージェントハーネス",
+	"FDE",
+	"RDE",
+	"AX",
+	"DX",
+	"AIコンサルティング",
+	"AI戦略",
+	"Claude",
+	"ChatGPT",
+	"Codex",
+	"Gemini",
+	"MCP",
+	"Managed Agents",
+	"Kuu株式会社",
+];
+
 export type PageSeoProps = {
 	title: string;
 	description: string;
 	path: string;
+	keywords?: string[];
 	ogpImage?: string;
 	noIndex?: boolean;
 	article?: {
@@ -51,6 +71,7 @@ export function generateMetadata({
 	title,
 	description,
 	path,
+	keywords,
 	ogpImage,
 	noIndex = false,
 	article,
@@ -86,6 +107,7 @@ export function generateMetadata({
 		// Use absolute to prevent layout.tsx template from appending "| Kuu株式会社" again
 		title: { absolute: title },
 		description,
+		keywords: keywords ?? DEFAULT_KEYWORDS,
 		robots: noIndex
 			? { index: false, follow: false }
 			: {
@@ -129,10 +151,30 @@ export const BASE_ORG = {
 		"AIエージェント",
 		"エージェントガバナンス",
 		"AI Agent Governance",
+		"エージェントハーネス",
 		"DXコンサルティング",
+		"AXコンサルティング",
 		"エージェントトランスフォーメーション",
 		"Managed Agents",
 		"LLM",
+		"FDE (Forward Deployed Engineering)",
+		"RDE (Reinvention Deployed Engineering)",
+		"AIer",
+		"Claude",
+		"Anthropic Claude",
+		"ChatGPT",
+		"Codex",
+		"Gemini",
+		"Anthropic",
+		"OpenAI",
+		"MCP (Model Context Protocol)",
+		"Claude Skills",
+		"サブエージェント",
+		"Routine",
+		"オーケストレーション",
+		"ルーティング",
+		"コンテキストエンジニアリング",
+		"プロンプト設計",
 		"EU AI Act",
 		"ISO/IEC 42001",
 		"AI-BCP",

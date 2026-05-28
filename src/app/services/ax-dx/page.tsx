@@ -11,8 +11,27 @@ export const metadata: Metadata = seoMetadata({
 	title:
 		"AX/DX戦略・現場ディスカバリ | 経営課題から実装可能な計画へ | Kuu株式会社",
 	description:
-		"Kuuのファネル前半（Stage 01–02）。経営課題から逆算したDX/AXロードマップを引き、顧客の業務・既存システムに深く入って実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。",
+		"Kuuのファネル前半（Stage 01–02）。経営課題から逆算したDX/AXロードマップを引き、Claude / ChatGPT / Gemini など適切なLLM選定と、Codex・MCP・Skills を組み合わせた実装可能な計画に落とし込みます。",
 	path: "/services/ax-dx/",
+	keywords: [
+		"AX",
+		"DX",
+		"AX戦略",
+		"DX戦略",
+		"AIコンサルティング",
+		"AI戦略",
+		"AIロードマップ",
+		"AIネイティブ",
+		"エージェントトランスフォーメーション",
+		"Claude",
+		"ChatGPT",
+		"Codex",
+		"Gemini",
+		"MCP",
+		"Claude Skills",
+		"現場ディスカバリ",
+		"Kuu株式会社",
+	],
 });
 
 const navLinks = [
@@ -76,6 +95,18 @@ const axDxJsonLd = [
 		serviceType: "DXコンサルティング",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ax-dx/`,
+		keywords: [
+			"AX",
+			"DX",
+			"AI戦略",
+			"AIコンサルティング",
+			"Claude",
+			"ChatGPT",
+			"Codex",
+			"Gemini",
+			"MCP",
+			"AIロードマップ",
+		],
 	},
 	{
 		"@context": "https://schema.org",

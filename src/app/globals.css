@@ -367,6 +367,268 @@ section {
 	max-width: 640px;
 }
 
+/* Service Bento Grid (used on /services/) */
+.service-bento {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1rem;
+	grid-auto-rows: minmax(140px, auto);
+	margin-top: 2rem;
+}
+
+.service-bento-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	padding: 1.5rem 1.5rem 2.5rem 1.5rem;
+	border: 1px solid var(--gray-dark);
+	border-radius: 6px;
+	background: var(--black);
+	transition: border-color 0.3s, background 0.3s, transform 0.3s;
+	text-decoration: none;
+	color: inherit;
+	min-width: 0;
+	overflow: hidden;
+}
+
+a.service-bento-card:hover {
+	border-color: var(--gray-light);
+	background: var(--gray-deeper);
+	transform: translateY(-2px);
+}
+
+.service-bento-hero {
+	grid-column: span 3;
+	grid-row: span 2;
+	padding: 2rem 2rem 3rem 2rem;
+}
+
+.service-bento-tall {
+	grid-column: span 1;
+	grid-row: span 1;
+}
+
+.service-bento-half {
+	grid-column: span 2;
+	grid-row: span 1;
+}
+
+.service-bento-full {
+	grid-column: span 4;
+	grid-row: span 1;
+}
+
+.service-bento-accent-claude {
+	background: linear-gradient(135deg, #2a1a14 0%, #0a0a0a 65%);
+	border-color: #d97757;
+}
+
+.service-bento-accent-claude .service-bento-icon {
+	color: #d97757;
+}
+
+.service-bento-accent-openai {
+	background: linear-gradient(135deg, #181818 0%, #050505 65%);
+	border-color: #4a4a4a;
+}
+
+.service-bento-accent-openai .service-bento-icon {
+	color: #ededed;
+}
+
+.service-bento-icon {
+	color: var(--gray-light);
+	margin-bottom: 1rem;
+}
+
+.service-bento-hero .service-bento-icon {
+	margin-bottom: 1.5rem;
+}
+
+.service-bento-stage {
+	font-family: var(--font-heading);
+	font-size: 0.6rem;
+	color: var(--gray-dim);
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	margin-bottom: 0.5rem;
+}
+
+.service-bento-title {
+	font-family: var(--font-heading);
+	font-size: 0.95rem;
+	font-weight: 500;
+	color: var(--white);
+	margin: 0 0 0.65rem 0;
+	letter-spacing: 0.02em;
+	line-height: 1.4;
+}
+
+.service-bento-hero .service-bento-title {
+	font-size: 1.35rem;
+	margin-bottom: 0.85rem;
+}
+
+.service-bento-desc {
+	font-size: 0.75rem;
+	color: var(--gray-medium);
+	line-height: 1.75;
+	margin: 0 0 0.85rem 0;
+}
+
+.service-bento-hero .service-bento-desc {
+	font-size: 0.85rem;
+	line-height: 1.85;
+}
+
+.service-bento-products {
+	font-size: 0.65rem;
+	color: var(--gray-light);
+	letter-spacing: 0.05em;
+	font-family: var(--font-heading);
+	margin-top: auto;
+	padding-top: 0.5rem;
+}
+
+.service-bento-arrow {
+	position: absolute;
+	right: 1rem;
+	bottom: 1rem;
+	font-size: 0.9rem;
+	color: var(--gray-light);
+	font-family: var(--font-heading);
+}
+
+/* Service Category section (4 columns of small links) */
+.service-categories {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.5rem;
+	margin-top: 3rem;
+}
+
+.service-category-col {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.service-category-head {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: var(--font-heading);
+	font-size: 0.75rem;
+	color: var(--gray-light);
+	letter-spacing: 0.1em;
+	margin-bottom: 0.5rem;
+}
+
+.service-category-head svg {
+	color: var(--gray-light);
+}
+
+.service-category-link {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.65rem 0.85rem;
+	border: 1px solid var(--gray-dark);
+	border-radius: 4px;
+	font-size: 0.72rem;
+	color: var(--gray-light);
+	background: var(--black);
+	transition: border-color 0.3s, color 0.3s;
+}
+
+a.service-category-link:hover {
+	border-color: var(--gray-light);
+	color: var(--white);
+}
+
+.service-category-link-arrow {
+	color: var(--gray-dim);
+	font-family: var(--font-heading);
+	margin-left: 0.5rem;
+}
+
+/* Tech Stack & Ecosystem (used on /services/) */
+.tech-stack-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.5rem;
+}
+
+.tech-stack-col {
+	display: flex;
+	flex-direction: column;
+	padding: 1.5rem 1.25rem;
+	border: 1px solid var(--gray-dark);
+	border-radius: 6px;
+	background: var(--black);
+}
+
+.tech-stack-head {
+	font-family: var(--font-heading);
+	font-size: 0.8rem;
+	color: var(--white);
+	letter-spacing: 0.1em;
+	margin-bottom: 0.5rem;
+	text-transform: uppercase;
+}
+
+.tech-stack-intro {
+	font-size: 0.7rem;
+	color: var(--gray-dim);
+	line-height: 1.7;
+	margin: 0 0 1.25rem 0;
+}
+
+.tech-stack-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.tech-stack-item {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.tech-stack-name {
+	font-family: var(--font-heading);
+	font-size: 0.78rem;
+	color: var(--white);
+	letter-spacing: 0.02em;
+	font-weight: 500;
+}
+
+.tech-stack-desc {
+	font-size: 0.7rem;
+	color: var(--gray-medium);
+	line-height: 1.7;
+}
+
+.tech-stack-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	color: inherit;
+	text-decoration: none;
+	transition: color 0.3s;
+}
+
+.tech-stack-link:hover .tech-stack-name {
+	color: var(--white);
+	text-decoration: underline;
+	text-decoration-color: var(--gray-light);
+	text-underline-offset: 0.2em;
+}
+
 /* About Section */
 .section-about {
 	padding: 8rem 4rem;
@@ -939,6 +1201,10 @@ footer {
 		grid-template-columns: repeat(2, 1fr);
 	}
 
+	.tech-stack-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
 	footer {
 		padding: 3rem 2.5rem;
 	}
@@ -976,6 +1242,36 @@ footer {
 	.funnel-step {
 		min-height: auto;
 		padding: 1.5rem 1.25rem 1.75rem;
+	}
+
+	.service-bento {
+		grid-template-columns: 1fr;
+	}
+
+	.service-bento-hero,
+	.service-bento-tall,
+	.service-bento-half,
+	.service-bento-full {
+		grid-column: span 1;
+		grid-row: span 1;
+	}
+
+	.service-bento-hero {
+		padding: 1.75rem 1.5rem 2.5rem;
+	}
+
+	.service-bento-hero .service-bento-title {
+		font-size: 1.15rem;
+	}
+
+	.service-categories {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1.5rem 1rem;
+	}
+
+	.tech-stack-grid {
+		grid-template-columns: 1fr;
+		gap: 1rem;
 	}
 
 	footer {
