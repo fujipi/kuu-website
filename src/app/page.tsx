@@ -205,7 +205,7 @@ export default function Home() {
 							</div>
 							<div className="service-name">RDEディスカバリ</div>
 							<div className="service-desc">
-								RDEが顧客の業務・既存システム・データ資産に深く入り込み、AI実装の起点となる仮説と機会を抽出します。後続のFDE実装フェーズと地続きに繋がる発見型ディスカバリです。
+								RDE（Reinvention Deployed Engineering）が顧客の業務・既存システム・データ資産に深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。発見と再構想を両輪で進める変革型ディスカバリです。
 							</div>
 						</div>
 
