@@ -113,7 +113,7 @@ export const BASE_ORG = {
 	name: SITE_NAME,
 	legalName: SITE_NAME,
 	logo: `${BASE_URL}/images/favicon-192.png`,
-	slogan: "技術と物語を、あらゆる人に届ける",
+	slogan: "しくみを事業に浸透させて、あらゆる人の自由をつくる",
 	address: {
 		streetAddress: "東神田一丁目13番14号",
 		addressLocality: "千代田区",

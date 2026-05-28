@@ -21,11 +21,11 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
 	title: {
-		default: "Kuu株式会社 | 技術と物語を、あらゆる人に届ける",
+		default: "Kuu株式会社 | しくみを事業に浸透させて、あらゆる人の自由をつくる",
 		template: "%s | Kuu株式会社",
 	},
 	description:
-		"Kuu株式会社は、AX/DX戦略コンサルティング、AIエージェントガバナンスサービス、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、技術と物語をあらゆる人に届けます。",
+		"Kuu株式会社は、AX/DX戦略コンサルティング、AIエージェントガバナンスサービス、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、しくみを事業に浸透させ、あらゆる人の自由をつくります。",
 	metadataBase: new URL("https://kuucorp.com"),
 	robots: {
 		index: true,
