@@ -11,8 +11,28 @@ export const metadata: Metadata = seoMetadata({
 	title:
 		"RDEディスカバリ — 業務フロー再設計の起点をつくる | Reinvention Deployed Engineering | Kuu株式会社",
 	description:
-		"Kuuのファネル 02。Reinvention Deployed Engineering（RDE）が業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出。発見と再構想を両輪で進める変革型ディスカバリ。",
+		"Kuuのファネル 02。Reinvention Deployed Engineering（RDE）が業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出。Obsidian / Notion / Claude / ChatGPT / Gemini を組み合わせる変革型ディスカバリ。",
 	path: "/services/rde/",
+	keywords: [
+		"RDE",
+		"Reinvention Deployed Engineering",
+		"ディスカバリ",
+		"業務フロー再設計",
+		"AIネイティブ",
+		"FDE",
+		"AIer",
+		"Claude",
+		"ChatGPT",
+		"Gemini",
+		"MCP",
+		"Obsidian",
+		"Notion",
+		"Genspark",
+		"Manus",
+		"AIロードマップ",
+		"AIコンサルティング",
+		"Kuu株式会社",
+	],
 });
 
 const navLinks = [
@@ -76,6 +96,18 @@ const rdeJsonLd = [
 		serviceType: "AI実装ディスカバリ",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/rde/`,
+		keywords: [
+			"RDE",
+			"Reinvention Deployed Engineering",
+			"FDE",
+			"ディスカバリ",
+			"業務フロー再設計",
+			"AIネイティブ",
+			"Obsidian",
+			"Notion",
+			"Genspark",
+			"Manus",
+		],
 	},
 	{
 		"@context": "https://schema.org",

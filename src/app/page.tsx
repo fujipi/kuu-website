@@ -6,13 +6,36 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata } from "@/lib/seo";
+import { BASE_ORG, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",
 	description:
-		"Kuu株式会社は、AIネイティブなAX/DX戦略からFDE（Forward Deployed Engineer）、エージェント実装、運用、ガバナンスまでを一社で包括実行。経営課題に直結する自律型AI導入を伴走します。",
+		"Kuu株式会社は、AIネイティブなAX/DX戦略からFDE（Forward Deployed Engineer）、RDE（Reinvention Deployed Engineering）、Claude / ChatGPT / Codex / Gemini を組み合わせたエージェント実装、MCP・Skills・サブエージェント設計、9軸評価による継続ガバナンスまで一社で包括実行。",
 	path: "/",
+	keywords: [
+		"AIエージェント",
+		"エージェントガバナンス",
+		"エージェントハーネス",
+		"AX",
+		"DX",
+		"FDE",
+		"RDE",
+		"AIer",
+		"AIコンサルティング",
+		"Claude",
+		"ChatGPT",
+		"Codex",
+		"Gemini",
+		"Anthropic",
+		"OpenAI",
+		"MCP",
+		"Claude Skills",
+		"サブエージェント",
+		"Routine",
+		"オーケストレーション",
+		"Kuu株式会社",
+	],
 });
 
 const navLinks = [
@@ -49,20 +72,22 @@ const homeJsonLd = [
 			availableLanguage: "Japanese",
 		},
 		sameAs: ["https://github.com/fujipi"],
-		knowsAbout: [
-			"AIエージェント",
-			"エージェントガバナンス",
-			"AI Agent Governance",
-			"DXコンサルティング",
-			"エージェントトランスフォーメーション",
-			"Managed Agents",
-			"LLM",
-		],
+		knowsAbout: BASE_ORG.knowsAbout,
 		founder: {
 			"@type": "Person",
 			name: "藤平 賢人",
 			jobTitle: "代表取締役",
-			knowsAbout: ["AIエージェント", "エージェントガバナンス", "DX戦略"],
+			knowsAbout: [
+				"AIエージェント",
+				"エージェントガバナンス",
+				"DX戦略",
+				"AX戦略",
+				"FDE",
+				"RDE",
+				"エージェントハーネス",
+				"Claude",
+				"MCP",
+			],
 		},
 		foundingDate: "2022",
 		numberOfEmployees: {
@@ -79,6 +104,11 @@ const homeJsonLd = [
 		inLanguage: "ja",
 		description:
 			"AX/DX戦略・現場ディスカバリ・エージェント実装・ガバナンス運用までを一社で横串に担う伴走実装パートナー。",
+		keywords: BASE_ORG.knowsAbout.join(", "),
+		about: BASE_ORG.knowsAbout.slice(0, 12).map((name) => ({
+			"@type": "Thing",
+			name,
+		})),
 	},
 	{
 		"@context": "https://schema.org",
@@ -93,6 +123,18 @@ const homeJsonLd = [
 		},
 		serviceType: "AIエージェント実装・運用",
 		areaServed: "JP",
+		keywords: [
+			"AIエージェント",
+			"エージェントガバナンス",
+			"エージェントハーネス",
+			"FDE",
+			"MCP",
+			"Claude Skills",
+			"サブエージェント",
+			"Routine",
+			"9軸評価",
+			"Managed Agents",
+		],
 	},
 	{
 		"@context": "https://schema.org",
@@ -107,6 +149,17 @@ const homeJsonLd = [
 		},
 		serviceType: "DX/AX戦略・ディスカバリ",
 		areaServed: "JP",
+		keywords: [
+			"AX",
+			"DX",
+			"AI戦略",
+			"AIコンサルティング",
+			"RDE",
+			"Claude",
+			"ChatGPT",
+			"Gemini",
+			"エージェントトランスフォーメーション",
+		],
 	},
 	{
 		"@context": "https://schema.org",

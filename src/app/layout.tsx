@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP, Outfit } from "next/font/google";
 import Analytics from "@/components/Analytics";
+import { DEFAULT_KEYWORDS } from "@/lib/seo";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
 	},
 	description:
 		"Kuu株式会社は、AX/DX戦略コンサルティング、AIエージェントガバナンスサービス、Yota mangaサービスを提供するテクノロジー企業です。インターネットビジネスの企画・開発・運営を通じて、しくみが事業に浸透し、あらゆる人の自由をつくります。",
+	keywords: DEFAULT_KEYWORDS,
 	metadataBase: new URL("https://kuucorp.com"),
 	robots: {
 		index: true,

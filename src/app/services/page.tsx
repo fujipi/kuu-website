@@ -24,8 +24,40 @@ export const metadata: Metadata = seoMetadata({
 	title:
 		"Service — 戦略から運用まで、4段を横串に担う | AX時代の伴走実装パートナー | Kuu株式会社",
 	description:
-		"Kuu株式会社のサービス全体像。DX/AX戦略・現場ディスカバリ・エージェント実装（ハーネス）・ガバナンス運用の4段を一社で横串に担う伴走実装パートナー。個別サービスへの入口。",
+		"Kuuのサービス全体像。AX/DX戦略・RDEディスカバリ・FDE実装（Claude / ChatGPT / Codex / Gemini × MCP / Skills / サブエージェント / Routine）・9軸評価ガバナンスの4段を横串に担う伴走実装パートナー。",
 	path: "/services/",
+	keywords: [
+		"AIエージェント",
+		"エージェントガバナンス",
+		"エージェントハーネス",
+		"AX",
+		"DX",
+		"FDE",
+		"RDE",
+		"AIer",
+		"AIコンサルティング",
+		"AI戦略",
+		"Claude",
+		"ChatGPT",
+		"Codex",
+		"Gemini",
+		"Anthropic",
+		"OpenAI",
+		"MCP",
+		"Model Context Protocol",
+		"Claude Skills",
+		"プラグイン",
+		"サブエージェント",
+		"Routine",
+		"ルーティング",
+		"オーケストレーション",
+		"プロンプト設計",
+		"コンテキストエンジニアリング",
+		"Genspark",
+		"Manus",
+		"Obsidian",
+		"Kuu株式会社",
+	],
 });
 
 const navLinks = [
@@ -124,6 +156,42 @@ const servicesJsonLd = [
 		serviceType: "DX/AX戦略・ディスカバリ",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ax-dx/`,
+		keywords: [
+			"AX",
+			"DX",
+			"AI戦略",
+			"AIコンサルティング",
+			"Claude",
+			"ChatGPT",
+			"Gemini",
+			"Codex",
+			"AIロードマップ",
+		],
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: "RDEディスカバリ",
+		description:
+			"Reinvention Deployed Engineering で業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出する変革型ディスカバリ。",
+		provider: {
+			"@type": "Organization",
+			name: "Kuu株式会社",
+			url: BASE_URL,
+		},
+		serviceType: "AI実装ディスカバリ",
+		areaServed: "JP",
+		url: `${BASE_URL}/services/rde/`,
+		keywords: [
+			"RDE",
+			"Reinvention Deployed Engineering",
+			"FDE",
+			"ディスカバリ",
+			"業務フロー再設計",
+			"Obsidian",
+			"Notion",
+			"Genspark",
+		],
 	},
 	{
 		"@context": "https://schema.org",
@@ -139,6 +207,23 @@ const servicesJsonLd = [
 		serviceType: "AIエージェント実装・運用",
 		areaServed: "JP",
 		url: `${BASE_URL}/services/ai-ops/`,
+		keywords: [
+			"AIエージェント",
+			"エージェントガバナンス",
+			"エージェントハーネス",
+			"FDE",
+			"Claude Code",
+			"Codex",
+			"MCP",
+			"Claude Skills",
+			"サブエージェント",
+			"Routine",
+			"オーケストレーション",
+			"9軸評価",
+			"AIレッドチーミング",
+			"シャドーAI対策",
+			"Managed Agents",
+		],
 	},
 ];
 
@@ -232,6 +317,119 @@ type ServiceCategory = {
 	icon: React.ReactNode;
 	items: string[];
 };
+
+type TechStackItem = {
+	name: string;
+	desc: string;
+	href?: string;
+};
+
+type TechStackCategory = {
+	head: string;
+	intro: string;
+	items: TechStackItem[];
+};
+
+const TECH_STACK: TechStackCategory[] = [
+	{
+		head: "AI モデル",
+		intro: "選定・組み合わせの基本軸となる主要 LLM 群。",
+		items: [
+			{
+				name: "Claude (Anthropic)",
+				desc: "Enterprise / Cowork / Code / API（Bedrock）。長文・コーディング・エージェント実行に強み。",
+			},
+			{
+				name: "ChatGPT (OpenAI)",
+				desc: "ChatGPT Business / Enterprise、Custom GPTs、AgentKit。プラグイン・エコシステムが厚い。",
+			},
+			{
+				name: "Codex",
+				desc: "OpenAI のコーディング特化エージェント。CLI・IDE 連携で実装フェーズを加速。",
+			},
+			{
+				name: "Gemini (Google)",
+				desc: "マルチモーダル統合と Google Workspace 連携。社内データとの結合に有利。",
+			},
+		],
+	},
+	{
+		head: "プロトコル & 拡張",
+		intro: "エージェントを業務システムに接続するための共通基盤。",
+		items: [
+			{
+				name: "MCP (Model Context Protocol)",
+				desc: "Anthropic 提唱のオープンプロトコル。ツール・データソース接続の標準化。",
+				href: "/glossary/mcp/",
+			},
+			{
+				name: "Claude Skills",
+				desc: "実行可能スキルパッケージ。Claude に再利用可能な能力を後付けで宿せる。",
+			},
+			{
+				name: "プラグイン",
+				desc: "ChatGPT / Claude / 各種エージェントの拡張機構。社内システム連携の入口。",
+			},
+			{
+				name: "サブエージェント",
+				desc: "親エージェントから委譲される専門化エージェント。役割分担と並列処理に。",
+			},
+			{
+				name: "エージェントハーネス",
+				desc: "モデル・ツール・記憶・観測を束ねた実行基盤。FDE / RDE の中核成果物。",
+				href: "/glossary/agent-harness/",
+			},
+		],
+	},
+	{
+		head: "エージェントパターン",
+		intro: "業務にエージェントを定着させるための実装イディオム。",
+		items: [
+			{
+				name: "Routine",
+				desc: "業務手順を構造化した実行単位。再現性と監査性を両立させる。",
+			},
+			{
+				name: "ルーティング",
+				desc: "入力内容に応じて適切なエージェント／モデルへ振り分ける制御パターン。",
+			},
+			{
+				name: "オーケストレーション",
+				desc: "複数エージェントの協調制御。タスク分解・並列実行・統合まで。",
+			},
+			{
+				name: "ループ",
+				desc: "自己改善ループとガードレール。終了条件と人間介入点の設計が要。",
+			},
+			{
+				name: "コンテキスト・プロンプト設計",
+				desc: "コンテキストエンジニアリングとプロンプト設計を体系化し、品質を再現可能に。",
+			},
+		],
+	},
+	{
+		head: "周辺ツール & ナレッジ",
+		intro: "業務知識・ディスカバリ・競合エージェントを横断的に活用。",
+		items: [
+			{
+				name: "Obsidian",
+				desc: "ローカル Vault でナレッジを構造化。RDE ディスカバリの一次保管先。",
+			},
+			{
+				name: "Notion",
+				desc: "業務ドキュメント・データベース連携。プロジェクト進行の共通基盤。",
+			},
+			{
+				name: "Genspark",
+				desc: "競合エージェントプラットフォーム。比較検証と用途別棲み分けに活用。",
+			},
+			{
+				name: "Manus",
+				desc: "オートノマスエージェント。長時間タスクのリファレンス実装として観測。",
+			},
+		],
+	},
+];
 
 const SERVICE_CATEGORIES: ServiceCategory[] = [
 	{
@@ -463,6 +661,58 @@ export default function ServicesIndexPage() {
 											<span className="service-category-link-arrow">→</span>
 										</span>
 									))}
+								</div>
+							))}
+						</div>
+					</section>
+
+					<section style={{ marginBottom: "5rem" }}>
+						<h2 className="section-label fade-in">Stack & Ecosystem</h2>
+						<p
+							className="fade-in"
+							style={{
+								fontSize: "0.85rem",
+								color: "var(--gray-medium)",
+								lineHeight: 1.9,
+								maxWidth: "720px",
+								marginBottom: "2.5rem",
+							}}
+						>
+							Kuu が業務に組み込む LLM、プロトコル、エージェントパターン、周辺ツールのエコシステム。AI モデル単体ではなく、ハーネス・パターン・ナレッジまで含めて設計するのが Kuu のスタイルです。
+						</p>
+
+						<div className="tech-stack-grid fade-in-stagger">
+							{TECH_STACK.map((category) => (
+								<div
+									key={category.head}
+									className="tech-stack-col fade-in-item"
+								>
+									<div className="tech-stack-head">{category.head}</div>
+									<p className="tech-stack-intro">{category.intro}</p>
+									<ul className="tech-stack-list">
+										{category.items.map((item) => {
+											const inner = (
+												<>
+													<span className="tech-stack-name">{item.name}</span>
+													<span className="tech-stack-desc">{item.desc}</span>
+												</>
+											);
+											return (
+												<li key={item.name} className="tech-stack-item">
+													{item.href ? (
+														<Link
+															href={item.href}
+															className="tech-stack-link"
+														>
+															{inner}
+														</Link>
+													) : (
+														inner
+													)}
+												</li>
+											);
+										})}
+									</ul>
 								</div>
 							))}
 						</div>
