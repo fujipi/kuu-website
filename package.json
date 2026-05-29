@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "biome check src/",
     "format": "biome format --write src/",
-    "coverage:blog": "node scripts/blog-coverage-report.mjs"
+    "coverage:blog": "node scripts/blog-coverage-report.mjs",
+    "validate:case": "node scripts/validate-case.mjs"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

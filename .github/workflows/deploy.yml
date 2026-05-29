@@ -40,6 +40,9 @@ jobs:
           pnpm exec biome check src/
           pnpm exec tsc --noEmit
 
+      - name: Validate case content (safety gate)
+        run: pnpm validate:case
+
       - name: Build
         run: pnpm build
 

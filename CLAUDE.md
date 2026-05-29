@@ -295,6 +295,14 @@ future_outlook: "今後の展望（次の発展段階。提案調を保つ）"
 
 生成した記事は以下をすべて満たすこと。満たさない場合はコミットしない。
 
+**機械チェック（必ず commit 前に実行）**:
+
+```
+node scripts/validate-case.mjs   # または pnpm validate:case
+```
+
+これは `fictional: true` 漏れ・実在企業 deny-list 混入（`scripts/case-deny-list.json`）・description 120字超過・tags 個数違反を機械的に検出する安全ゲートである。**不合格（exit 非0）ならコミットせず、Slack 失敗通知に倒す。** 同じ gate は `.github/workflows/deploy.yml` でも build 直前に走り、すり抜けた違反は本番反映を fail させる（バックストップ）。誤検知が出た用語は `scripts/case-deny-list.json` から削るか、藤平に判断を仰ぐ。
+
 - [ ] frontmatter 必須フィールド完備（**title / description / date / tags / fictional / industry / use_case** および objectives / measures / effects / metrics / company_profile / persona_voice / models_used / sources / future_outlook）
 - [ ] `description` が **120字以内**
 - [ ] `tags` が **4個**（1個目は "ユースケース" 固定推奨、以降は業種・業務・補助タグ）
@@ -323,9 +331,12 @@ future_outlook: "今後の展望（次の発展段階。提案調を保つ）"
 Blog 自動生成と同じく、**PR は作らない**。`main` に直 push して GitHub Actions による自動デプロイに乗せる。
 
 ```
+pnpm validate:case           # 安全ゲート（不合格ならコミットせず Slack 失敗通知へ）
 git add content/case/
 git commit -m "case: {slug} を自動生成"
 git push origin main
 ```
+
+`pnpm validate:case` は `.github/workflows/deploy.yml` の build 前ステップでも同じ検査が走るため、すり抜けた場合は本番反映が fail する（バックストップ）。
 
 `pnpm-lock.yaml` 連動の注意は Blog 章「依存ファイル変更時の注意」と同じ（Case 自動生成では通常 `package.json` を触らない想定）。
