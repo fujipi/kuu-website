@@ -84,7 +84,7 @@ export default function SecurityPage() {
 							<br />
 							Kuu株式会社
 							<br />
-							代表取締役　藤平賢人
+							藤平賢人
 						</p>
 					</div>
 				</div>
