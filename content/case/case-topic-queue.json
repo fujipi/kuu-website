@@ -1,0 +1,79 @@
+{
+  "topics": [
+    {
+      "slug": "real-estate-document-agent",
+      "keyword": "不動産 重要事項説明書 物件資料 AIエージェント 自動化",
+      "title_hint": "不動産の物件資料・重要事項説明書づくりをAIエージェントに——こう速める",
+      "persona": "不動産仲介・管理会社の業務担当",
+      "industry": "不動産",
+      "use_case": "物件資料・重要事項説明書のドラフト自動生成",
+      "status": "queued"
+    },
+    {
+      "slug": "clinic-reservation-followup-agent",
+      "keyword": "クリニック 予約 問診 リマインド AIエージェント",
+      "title_hint": "クリニックの予約・問診・リマインドをAIエージェントに——受付業務をこう軽くする",
+      "persona": "医療機関の事務長・受付責任者",
+      "industry": "医療・ヘルスケア",
+      "use_case": "予約・問診・リマインドの一次対応自動化",
+      "status": "queued"
+    },
+    {
+      "slug": "restaurant-shift-inventory-agent",
+      "keyword": "飲食 シフト 発注 在庫 AIエージェント 自動化",
+      "title_hint": "飲食店のシフト・発注・在庫をAIエージェントに——店長の事務作業をこう減らす",
+      "persona": "飲食チェーンのエリアマネージャー・店長",
+      "industry": "飲食",
+      "use_case": "シフト作成・発注・在庫管理の補助自動化",
+      "status": "queued"
+    },
+    {
+      "slug": "logistics-shipment-status-agent",
+      "keyword": "物流 倉庫 出荷 問い合わせ 配送状況 AIエージェント",
+      "title_hint": "物流の出荷照会・配送状況対応をAIエージェントに——倉庫の問い合わせをこう捌く",
+      "persona": "物流・倉庫運営の管理担当",
+      "industry": "物流・倉庫",
+      "use_case": "出荷照会・配送状況の一次対応自動化",
+      "status": "queued"
+    },
+    {
+      "slug": "hr-recruiting-screening-agent",
+      "keyword": "人事 採用 書類選考 スクリーニング AIエージェント",
+      "title_hint": "採用の書類選考・候補者対応をAIエージェントに——人事の初動をこう速める",
+      "persona": "中小企業の人事・採用担当",
+      "industry": "人事・採用",
+      "use_case": "応募書類スクリーニングと候補者一次対応の補助",
+      "status": "queued"
+    },
+    {
+      "slug": "construction-daily-report-agent",
+      "keyword": "建設 現場 日報 写真整理 AIエージェント 自動化",
+      "title_hint": "建設現場の日報・写真整理をAIエージェントに——現場監督の事務をこう減らす",
+      "persona": "建設会社の現場監督・工事管理",
+      "industry": "建設",
+      "use_case": "工事日報・現場写真の整理とドラフト生成",
+      "status": "queued"
+    },
+    {
+      "slug": "cost-roi-estimation-agent",
+      "keyword": "AI導入 コスト ROI 試算 AIエージェント 中小企業",
+      "title_hint": "AI導入のコスト試算・ROIシミュレーションをエージェントに——投資判断をこう支える",
+      "persona": "経営者・経営企画（AI投資の費用対効果を説明したい）",
+      "industry": "全業種・コスト/ROI",
+      "use_case": "AI導入コスト試算とROIシミュレーションの補助",
+      "status": "queued"
+    }
+  ],
+  "keyword_bank": [
+    "卸売 受発注 EDI 代行入力 AIエージェント",
+    "保険代理店 見積 申込書 チェック AIエージェント",
+    "会計事務所 記帳代行 仕訳 AIエージェント",
+    "学習塾 保護者対応 連絡 AIエージェント",
+    "介護施設 記録 報告書 AIエージェント",
+    "旅行 宿泊 予約 多言語対応 AIエージェント",
+    "広告代理店 レポート 運用報告 AIエージェント",
+    "BtoB営業 商談メモ 提案書 AIエージェント",
+    "コールセンター FAQ ナレッジ AIエージェント",
+    "経理 請求書 突合 支払処理 AIエージェント"
+  ]
+}

@@ -7,7 +7,9 @@ const config = {
 	changefreq: "weekly",
 	priority: 0.7,
 	sitemapSize: 5000,
-	exclude: [],
+	// /case-studies/* は Case へ統合済み。リダイレクト用スタブのみ残るため
+	// sitemap からは除外（noindex 設定済み）。
+	exclude: ["/case-studies", "/case-studies/*"],
 	additionalSitemaps: [],
 	robotsTxtOptions: {
 		additionalSitemaps: ["https://kuucorp.com/sitemap.xml"],

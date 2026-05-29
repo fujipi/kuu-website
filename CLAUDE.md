@@ -1,5 +1,14 @@
 @AGENTS.md
 
+# コンテンツの振り分け（Blog と Case）
+
+新規コンテンツは内容によって Blog と Case に振り分ける。
+
+- **Blog（`/blog/`）**: 技術トレンド・知識・概念解説・ガバナンス論・規制（EU AI Act 等）など、**知識的な示唆**を与える記事。
+- **Case（`/case/`）**: 製造・小売・不動産・医療・飲食・物流・人事・建設・士業・コスト/ROI など、**業務/業種別の具体的なユースケース**。「こういう使い方もできる」という提案として、事業への実装イメージを示す。
+
+→ **業務/業種別ユースケースは今後すべて Case で作成する**（Blog では作らない）。Blog 既存の業種記事は据え置き。Case の作り方は本ファイル後半「Case ユースケース自動生成ガイドライン」を参照。
+
 # ブログ記事自動生成ガイドライン
 
 ## 概要
@@ -114,3 +123,94 @@ git commit -m "..."
 ```
 
 CI (`.github/workflows/deploy.yml`) は `pnpm install --frozen-lockfile` を使うため、両者がズレているとビルドが `ERR_PNPM_OUTDATED_LOCKFILE` で失敗し、サイト全体のデプロイが止まる。ブログ自動生成のフローでは通常 `package.json` を触らないが、テンプレート改善や新スクリプト追加で依存を増やしたときは要注意。
+
+# Case ユースケース自動生成ガイドライン
+
+## 概要
+
+`content/case/case-topic-queue.json` のキューから **業務/業種別の具体ユースケース**を自動生成し、mainブランチにpushする。Blog とは別系統で毎日1本ペースで回す。Case は「実績事例」ではなく「**こういう使い方もできる**」という提案コンテンツ。実在企業・実績を装わない。
+
+## 生成フロー
+
+1. `content/case/case-topic-queue.json` を読む
+2. `status: "queued"` の先頭トピックを取得
+3. 既存の `content/case/*.mdx` と slug が重複しないことを検証
+4. 「**調査 → 需要特定 → 用途考案 → コンテンツ化**」の流れで内容を構成:
+   - ① 調査: 対象業務/業種における最新のAI活用トレンド・公開情報を踏まえる
+   - ② 需要特定: その業務のボトルネック（工数偏在・属人化等）を特定
+   - ③ 用途考案: 最新モデル/機能を活用した実装イメージを考案
+   - ④ コンテンツ化: 下記フォーマットの MDX に落とす
+5. バリデーション（下記）を満たすこと
+6. `content/case/{slug}.mdx` に保存
+7. case-topic-queue.json の該当トピックの status を `"published"` に更新
+8. `git add content/case/ && git commit -m "case: {slug} を自動生成" && git push origin main`
+
+キューが空（全て published）の場合は `keyword_bank` から未使用テーマを選定して slug を生成する。
+
+## MDX フロントマター（リッチスキーマ）
+
+```mdx
+---
+title: "（提案調のタイトル。「事例」ではなく「こうできる」）"
+description: "120字以内。検索結果に表示される要約"
+date: "YYYY-MM-DD"
+lastModified: "YYYY-MM-DD"
+tags: ["ユースケース", "（業種）", "（業務）"]
+industry: "（想定業種）"
+use_case: "（想定する業務ユースケース）"
+fictional: true
+objectives:        # 想定する課題（3項目程度）
+  - "..."
+measures:          # アプローチ（3項目程度）
+  - "..."
+effects:           # 期待できること（3項目程度。「目安」と分かる表現に）
+  - "..."
+metrics:           # KPIカード（2〜3枚。value は "-80%" 等、label は説明）
+  - value: "-80%"
+    label: "（想定の効果指標）"
+company_profile:   # 想定される導入シーン（label/value 4行程度）
+  - label: "想定業種"
+    value: "..."
+persona_voice:     # 現場で想定されるニーズ（実績の声ではなく「〜できたら」）
+  quote: "..."
+  attribution: "想定ペルソナ：（役職）"
+models_used:       # 活用した最新モデル・機能
+  - "..."
+sources:           # 調査の出典・需要根拠（公開情報ベース、出典を曖昧にしない）
+  - "..."
+future_outlook: "今後の展望（次の発展段階）"
+---
+
+[本文]
+```
+
+## 本文の構成・文体ルール
+
+- 見出しは H2（##）／H3（###）のみ。本文冒頭に DAB（`> ` で始まる40〜60字の blockquote）を1つ置く
+- H2 は「① 最新情報の調査」「② 需要の特定」「③ 用途の考案（実装イメージ）」「④ 設計・運用のポイント」を基本構成にする
+- トーンは**提案調**（「〜できます」「こういう使い方もできる」）。**「何が変わったか」のような実績・事例調にしない**
+- 数値は「目安」「想定」と分かる表現にし、特定の実績と誤認させない
+- 末尾CTAは本文に書かず、テンプレート側（詳細ページ）の「無料相談」導線に集約する
+- 禁止フレーズはブログと同じ（「以上のことから」「このように」「昨今」「今後も」「いかがでしたでしょうか」）
+
+## バリデーション基準
+
+- [ ] frontmatter 必須: title / description（120字以内）/ date / tags（1〜4個）
+- [ ] objectives / measures / effects を各2項目以上
+- [ ] metrics 2枚以上、company_profile 3行以上、persona_voice あり、sources 1件以上
+- [ ] 本文に DAB を1つ配置、H2 が3個以上、本文 1,200〜2,400字
+- [ ] 提案調で、実績・実在企業を装っていない
+- [ ] 既存 slug と重複していない
+
+## 品質リファレンス
+
+- `content/case/sample-meeting-minutes-agent.mdx`（議事録ユースケースの構成例）
+- `content/case/contract-review-agent.mdx` / `manufacturing-quality-report-agent.mdx` / `ec-customer-support-agent.mdx`（業種別の構成例）
+
+## Gitコミット
+
+```
+git add content/case/
+git commit -m "case: {slug} を自動生成"
+git push origin main
+```
