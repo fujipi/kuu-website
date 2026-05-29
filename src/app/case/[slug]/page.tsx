@@ -52,9 +52,9 @@ const summaryGroups: {
 	key: "objectives" | "measures" | "effects";
 	label: string;
 }[] = [
-	{ key: "objectives", label: "目的" },
-	{ key: "measures", label: "施策" },
-	{ key: "effects", label: "想定効果" },
+	{ key: "objectives", label: "想定する課題" },
+	{ key: "measures", label: "アプローチ" },
+	{ key: "effects", label: "期待できること" },
 ];
 
 export default async function CaseDetailPage({ params }: Props) {
@@ -142,19 +142,12 @@ export default async function CaseDetailPage({ params }: Props) {
 						</Link>
 					</nav>
 
-					{c.fictional && (
-						<div className="case-badge fade-in">
-							想定ユースケース（架空のシナリオ）
-						</div>
-					)}
-
 					<h1
 						className="fade-in"
 						style={{
 							fontSize: "clamp(1.3rem, 3vw, 1.9rem)",
 							fontWeight: 500,
 							lineHeight: "1.5",
-							marginTop: "1rem",
 							marginBottom: "1rem",
 						}}
 					>
@@ -207,7 +200,7 @@ export default async function CaseDetailPage({ params }: Props) {
 					{/* 想定企業プロフィール */}
 					{c.companyProfile.length > 0 && (
 						<section className="fade-in" style={{ marginBottom: "3rem" }}>
-							<h2 className="section-label">想定企業プロフィール</h2>
+							<h2 className="section-label">想定される導入シーン</h2>
 							<div className="about-table case-profile">
 								{c.companyProfile.map((row) => (
 									<div key={row.label} className="about-row">
@@ -254,7 +247,7 @@ export default async function CaseDetailPage({ params }: Props) {
 							</div>
 							<p className="case-metric-note">
 								※
-								数値は公開情報をもとにした想定値であり、特定の実績を示すものではありません。
+								数値は一般的な公開情報をもとにした目安であり、特定の実績を示すものではありません。
 							</p>
 						</section>
 					)}
@@ -277,7 +270,7 @@ export default async function CaseDetailPage({ params }: Props) {
 							className="fade-in"
 							style={{ maxWidth: "760px", marginBottom: "3rem" }}
 						>
-							<h2 className="section-label">想定される現場の声</h2>
+							<h2 className="section-label">現場で想定されるニーズ</h2>
 							<blockquote className="case-quote">
 								<p>{c.personaVoice.quote}</p>
 								{c.personaVoice.attribution && (
@@ -356,7 +349,7 @@ export default async function CaseDetailPage({ params }: Props) {
 								marginBottom: "1rem",
 							}}
 						>
-							このユースケースを自社で検討する
+							こうした活用を自社で検討する
 						</h2>
 						<p
 							style={{
@@ -366,7 +359,7 @@ export default async function CaseDetailPage({ params }: Props) {
 								marginBottom: "1.25rem",
 							}}
 						>
-							本ページは架空の想定シナリオですが、同様の業務課題は多くの企業に共通します。自社の業務への落とし込み・費用感は、無料相談（15〜30分）でご提案します。
+							ここで挙げた使い方は、多くの企業でそのまま応用できます。自社の業務にどう落とし込めるか・費用感は、無料相談（15〜30分）でご提案します。
 						</p>
 						<div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
 							<Link
@@ -381,19 +374,6 @@ export default async function CaseDetailPage({ params }: Props) {
 								}}
 							>
 								無料相談
-							</Link>
-							<Link
-								href="/services/"
-								style={{
-									fontSize: "0.8rem",
-									color: "var(--gray-light)",
-									border: "1px solid var(--gray-dark)",
-									padding: "0.6rem 1.5rem",
-									fontFamily: "var(--font-heading)",
-									letterSpacing: "0.05em",
-								}}
-							>
-								サービス概要
 							</Link>
 						</div>
 					</section>
