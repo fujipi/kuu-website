@@ -11,6 +11,7 @@ import {
 	getCaseStudyBySlug,
 } from "@/lib/caseStudies";
 import { mdToHtml } from "@/lib/mdToHtml";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
@@ -21,14 +22,6 @@ import {
 interface Props {
 	params: Promise<{ slug: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/ai-governance/", label: "Agent Governance" },
-	{ href: "/managed-agents/", label: "Managed Agents" },
-	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	return getAllCaseStudySlugs().map((slug) => ({ slug }));
@@ -52,7 +45,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 		return (
 			<>
 				<Stars />
-				<Header navLinks={navLinks} />
+				<Header navLinks={getMainNav()} />
 				<main>
 					<div className="page-content">
 						<h1 className="page-title">事例が見つかりません</h1>
@@ -117,7 +110,7 @@ export default async function CaseStudyDetailPage({ params }: Props) {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

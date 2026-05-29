@@ -11,6 +11,7 @@ import {
 	getGlossaryTermBySlug,
 } from "@/lib/glossary";
 import { getPostsMentioningTerm } from "@/lib/glossaryMentions";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
@@ -20,13 +21,6 @@ import {
 interface Props {
 	params: Promise<{ term: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	return getAllGlossarySlugs().map((term) => ({ term }));
@@ -100,7 +94,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 		return (
 			<>
 				<Stars />
-				<Header navLinks={navLinks} />
+				<Header navLinks={getMainNav()} />
 				<main>
 					<div className="page-content">
 						<p style={{ color: "var(--gray-medium)" }}>
@@ -155,7 +149,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

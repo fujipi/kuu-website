@@ -13,6 +13,7 @@ import {
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = seoMetadata({
 	title: "ブログ | AIエージェント・DX戦略コラム | Kuu株式会社",
@@ -20,14 +21,6 @@ export const metadata: Metadata = seoMetadata({
 		"AIエージェント導入・エージェントガバナンス・DX戦略に関する実践的な情報を発信しています。中小企業のAI活用から最新のエージェント技術トレンドまで。",
 	path: "/blog/",
 });
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/services/ax-dx/", label: "AX/DX" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export default function BlogListPage() {
 	const allPosts = getAllPosts();
@@ -68,7 +61,7 @@ export default function BlogListPage() {
 			<JsonLd data={blogListJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

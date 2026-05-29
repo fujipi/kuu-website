@@ -49,6 +49,7 @@ const blog = readCollection("content/blog");
 const glossary = readCollection("content/glossary");
 const pillars = readCollection("content/pillars");
 const caseStudies = readCollection("content/case-studies");
+const cases = readCollection("content/case");
 const resources = readCollection("content/resources");
 
 const inAppPillars = [
@@ -132,6 +133,14 @@ if (caseStudies.length) {
 	);
 }
 
+if (cases.length) {
+	sections.push(
+		`## Case (ユースケース集)\n\n${cases
+			.map((c) => `- [${c.title}](${SITE}/case/${c.slug}/): ${c.description}`)
+			.join("\n")}\n`,
+	);
+}
+
 if (resources.length) {
 	sections.push(
 		`## Resources (資料・テンプレート)\n\n${resources
@@ -180,6 +189,11 @@ for (const c of caseStudies) {
 		`\n---\n# [Case Study] ${c.title}\n\nURL: ${SITE}/case-studies/${c.slug}/\n${c.description}\n\n${c.content}\n`,
 	);
 }
+for (const c of cases) {
+	full.push(
+		`\n---\n# [Case] ${c.title}\n\nURL: ${SITE}/case/${c.slug}/\nDate: ${c.date}\n${c.description}\n\n${c.content}\n`,
+	);
+}
 for (const r of resources) {
 	full.push(
 		`\n---\n# [Resource] ${r.title}\n\nURL: ${SITE}/resources/${r.slug}/\n${r.description}\n\n${r.content}\n`,
@@ -199,5 +213,5 @@ for (const b of blog) {
 writeBoth("llms-full.txt", full.join("\n"));
 
 console.log(
-	`[llms-txt] generated llms.txt (${blog.length} blog, ${glossary.length} glossary, ${allPillars.length} pillars, ${caseStudies.length} case-studies, ${resources.length} resources) and llms-full.txt`,
+	`[llms-txt] generated llms.txt (${blog.length} blog, ${glossary.length} glossary, ${allPillars.length} pillars, ${caseStudies.length} case-studies, ${cases.length} cases, ${resources.length} resources) and llms-full.txt`,
 );

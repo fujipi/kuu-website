@@ -7,6 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllAuthors } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
@@ -19,14 +20,6 @@ export const metadata: Metadata = seoMetadata({
 		"Kuu株式会社のブログ執筆陣。AIエージェントガバナンス、AX/DX戦略、Managed Agents の実務知見を発信しています。",
 	path: "/authors/",
 });
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export default function AuthorsIndexPage() {
 	const authors = getAllAuthors();
@@ -72,7 +65,7 @@ export default function AuthorsIndexPage() {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

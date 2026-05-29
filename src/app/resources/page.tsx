@@ -6,18 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllResources } from "@/lib/resources";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/ai-governance/", label: "Agent Governance" },
-	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -65,7 +59,7 @@ export default function ResourcesIndexPage() {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

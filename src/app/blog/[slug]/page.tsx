@@ -13,17 +13,11 @@ import { readingTimeMinutes } from "@/lib/readingTime";
 import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
+import { getMainNav } from "@/lib/navigation";
 
 interface Props {
 	params: Promise<{ slug: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	const slugs = getAllPostSlugs();
@@ -222,7 +216,7 @@ export default async function BlogPostPage({ params }: Props) {
 		return (
 			<>
 				<Stars />
-				<Header navLinks={navLinks} />
+				<Header navLinks={getMainNav()} />
 				<main>
 					<div className="page-content">
 						<p style={{ color: "var(--gray-medium)" }}>
@@ -327,7 +321,7 @@ export default async function BlogPostPage({ params }: Props) {
 			<JsonLd data={articleJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

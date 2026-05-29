@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = generateMetadata({
 	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",
@@ -37,13 +38,6 @@ export const metadata: Metadata = generateMetadata({
 		"Kuu株式会社",
 	],
 });
-
-const navLinks = [
-	{ href: "/#service", label: "Service" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/#about", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 const homeJsonLd = [
 	{
@@ -174,7 +168,7 @@ export default function Home() {
 			<JsonLd data={homeJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav({ isHome: true })} />
 
 			<main>
 				<section className="hero">

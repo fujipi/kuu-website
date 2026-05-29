@@ -8,17 +8,11 @@ import Stars from "@/components/Stars";
 import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { tagDescription } from "@/lib/tagDescriptions";
 import { getAllTags, getPostsByTagSlug } from "@/lib/tags";
+import { getMainNav } from "@/lib/navigation";
 
 interface Props {
 	params: Promise<{ tag: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	return getAllTags().map(({ slug }) => ({ tag: slug }));
@@ -53,7 +47,7 @@ export default async function TagArchivePage({ params }: Props) {
 		return (
 			<>
 				<Stars />
-				<Header navLinks={navLinks} />
+				<Header navLinks={getMainNav()} />
 				<main>
 					<div className="page-content">
 						<p style={{ color: "var(--gray-medium)" }}>
@@ -110,7 +104,7 @@ export default async function TagArchivePage({ params }: Props) {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">
