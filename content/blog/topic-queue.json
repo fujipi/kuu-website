@@ -393,7 +393,7 @@
       "title_hint": "サブエージェント・オーケストレーションの設計パターン——プランナー／エグゼキューター分離と委譲設計",
       "persona": "マルチエージェント構成を設計するバックエンド／プラットフォームエンジニア",
       "service_link": "/services/ai-ops/",
-      "status": "queued",
+      "status": "published",
       "audience": "both",
       "track": "architecture",
       "tech_depth": "deep",
