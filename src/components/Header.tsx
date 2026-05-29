@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { type MouseEvent, useCallback, useEffect, useState } from "react";
 import { isDropdown, type NavItem } from "@/lib/navigation";
 
 interface HeaderProps {
@@ -10,6 +11,7 @@ interface HeaderProps {
 }
 
 export default function Header({ navLinks }: HeaderProps) {
+	const pathname = usePathname();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
@@ -22,6 +24,24 @@ export default function Header({ navLinks }: HeaderProps) {
 		setMenuOpen(false);
 		setOpenDropdown(null);
 	}, []);
+
+	const onLogoClick = useCallback(
+		(e: MouseEvent<HTMLAnchorElement>) => {
+			closeAll();
+			// On the home page, scroll back to the hero (top) instead of a no-op nav.
+			if (pathname === "/") {
+				e.preventDefault();
+				const reduce = window.matchMedia(
+					"(prefers-reduced-motion: reduce)",
+				).matches;
+				window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+				if (window.location.hash) {
+					history.replaceState(null, "", "/");
+				}
+			}
+		},
+		[closeAll, pathname],
+	);
 
 	const toggleDropdown = useCallback((label: string) => {
 		setOpenDropdown((prev) => (prev === label ? null : label));
@@ -40,7 +60,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
 	return (
 		<header>
-			<Link href="/" className="logo">
+			<Link href="/" className="logo" onClick={onLogoClick}>
 				<Image
 					src="/images/logo.png"
 					alt="Kuu"
