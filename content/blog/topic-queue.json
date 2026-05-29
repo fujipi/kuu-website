@@ -354,8 +354,8 @@
     },
     {
       "slug": "rde-reinvention-deployed-engineering",
-      "keyword": "RDE Reinvention Deployed Engineering アクセンチュア 変革実装",
-      "title_hint": "RDEとは何か——アクセンチュアが掲げる「Reinvention Deployed Engineering」が企業AI実装をどう変えるか",
+      "keyword": "RDE Reinvention Deployed Engineering 大手コンサル 変革実装",
+      "title_hint": "RDEとは何か——大手コンサルティングファームが掲げる「Reinvention Deployed Engineering」が企業AI実装をどう変えるか",
       "persona": "AIのPoCから本番運用へ進めず悩む中堅企業のDX/AX推進責任者・経営企画",
       "service_link": "/services/ax-dx/",
       "status": "published"
@@ -371,7 +371,7 @@
     {
       "slug": "fde-vs-rde-comparison",
       "keyword": "FDE RDE 違い 比較 AI実装",
-      "title_hint": "FDEとRDEの違い——Palantir発「前線実装」とアクセンチュア発「変革実装」をどう使い分けるか",
+      "title_hint": "FDEとRDEの違い——Palantir発「前線実装」と大手コンサル発「変革実装」をどう使い分けるか",
       "persona": "AI実装パートナーを選定中のDX推進責任者・経営企画担当者",
       "service_link": "/services/ax-dx/",
       "status": "queued"

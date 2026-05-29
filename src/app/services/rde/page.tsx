@@ -52,7 +52,7 @@ const navLinks = [
 const faqs = [
 	{
 		q: "RDEとFDEは何が違うのですか？",
-		a: "FDE（Forward Deployed Engineer）は Palantir 発祥の役割で「製品ができることと顧客が必要とすることのギャップを埋める人間」と定義されます。RDE（Reinvention Deployed Engineering）はアクセンチュアが掲げる概念で、「業務フローごと AI 前提に再設計する変革実装」に重きを置きます。Kuu では RDE を Stage 02 のディスカバリ（仮説と機会の抽出）、FDE を Stage 03 の実装フェーズに割り当て、両輪で運用します。",
+		a: "FDE（Forward Deployed Engineer）は Palantir 発祥の役割で「製品ができることと顧客が必要とすることのギャップを埋める人間」と定義されます。RDE（Reinvention Deployed Engineering）は大手コンサルティングファームが掲げる概念で、「業務フローごと AI 前提に再設計する変革実装」に重きを置きます。Kuu では RDE を Stage 02 のディスカバリ（仮説と機会の抽出）、FDE を Stage 03 の実装フェーズに割り当て、両輪で運用します。",
 	},
 	{
 		q: "RDEディスカバリだけ単発で依頼することは可能ですか？",
