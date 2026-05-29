@@ -25,7 +25,7 @@
       "persona": "飲食チェーンのエリアマネージャー・店長",
       "industry": "飲食",
       "use_case": "シフト作成・発注・在庫管理の補助自動化",
-      "status": "queued"
+      "status": "published"
     },
     {
       "slug": "logistics-shipment-status-agent",
