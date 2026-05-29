@@ -16,9 +16,9 @@ import {
 import { getAllTags } from "@/lib/tags";
 
 export const metadata: Metadata = seoMetadata({
-	title: "ブログ | AIエージェント・DX戦略コラム | Kuu株式会社",
+	title: "AIエージェント技術ブログ｜Kuu株式会社",
 	description:
-		"AIエージェント導入・エージェントガバナンス・DX戦略に関する実践的な情報を発信しています。中小企業のAI活用から最新のエージェント技術トレンドまで。",
+		"AIエージェントのアーキテクチャ、MCP/A2Aプロトコル、評価・可観測性、セキュリティ、ガバナンスを、設計判断とトレードオフまで掘り下げる技術ブログ。SMBからエンタープライズまでの実装者・技術者に向けて発信します。",
 	path: "/blog/",
 });
 
@@ -31,9 +31,9 @@ export default function BlogListPage() {
 		{
 			"@context": "https://schema.org",
 			"@type": "CollectionPage",
-			name: "ブログ | AIエージェント・DX戦略コラム",
+			name: "AIエージェント技術ブログ",
 			description:
-				"AIエージェント導入・エージェントガバナンス・DX戦略に関する実践的な情報を発信しています。",
+				"AIエージェントのアーキテクチャ、MCP/A2Aプロトコル、評価・可観測性、セキュリティ、ガバナンスを設計判断とトレードオフまで掘り下げる技術ブログ。",
 			url: `${BASE_URL}/blog/`,
 			isPartOf: {
 				"@type": "WebSite",

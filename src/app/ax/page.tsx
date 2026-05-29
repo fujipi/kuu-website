@@ -18,9 +18,9 @@ const PAGE_URL = `${BASE_URL}/ax/`;
 
 export const metadata: Metadata = seoMetadata({
 	title:
-		"AX（エージェントトランスフォーメーション）とは——中小企業向け完全ガイド | Kuu株式会社",
+		"AX（エージェントトランスフォーメーション）とは——導入と推進体制の完全ガイド | Kuu株式会社",
 	description:
-		"AXはAIエージェントが業務を自律的に動かす段階への組織変革。DXとの違い、中小企業に必要な理由、3段階の導入プロセス、推進体制まで実装目線で完全解説。",
+		"AXはAIエージェントが業務を自律的に動かす段階への組織変革。DXとの違い、必要になる理由、3段階の導入プロセス、推進体制まで実装目線で完全解説。",
 	path: "/ax/",
 });
 
@@ -61,9 +61,9 @@ const jsonLd = [
 		"@context": "https://schema.org",
 		"@type": "TechArticle",
 		headline:
-			"AX（エージェントトランスフォーメーション）とは——中小企業向け完全ガイド",
+			"AX（エージェントトランスフォーメーション）とは——導入と推進体制の完全ガイド",
 		description:
-			"AXの定義、DXとの違い、中小企業に必要な理由、3段階の導入プロセス、推進体制まで完全解説。",
+			"AXの定義、DXとの違い、必要になる理由、3段階の導入プロセス、推進体制まで完全解説。",
 		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
@@ -100,7 +100,7 @@ const jsonLd = [
 		"@context": "https://schema.org",
 		"@type": "HowTo",
 		name: "AX導入 3フェーズ",
-		description: "中小企業がAXを段階的に進めるための実践プロセス",
+		description: "AXを段階的に進めるための実践プロセス",
 		step: [
 			{
 				"@type": "HowToStep",
@@ -177,7 +177,7 @@ export default function AxPillarPage() {
 					>
 						AX（エージェントトランスフォーメーション）とは——
 						<br />
-						中小企業向け完全ガイド
+						導入と推進体制の完全ガイド
 					</h1>
 					<p
 						className="fade-in"
@@ -405,7 +405,8 @@ export default function AxPillarPage() {
 								},
 								{
 									href: "/ai-governance/",
-									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+									label:
+										"エージェントガバナンスとは——設計・評価・規制対応の完全ガイド",
 								},
 								{
 									href: "/managed-agents/",

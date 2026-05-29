@@ -425,7 +425,8 @@ export default function FdePillarPage() {
 								},
 								{
 									href: "/ai-governance/",
-									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+									label:
+										"エージェントガバナンスとは——設計・評価・規制対応の完全ガイド",
 								},
 								{
 									href: "/managed-agents/",

@@ -10,9 +10,9 @@ import { getMainNav } from "@/lib/navigation";
 import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
-	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",
+	title: "AX/DX戦略・Claude導入支援・エージェントガバナンス｜Kuu株式会社",
 	description:
-		"Kuu株式会社は、AIネイティブなAX/DX戦略からFDE（Forward Deployed Engineer）、RDE（Reinvention Deployed Engineering）、Claude / ChatGPT / Codex / Gemini を組み合わせたエージェント実装、MCP・Skills・サブエージェント設計、9軸評価による継続ガバナンスまで一社で包括実行。",
+		"Kuu株式会社は、AX/DX戦略の立案から、ClaudeをはじめとするAIエージェントの導入・実装、9軸評価による継続的なエージェントガバナンスまでを一社で担う専門会社です。技術と運用の両面で企業のAI活用に伴走します。",
 	path: "/",
 	keywords: [
 		"AIエージェント",

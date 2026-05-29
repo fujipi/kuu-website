@@ -19,7 +19,7 @@ const PAGE_URL = `${BASE_URL}/eu-ai-act-jp/`;
 export const metadata: Metadata = seoMetadata({
 	title: "EU AI Act 日本企業対応ガイド——該当判定から必要対応まで | Kuu株式会社",
 	description:
-		"EU AI Actが日本の中小企業に与える影響、該当可能性の判定、リスク分類、必要な対応項目、ISO/IEC 42001 との関係を実務者向けに整理したピラーガイド。",
+		"EU AI Actが日本企業に与える影響、該当可能性の判定、リスク分類、必要な対応項目、ISO/IEC 42001 との関係を実務者向けに整理したピラーガイド。",
 	path: "/eu-ai-act-jp/",
 });
 
@@ -362,7 +362,8 @@ export default function EuAiActPillarPage() {
 							{[
 								{
 									href: "/ai-governance/",
-									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+									label:
+										"エージェントガバナンスとは——設計・評価・規制対応の完全ガイド",
 								},
 								{
 									href: "/managed-agents/",

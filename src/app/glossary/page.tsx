@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = seoMetadata({
 	title: "AIエージェント・エージェントガバナンス用語集 | Kuu株式会社",
 	description:
-		"AIエージェント、Managed Agents、エージェントガバナンス、EU AI Act、ISO 42001 など、中小企業の経営者・IT担当者が知っておくべき用語を平易に解説します。",
+		"AIエージェント、Managed Agents、エージェントガバナンス、EU AI Act、ISO 42001 など、実務者が知っておくべき用語を体系的に解説します。",
 	path: "/glossary/",
 });
 
@@ -30,7 +30,7 @@ export default function GlossaryIndexPage() {
 			"@type": "DefinedTermSet",
 			name: "Kuu株式会社 AIエージェント用語集",
 			description:
-				"AIエージェント・エージェントガバナンス・AI規制に関する用語を中小企業の経営者向けに解説する用語集。",
+				"AIエージェント・エージェントガバナンス・AI規制に関する用語を実務者向けに解説する用語集。",
 			url,
 			hasDefinedTerm: terms.map((t) => ({
 				"@type": "DefinedTerm",
@@ -66,7 +66,7 @@ export default function GlossaryIndexPage() {
 							marginBottom: "3rem",
 						}}
 					>
-						AIエージェントとエージェントガバナンスの実務で頻出する用語を、中小企業の経営者・IT担当者が意思決定に使えるレベルで整理しました。生成AI規制・国際規格・技術プロトコルまで横断的にカバーしています。
+						AIエージェントとエージェントガバナンスの実務で頻出する用語を、実務者が意思決定に使えるレベルで整理しました。生成AI規制・国際規格・技術プロトコルまで横断的にカバーしています。
 					</p>
 
 					<div className="fade-in-stagger" style={{ maxWidth: "720px" }}>
