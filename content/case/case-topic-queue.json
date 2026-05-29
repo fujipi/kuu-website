@@ -7,7 +7,7 @@
       "persona": "不動産仲介・管理会社の業務担当",
       "industry": "不動産",
       "use_case": "物件資料・重要事項説明書のドラフト自動生成",
-      "status": "queued"
+      "status": "published"
     },
     {
       "slug": "clinic-reservation-followup-agent",
