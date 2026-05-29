@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { getAllResources } from "@/lib/resources";
 import { getMainNav } from "@/lib/navigation";
+import { getAllResources } from "@/lib/resources";
 import {
 	BASE_URL,
 	buildBreadcrumb,

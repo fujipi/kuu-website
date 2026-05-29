@@ -7,13 +7,13 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { paginatePosts } from "@/lib/blog-pagination";
 import { getAllPosts } from "@/lib/mdx";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
-import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = seoMetadata({
 	title: "ブログ | AIエージェント・DX戦略コラム | Kuu株式会社",

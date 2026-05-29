@@ -4,8 +4,8 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 import { getMainNav } from "@/lib/navigation";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "お問い合わせ | Kuu株式会社 - AI導入のご相談",
