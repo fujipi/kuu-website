@@ -62,6 +62,18 @@ const config = {
 		if (p.startsWith("/case-studies/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.85, lastmod: now };
 		}
+		if (p === "/case") {
+			return { loc: path, changefreq: "daily", priority: 0.85, lastmod: now };
+		}
+		if (p.startsWith("/case/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
+		}
+		if (p === "/news") {
+			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
+		}
+		if (p.startsWith("/news/")) {
+			return { loc: path, changefreq: "monthly", priority: 0.5, lastmod: now };
+		}
 		if (p === "/resources") {
 			return { loc: path, changefreq: "weekly", priority: 0.85, lastmod: now };
 		}

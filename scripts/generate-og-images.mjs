@@ -18,6 +18,7 @@ const ROOT = process.cwd();
 const BLOG_DIR = path.join(ROOT, "content/blog");
 const GLOSSARY_DIR = path.join(ROOT, "content/glossary");
 const CASE_STUDIES_DIR = path.join(ROOT, "content/case-studies");
+const CASE_DIR = path.join(ROOT, "content/case");
 const RESOURCES_DIR = path.join(ROOT, "content/resources");
 const PUBLIC_OG = path.join(ROOT, "public/og");
 const OUT_OG = path.join(ROOT, "out/og");
@@ -221,6 +222,22 @@ function collectCaseStudies() {
 		});
 }
 
+function collectCases() {
+	if (!fs.existsSync(CASE_DIR)) return [];
+	return fs
+		.readdirSync(CASE_DIR)
+		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+		.map((f) => {
+			const slug = f.replace(/\.(mdx|md)$/, "");
+			const { data } = matter(fs.readFileSync(path.join(CASE_DIR, f), "utf-8"));
+			return {
+				out: path.join(OUT_DIR, "case", `${slug}.png`),
+				title: data.title ?? slug,
+				eyebrow: "Case",
+			};
+		});
+}
+
 function collectResources() {
 	if (!fs.existsSync(RESOURCES_DIR)) return [];
 	return fs
@@ -278,6 +295,12 @@ const STATIC_JOBS = [
 		eyebrow: "Case Studies",
 	},
 	{
+		out: "case.png",
+		title: "Case — 最新ユースケースを毎日",
+		eyebrow: "Case",
+	},
+	{ out: "news.png", title: "News | Kuu株式会社", eyebrow: "News" },
+	{
 		out: "resources.png",
 		title: "AIガバナンス資料・テンプレート",
 		eyebrow: "Resources",
@@ -295,6 +318,7 @@ async function main() {
 		fs.mkdirSync(path.join(OUT_DIR, "blog"), { recursive: true });
 		fs.mkdirSync(path.join(OUT_DIR, "glossary"), { recursive: true });
 		fs.mkdirSync(path.join(OUT_DIR, "case-studies"), { recursive: true });
+		fs.mkdirSync(path.join(OUT_DIR, "case"), { recursive: true });
 		fs.mkdirSync(path.join(OUT_DIR, "resources"), { recursive: true });
 
 		const jobs = [
@@ -302,6 +326,7 @@ async function main() {
 			...collectBlog(),
 			...collectGlossary(),
 			...collectCaseStudies(),
+			...collectCases(),
 			...collectResources(),
 		];
 

@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = generateMetadata({
 	title:
@@ -64,21 +65,13 @@ const aboutJsonLd = [
 	]),
 ];
 
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/services/ax-dx/", label: "AX/DX" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/contact/", label: "Contact" },
-];
-
 export default function AboutPage() {
 	return (
 		<>
 			<JsonLd data={aboutJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

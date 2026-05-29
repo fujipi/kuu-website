@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = generateMetadata({
 	title: "プライバシーポリシー | Kuu株式会社",
@@ -34,19 +35,13 @@ const privacyJsonLd = [
 	]),
 ];
 
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
-
 export default function PrivacyPolicyPage() {
 	return (
 		<>
 			<JsonLd data={privacyJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content privacy">

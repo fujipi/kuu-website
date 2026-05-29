@@ -14,14 +14,7 @@ import {
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/services/ax-dx/", label: "AX/DX" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
+import { getMainNav } from "@/lib/navigation";
 
 export async function generateStaticParams() {
 	const total = getAllPosts().length;
@@ -98,7 +91,7 @@ export default async function BlogListPaginatedPage({ params }: PageProps) {
 			<JsonLd data={blogListJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

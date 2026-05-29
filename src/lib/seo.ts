@@ -79,10 +79,12 @@ export function resolveOgImage(pathname: string): string {
 	if (gloss) return `/og/glossary/${gloss[1]}.png`;
 	const cs = p.match(/^\/case-studies\/([^/]+)$/);
 	if (cs) return `/og/case-studies/${cs[1]}.png`;
+	const ca = p.match(/^\/case\/([^/]+)$/);
+	if (ca) return `/og/case/${ca[1]}.png`;
 	const res = p.match(/^\/resources\/([^/]+)$/);
 	if (res) return `/og/resources/${res[1]}.png`;
 	const simple = p.match(
-		/^\/(ai-governance|managed-agents|eu-ai-act-jp|fde|ax|blog|glossary|about|contact|case-studies|resources|services)$/,
+		/^\/(ai-governance|managed-agents|eu-ai-act-jp|fde|ax|blog|glossary|about|contact|case-studies|case|news|resources|services)$/,
 	);
 	if (simple) return `/og/${simple[1]}.png`;
 	return "/og/default.png";

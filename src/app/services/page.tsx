@@ -18,6 +18,7 @@ import Header from "@/components/Header";
 import { ClaudeMark, OpenAiMark } from "@/components/icons/ServiceIcons";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
@@ -64,15 +65,6 @@ export const metadata: Metadata = seoMetadata({
 		"Kuu株式会社",
 	],
 });
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/services/ax-dx/", label: "AX/DX" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 const servicesJsonLd = [
 	buildBreadcrumb([
@@ -446,7 +438,7 @@ export default function ServicesIndexPage() {
 			<JsonLd data={servicesJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

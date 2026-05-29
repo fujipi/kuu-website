@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { getAllCaseStudies } from "@/lib/caseStudies";
+import { getAllCases } from "@/lib/case";
 import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
@@ -14,25 +14,33 @@ import {
 } from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
-	title:
-		"導入事例 | AIエージェントガバナンス・Managed Agents 活用例 | Kuu株式会社",
+	title: "Case | 最新のAIエージェント・ユースケースを毎日 | Kuu株式会社",
 	description:
-		"製造業・士業・EC小売など、中小企業のAIエージェント導入事例。工数削減・品質改善・CVR向上など定量成果を事例ごとに公開しています。",
-	path: "/case-studies/",
+		"Webや企業発表から最新のAIエージェント・自動化のユースケースを日々まとめ、自社の業務へどう実装するかを具体的に書き起こします。",
+	path: "/case/",
 });
 
-export default function CaseStudiesIndexPage() {
-	const cases = getAllCaseStudies();
-	const url = `${BASE_URL}/case-studies/`;
+function formatDate(dateStr: string): string {
+	const d = new Date(dateStr);
+	if (Number.isNaN(d.getTime())) return dateStr;
+	return d.toLocaleDateString("ja-JP", {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	});
+}
+
+export default function CaseListPage() {
+	const cases = getAllCases();
 
 	const jsonLd = [
 		{
 			"@context": "https://schema.org",
 			"@type": "CollectionPage",
-			name: "Kuu株式会社 導入事例",
+			name: "Case | 最新のユースケース集 | Kuu株式会社",
+			url: `${BASE_URL}/case/`,
 			description:
-				"中小企業におけるAIエージェント・Managed Agents 導入の定量成果を紹介する事例集。",
-			url,
+				"AIエージェント・自動化・FDE型実装に関する最新ユースケースを継続的に集約。",
 			isPartOf: {
 				"@type": "WebSite",
 				url: BASE_URL,
@@ -43,14 +51,14 @@ export default function CaseStudiesIndexPage() {
 				itemListElement: cases.map((c, i) => ({
 					"@type": "ListItem",
 					position: i + 1,
-					url: `${BASE_URL}/case-studies/${c.slug}/`,
+					url: `${BASE_URL}/case/${c.slug}/`,
 					name: c.title,
 				})),
 			},
 		},
 		buildBreadcrumb([
 			{ name: "ホーム", path: "/" },
-			{ name: "導入事例", path: "/case-studies/" },
+			{ name: "Case", path: "/case/" },
 		]),
 	];
 
@@ -63,19 +71,20 @@ export default function CaseStudiesIndexPage() {
 
 			<main>
 				<div className="page-content">
-					<h1 className="page-title fade-in">Case Studies</h1>
+					<h1 className="page-title fade-in">Case</h1>
+
 					<p
 						className="fade-in"
 						style={{
 							fontSize: "0.9rem",
 							color: "var(--gray-medium)",
-							lineHeight: "1.9",
+							lineHeight: "1.95",
 							maxWidth: "640px",
-							marginBottom: "3rem",
+							marginBottom: "2.5rem",
 						}}
 					>
-						KuuがAIエージェント導入・Managed
-						Agents運用で支援した中小企業の事例を、業種・規模・課題別に紹介します。工数削減・品質改善・顧客満足度向上など、定量成果にフォーカスしています。
+						Web の記事・X の投稿・企業の PR
+						から見えてくる最新のユースケースをもとに、自社の業務にどう実装するかを具体的な形で書き起こすコーナーです。毎日継続的に追加していきます。
 					</p>
 
 					{cases.length === 0 ? (
@@ -83,7 +92,7 @@ export default function CaseStudiesIndexPage() {
 							className="fade-in"
 							style={{ fontSize: "0.85rem", color: "var(--gray-medium)" }}
 						>
-							事例を準備中です。
+							ユースケースを準備中です。
 						</p>
 					) : (
 						<div
@@ -93,36 +102,22 @@ export default function CaseStudiesIndexPage() {
 							{cases.map((c) => (
 								<Link
 									key={c.slug}
-									href={`/case-studies/${c.slug}/`}
+									href={`/case/${c.slug}/`}
 									className="blog-list-item fade-in-item"
 								>
-									<div
+									<time
+										dateTime={c.date}
 										style={{
-											display: "flex",
-											gap: "0.6rem",
-											flexWrap: "wrap",
+											fontSize: "0.7rem",
+											color: "var(--gray-dim)",
+											fontFamily: "var(--font-heading)",
+											letterSpacing: "0.05em",
+											display: "block",
 											marginBottom: "0.5rem",
 										}}
 									>
-										{[c.clientIndustry, c.companySize]
-											.filter(Boolean)
-											.map((tag) => (
-												<span
-													key={tag}
-													style={{
-														fontSize: "0.65rem",
-														color: "var(--gray-dim)",
-														border: "1px solid var(--gray-dark)",
-														borderRadius: "2px",
-														padding: "0.2rem 0.6rem",
-														fontFamily: "var(--font-heading)",
-														letterSpacing: "0.05em",
-													}}
-												>
-													{tag}
-												</span>
-											))}
-									</div>
+										{formatDate(c.date)}
+									</time>
 									<h2
 										style={{
 											fontSize: "clamp(0.95rem, 1.5vw, 1.1rem)",
@@ -140,37 +135,37 @@ export default function CaseStudiesIndexPage() {
 											color: "var(--gray-medium)",
 											lineHeight: "1.7",
 											maxWidth: "600px",
-											marginBottom: "0.75rem",
 										}}
 									>
 										{c.description}
 									</p>
-									{c.resultMetrics.length > 0 && (
-										<ul
+									{c.tags.length > 0 ? (
+										<div
 											style={{
-												listStyle: "none",
-												padding: 0,
-												margin: 0,
 												display: "flex",
-												flexDirection: "column",
-												gap: "0.25rem",
+												gap: "0.5rem",
+												marginTop: "0.75rem",
+												flexWrap: "wrap",
 											}}
 										>
-											{c.resultMetrics.slice(0, 3).map((m) => (
-												<li
-													key={m}
+											{c.tags.map((tag) => (
+												<span
+													key={tag}
 													style={{
-														fontSize: "0.75rem",
-														color: "var(--gray-light)",
+														fontSize: "0.65rem",
+														color: "var(--gray-dim)",
+														border: "1px solid var(--gray-dark)",
+														borderRadius: "2px",
+														padding: "0.2rem 0.6rem",
 														fontFamily: "var(--font-heading)",
-														letterSpacing: "0.02em",
+														letterSpacing: "0.05em",
 													}}
 												>
-													▸ {m}
-												</li>
+													{tag}
+												</span>
 											))}
-										</ul>
-									)}
+										</div>
+									) : null}
 								</Link>
 							))}
 							<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />

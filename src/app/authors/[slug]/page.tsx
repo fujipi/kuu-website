@@ -8,17 +8,11 @@ import Stars from "@/components/Stars";
 import { getAllAuthors, getAuthorBySlug } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
 import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
+import { getMainNav } from "@/lib/navigation";
 
 interface Props {
 	params: Promise<{ slug: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	return getAllAuthors().map((a) => ({ slug: a.slug }));
@@ -91,7 +85,7 @@ export default async function AuthorPage({ params }: Props) {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

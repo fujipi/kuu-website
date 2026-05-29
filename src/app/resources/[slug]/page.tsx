@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { mdToHtml } from "@/lib/mdToHtml";
+import { getMainNav } from "@/lib/navigation";
 import {
 	getAllResourceSlugs,
 	getAllResources,
@@ -21,14 +22,6 @@ import {
 interface Props {
 	params: Promise<{ slug: string }>;
 }
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/ai-governance/", label: "Agent Governance" },
-	{ href: "/resources/", label: "Resources" },
-	{ href: "/case-studies/", label: "Cases" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export async function generateStaticParams() {
 	return getAllResourceSlugs().map((slug) => ({ slug }));
@@ -52,7 +45,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 		return (
 			<>
 				<Stars />
-				<Header navLinks={navLinks} />
+				<Header navLinks={getMainNav()} />
 				<main>
 					<div className="page-content">
 						<h1 className="page-title">資料が見つかりません</h1>
@@ -106,7 +99,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

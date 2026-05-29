@@ -2,17 +2,40 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { isDropdown, type NavItem } from "@/lib/navigation";
 
 interface HeaderProps {
-	navLinks: { href: string; label: string }[];
+	navLinks: NavItem[];
 }
 
 export default function Header({ navLinks }: HeaderProps) {
 	const [menuOpen, setMenuOpen] = useState(false);
+	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
 	const toggleMenu = useCallback(() => {
 		setMenuOpen((prev) => !prev);
+		setOpenDropdown(null);
+	}, []);
+
+	const closeAll = useCallback(() => {
+		setMenuOpen(false);
+		setOpenDropdown(null);
+	}, []);
+
+	const toggleDropdown = useCallback((label: string) => {
+		setOpenDropdown((prev) => (prev === label ? null : label));
+	}, []);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				setOpenDropdown(null);
+				setMenuOpen(false);
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
 	return (
@@ -40,13 +63,42 @@ export default function Header({ navLinks }: HeaderProps) {
 			</button>
 			<nav id="nav" className={menuOpen ? "active" : ""}>
 				<ul>
-					{navLinks.map((link) => (
-						<li key={link.href}>
-							<Link href={link.href} onClick={() => setMenuOpen(false)}>
-								{link.label}
-							</Link>
-						</li>
-					))}
+					{navLinks.map((item) =>
+						isDropdown(item) ? (
+							<li
+								key={item.label}
+								className={`has-dropdown${openDropdown === item.label ? " open" : ""}`}
+							>
+								<button
+									type="button"
+									className="dropdown-trigger"
+									aria-haspopup="true"
+									aria-expanded={openDropdown === item.label}
+									onClick={() => toggleDropdown(item.label)}
+								>
+									{item.label}
+									<span className="dropdown-caret" aria-hidden="true">
+										▾
+									</span>
+								</button>
+								<ul className="dropdown-menu">
+									{item.children.map((child) => (
+										<li key={child.href}>
+											<Link href={child.href} onClick={closeAll}>
+												{child.label}
+											</Link>
+										</li>
+									))}
+								</ul>
+							</li>
+						) : (
+							<li key={item.href}>
+								<Link href={item.href} onClick={closeAll}>
+									{item.label}
+								</Link>
+							</li>
+						),
+					)}
 				</ul>
 			</nav>
 		</header>

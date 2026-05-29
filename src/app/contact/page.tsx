@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = generateMetadata({
 	title: "お問い合わせ | Kuu株式会社 - AI導入のご相談",
@@ -54,18 +55,13 @@ const contactJsonLd = [
 	]),
 ];
 
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/about/", label: "About" },
-];
-
 export default function ContactPage() {
 	return (
 		<>
 			<JsonLd data={contactJsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

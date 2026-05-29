@@ -6,19 +6,13 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/ai-governance/", label: "Agent Governance" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 const PAGE_URL = `${BASE_URL}/managed-agents/`;
 
@@ -182,7 +176,7 @@ export default function ManagedAgentsPillarPage() {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">

@@ -3,6 +3,7 @@ import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Stars from "@/components/Stars";
+import { getMainNav } from "@/lib/navigation";
 
 export const metadata: Metadata = {
 	title: "ページが見つかりません",
@@ -11,18 +12,12 @@ export const metadata: Metadata = {
 	robots: { index: false, follow: true },
 };
 
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/about/", label: "About" },
-	{ href: "/contact/", label: "Contact" },
-];
-
 export default function NotFound() {
 	return (
 		<>
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content error-page">

@@ -6,18 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllGlossaryTerms } from "@/lib/glossary";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-
-const navLinks = [
-	{ href: "/", label: "Top" },
-	{ href: "/blog/", label: "Blog" },
-	{ href: "/services/ai-ops/", label: "Agent Governance" },
-	{ href: "/contact/", label: "Contact" },
-];
 
 export const metadata: Metadata = seoMetadata({
 	title: "AIエージェント・エージェントガバナンス用語集 | Kuu株式会社",
@@ -57,7 +51,7 @@ export default function GlossaryIndexPage() {
 			<JsonLd data={jsonLd} />
 			<Stars />
 			<FadeInObserver />
-			<Header navLinks={navLinks} />
+			<Header navLinks={getMainNav()} />
 
 			<main>
 				<div className="page-content">
