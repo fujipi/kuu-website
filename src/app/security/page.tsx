@@ -4,8 +4,8 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 import { getMainNav } from "@/lib/navigation";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "情報セキュリティ基本方針 | Kuu株式会社",

@@ -6,8 +6,8 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
 import { getMainNav } from "@/lib/navigation";
+import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",

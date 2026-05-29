@@ -7,8 +7,8 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllAuthors, getAuthorBySlug } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
-import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { getMainNav } from "@/lib/navigation";
+import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ slug: string }>;

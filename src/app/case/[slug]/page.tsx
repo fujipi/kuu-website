@@ -161,6 +161,7 @@ export default async function CaseDetailPage({ params }: Props) {
 						style={{ maxWidth: "760px", marginBottom: "3rem" }}
 					>
 						<section
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown
 							dangerouslySetInnerHTML={{ __html: html }}
 							suppressHydrationWarning
 						/>

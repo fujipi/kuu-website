@@ -8,13 +8,13 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { POSTS_PER_PAGE, paginatePosts } from "@/lib/blog-pagination";
 import { getAllPosts } from "@/lib/mdx";
+import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
-import { getMainNav } from "@/lib/navigation";
 
 export async function generateStaticParams() {
 	const total = getAllPosts().length;

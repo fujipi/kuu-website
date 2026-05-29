@@ -9,11 +9,11 @@ import Stars from "@/components/Stars";
 import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
+import { getMainNav } from "@/lib/navigation";
 import { readingTimeMinutes } from "@/lib/readingTime";
 import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
-import { getMainNav } from "@/lib/navigation";
 
 interface Props {
 	params: Promise<{ slug: string }>;
