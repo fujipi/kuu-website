@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	}
 	const author = getAuthorBySlug(post.author);
 	return seoMetadata({
-		title: `${post.title} | Kuu株式会社`,
+		title: post.title,
 		description: post.description,
 		path: `/blog/${slug}/`,
 		article: {
