@@ -43,6 +43,9 @@ jobs:
       - name: Validate case content (safety gate)
         run: pnpm validate:case
 
+      - name: Validate blog content (safety gate)
+        run: pnpm validate:blog
+
       - name: Build
         run: pnpm build
 

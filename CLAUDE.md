@@ -149,6 +149,14 @@ series_order: 3                       # 任意。シリーズ内順序
 
 生成した記事は以下をすべて満たすこと。満たさない場合はコミットしない。
 
+**機械チェック（必ず commit 前に実行）**:
+
+```
+node scripts/validate-blog.mjs   # または pnpm validate:blog
+```
+
+これは frontmatter 必須欠落・description 120字超過・tags 個数違反・H2 3個未満・禁止フレーズ混入・slug 重複・audience=enterprise なのに `/services/rde/` 言及無し、を機械的に検出する安全ゲートである。**不合格（exit 非0）ならコミットせず、Slack 失敗通知に倒す。** 同じ gate は `.github/workflows/deploy.yml` でも build 直前に走り、すり抜けた違反は本番反映を fail させる（バックストップ）。本文字数（1,600〜2,400字）・`## 参考` H2 + sources・DAB 40〜60字・frontmatter `audience`/`track`/`tech_depth`/`sources` 必須化などは既存記事の実態（main 上 94 件）に合わず誤検知リスクが高いため hard gate からは外し、人間向けチェックリスト（以下）に残してある。判定根拠の詳細は `scripts/validate-blog.mjs` 末尾の「採用 / 不採用一覧」を参照。
+
 - [ ] frontmatter 必須フィールド完備（title, description, date, tags, **audience, track, tech_depth**）
 - [ ] description が120字以内
 - [ ] tags が1〜4個
