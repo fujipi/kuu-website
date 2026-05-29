@@ -17,9 +17,10 @@ import {
 const PAGE_URL = `${BASE_URL}/ai-governance/`;
 
 export const metadata: Metadata = seoMetadata({
-	title: "エージェントガバナンスとは——中小企業向け完全ガイド | Kuu株式会社",
+	title:
+		"エージェントガバナンスとは——設計・評価・規制対応の完全ガイド | Kuu株式会社",
 	description:
-		"AIエージェントガバナンスの定義から9軸評価、EU AI Act・ISO 42001 対応、体制構築5ステップまで。中小企業の経営者・IT担当者が実装に使える決定版ガイド。",
+		"AIエージェントガバナンスの定義から9軸評価、EU AI Act・ISO 42001 対応、体制構築5ステップまで。SMBからエンタープライズまでの実務者が実装に使える決定版ガイド。",
 	path: "/ai-governance/",
 });
 
@@ -59,9 +60,9 @@ const jsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "TechArticle",
-		headline: "エージェントガバナンスとは——中小企業向け完全ガイド",
+		headline: "エージェントガバナンスとは——設計・評価・規制対応の完全ガイド",
 		description:
-			"AIエージェントガバナンスの定義・9軸評価・EU AI Act / ISO 42001 対応・体制構築5ステップを中小企業向けに解説。",
+			"AIエージェントガバナンスの定義・9軸評価・EU AI Act / ISO 42001 対応・体制構築5ステップを実務者向けに解説。",
 		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
@@ -98,8 +99,7 @@ const jsonLd = [
 		"@context": "https://schema.org",
 		"@type": "HowTo",
 		name: "エージェントガバナンス体制構築 5ステップ",
-		description:
-			"中小企業がエージェントガバナンス体制を構築するための実践的なステップ",
+		description: "エージェントガバナンス体制を構築するための実践的なステップ",
 		step: [
 			{
 				"@type": "HowToStep",
@@ -186,7 +186,7 @@ export default function AiGovernancePillarPage() {
 							marginBottom: "1rem",
 						}}
 					>
-						エージェントガバナンスとは——中小企業向け完全ガイド
+						エージェントガバナンスとは——設計・評価・規制対応の完全ガイド
 					</h1>
 					<p
 						className="fade-in"

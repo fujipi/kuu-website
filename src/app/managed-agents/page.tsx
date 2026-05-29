@@ -18,9 +18,9 @@ const PAGE_URL = `${BASE_URL}/managed-agents/`;
 
 export const metadata: Metadata = seoMetadata({
 	title:
-		"Managed Agents 実装ガイド——中小企業のAIエージェント外部委託 | Kuu株式会社",
+		"Managed Agents 実装ガイド——AIエージェント運用の外部委託 | Kuu株式会社",
 	description:
-		"Managed Agentsとは何か、導入プロセス、SLA設計、内製との比較、費用相場、委託範囲の決め方まで。エンジニア不在の中小企業がAIエージェントを安全に運用するための実務ガイド。",
+		"Managed Agentsとは何か、導入プロセス、SLA設計、内製との比較、費用相場、委託範囲の決め方まで。社内にAI人材を持たない組織がAIエージェントを安全に運用するための実務ガイド。",
 	path: "/managed-agents/",
 });
 
@@ -61,9 +61,9 @@ const jsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "TechArticle",
-		headline: "Managed Agents 実装ガイド——中小企業のAIエージェント外部委託",
+		headline: "Managed Agents 実装ガイド——AIエージェント運用の外部委託",
 		description:
-			"Managed Agentsの定義・内製比較・SLA設計・費用相場・導入ステップを中小企業向けに解説。",
+			"Managed Agentsの定義・内製比較・SLA設計・費用相場・導入ステップを実務者向けに解説。",
 		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
@@ -101,7 +101,7 @@ const jsonLd = [
 		"@type": "HowTo",
 		name: "Managed Agents 導入 6ステップ",
 		description:
-			"中小企業がManaged Agentsサービスを活用してAIエージェントを導入する実践ステップ",
+			"Managed Agentsサービスを活用してAIエージェントを導入する実践ステップ",
 		step: [
 			{
 				"@type": "HowToStep",
@@ -149,7 +149,7 @@ const jsonLd = [
 		provider: ORG_REF,
 		areaServed: { "@type": "Country", name: "Japan" },
 		description:
-			"AIエージェントの設計・開発・運用・改善を継続契約で外部委託する Managed Agents サービス。中小企業向け。",
+			"AIエージェントの設計・開発・運用・改善を継続契約で外部委託する Managed Agents サービス。",
 		url: PAGE_URL,
 	},
 	buildBreadcrumb([
@@ -205,7 +205,7 @@ export default function ManagedAgentsPillarPage() {
 							marginBottom: "1rem",
 						}}
 					>
-						Managed Agents 実装ガイド——中小企業のAIエージェント外部委託
+						Managed Agents 実装ガイド——AIエージェント運用の外部委託
 					</h1>
 					<p
 						className="fade-in"
@@ -471,7 +471,8 @@ export default function ManagedAgentsPillarPage() {
 							{[
 								{
 									href: "/ai-governance/",
-									label: "エージェントガバナンスとは——中小企業向け完全ガイド",
+									label:
+										"エージェントガバナンスとは——設計・評価・規制対応の完全ガイド",
 								},
 								{
 									href: "/fde/",
