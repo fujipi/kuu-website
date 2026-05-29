@@ -86,12 +86,8 @@ export default function AboutPage() {
 								<div className="about-value">Kuu株式会社</div>
 							</div>
 							<div className="about-row">
-								<div className="about-label">設立</div>
-								<div className="about-value">2022年</div>
-							</div>
-							<div className="about-row">
-								<div className="about-label">代表</div>
-								<div className="about-value">藤平 賢人（Kento Fujihira）</div>
+								<div className="about-label">代表者</div>
+								<div className="about-value">藤平賢人</div>
 							</div>
 							<div className="about-row">
 								<div className="about-label">所在地</div>
@@ -100,15 +96,13 @@ export default function AboutPage() {
 								</div>
 							</div>
 							<div className="about-row">
-								<div className="about-label">事業内容</div>
-								<div className="about-value">
-									AIエージェントガバナンスサービス（導入支援・ガバナンス構築・継続改善）、AX/DX戦略コンサルティング
-								</div>
+								<div className="about-label">設立</div>
+								<div className="about-value">2022年</div>
 							</div>
 							<div className="about-row">
-								<div className="about-label">連絡先</div>
+								<div className="about-label">事業内容</div>
 								<div className="about-value">
-									<a href="/contact/">お問い合わせフォーム</a>
+									インターネットビジネスの企画・開発・運営
 								</div>
 							</div>
 						</div>
