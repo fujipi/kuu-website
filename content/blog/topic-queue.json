@@ -366,7 +366,8 @@
       "title_hint": "AIの主戦場は「性能のギャップ」から「実装のギャップ」へ——PoC沼を抜け出すFDE/RDE論",
       "persona": "AI PoCから本番運用に進めず悩むDX推進担当・経営層",
       "service_link": "/services/ax-dx/",
-      "status": "queued"
+      "status": "case-candidate",
+      "note": "戦略・体制論寄りのため技術ブログ対象外。Case/戦略コンテンツ側で扱う（forward-only リポジションにより queue から除外）"
     },
     {
       "slug": "fde-vs-rde-comparison",
@@ -374,7 +375,8 @@
       "title_hint": "FDEとRDEの違い——Palantir発「前線実装」と大手コンサル発「変革実装」をどう使い分けるか",
       "persona": "AI実装パートナーを選定中のDX推進責任者・経営企画担当者",
       "service_link": "/services/ax-dx/",
-      "status": "queued"
+      "status": "case-candidate",
+      "note": "パートナー選定・体制論寄りのため技術ブログ対象外。Case/戦略コンテンツ側で扱う"
     },
     {
       "slug": "fde-job-growth-a16z-hot-role",
@@ -382,7 +384,113 @@
       "title_hint": "FDE求人が800%増えた理由——a16zが「最もホットな職種」と呼ぶAI実装人材を中小企業はどう確保するか",
       "persona": "AI推進の人材戦略を再検討している中堅企業の経営者・人事責任者",
       "service_link": "/services/ax-dx/",
-      "status": "queued"
+      "status": "case-candidate",
+      "note": "人材・採用トレンド寄りのため技術ブログ対象外。Case/戦略コンテンツ側で扱う"
+    },
+    {
+      "slug": "subagent-orchestration-design-patterns",
+      "keyword": "サブエージェント オーケストレーション 設計パターン",
+      "title_hint": "サブエージェント・オーケストレーションの設計パターン——プランナー／エグゼキューター分離と委譲設計",
+      "persona": "マルチエージェント構成を設計するバックエンド／プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "status": "queued",
+      "audience": "both",
+      "track": "architecture",
+      "tech_depth": "deep",
+      "target_query": "サブエージェントはどう分割・連携させて設計すればよいか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["agent-harness", "managed-agents"]
+    },
+    {
+      "slug": "mcp-server-implementation-tool-design",
+      "keyword": "MCP サーバー 実装 ツール公開 設計",
+      "title_hint": "MCPサーバーを実装する——ツール・リソース・プロンプトの公開設計とエラーハンドリング",
+      "persona": "自社データ・社内ツールをAIエージェントに接続したいバックエンドエンジニア",
+      "service_link": "/services/ai-ops/",
+      "status": "queued",
+      "audience": "both",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "MCPサーバーはどう実装し、ツールをどう公開すればよいか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["mcp"]
+    },
+    {
+      "slug": "agent-observability-tracing-instrumentation",
+      "keyword": "エージェント可観測性 トレース スパン 計装",
+      "title_hint": "AIエージェントの可観測性——トレース／スパン設計とLLM呼び出しの計装パターン",
+      "persona": "本番のエージェント挙動を監視・デバッグしたいSRE／プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "status": "queued",
+      "audience": "both",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "AIエージェントの動作はどう可観測化（トレース）すればよいか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["agent-observability", "nine-axis-evaluation"]
+    },
+    {
+      "slug": "prompt-injection-layered-defense-architecture",
+      "keyword": "プロンプトインジェクション 多層防御 アーキテクチャ",
+      "title_hint": "プロンプトインジェクションの多層防御——入力検証・権限分離・出力監査をアーキテクチャで止める",
+      "persona": "エージェントのセキュリティ設計を担うセキュリティアーキテクト／IT担当",
+      "service_link": "/services/ai-ops/",
+      "status": "queued",
+      "audience": "both",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "プロンプトインジェクションはアーキテクチャでどう防御するか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["ai-red-teaming", "agent-governance"]
+    },
+    {
+      "slug": "llm-gateway-routing-rate-limiting",
+      "keyword": "LLMゲートウェイ ルーティング レート制限 ガバナンス",
+      "title_hint": "LLMゲートウェイ設計——モデルルーティング・レート制限・コスト配賦を一元化する",
+      "persona": "複数チームのLLM利用を統制したい大企業のプラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "status": "queued",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "複数チームのLLM利用をゲートウェイでどう統制するか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["agent-governance"]
+    },
+    {
+      "slug": "a2a-protocol-agent-interop-design",
+      "keyword": "A2A プロトコル エージェント間 認証 タスク委譲",
+      "title_hint": "A2Aプロトコルでエージェントを相互運用する——認証・タスク委譲・MCPとの使い分け",
+      "persona": "組織横断で複数ベンダーのエージェントを連携させたいアーキテクト",
+      "service_link": "/services/rde/",
+      "status": "queued",
+      "audience": "enterprise",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "A2AとMCPはどう違い、どう使い分けるか",
+      "funnel_stage": "awareness",
+      "sources": [],
+      "glossary_refs": ["a2a-protocol", "mcp"]
+    },
+    {
+      "slug": "ai-finops-token-cost-instrumentation",
+      "keyword": "AI FinOps トークンコスト 計装 配賦",
+      "title_hint": "AI FinOps入門——トークンコストの計装・部門配賦・最適化を運用基盤に組み込む",
+      "persona": "AIプラットフォームのコストを計装・配賦したい大企業のプラットフォーム／FinOps担当",
+      "service_link": "/services/rde/",
+      "status": "queued",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "LLM/エージェントのトークンコストはどう計装・配賦すればよいか",
+      "funnel_stage": "consideration",
+      "sources": [],
+      "glossary_refs": ["agent-observability"]
     }
   ],
   "topics_from_keyword_bank": [
@@ -563,50 +671,55 @@
       "status": "published"
     }
   ],
-  "keyword_bank": [
-    "Gemini Enterprise エージェントガバナンス 中小企業",
-    "Manus AIエージェント デスクトップ ローカル実行",
-    "ChatGPT Codex スーパーアプリ 企業活用",
-    "Meta Manus 買収 AIエージェント市場 2026",
-    "Vertex AI Agent Engine セッション メモリ 業務自動化",
-    "AIエージェント 評価 KPI",
-    "生成AI 業務活用 中小企業 ガイドライン",
-    "Claude API ビジネス活用",
-    "ノーコード AI自動化 ツール 比較",
-    "DX推進 失敗事例 原因",
-    "AI導入 補助金 中小企業 2026",
-    "AIチャットボット 顧客対応 費用",
-    "物流 倉庫 AI 自動化",
-    "士業 弁護士 税理士 AI 業務効率化",
-    "AI 経営会議 報告書 自動生成",
-    "中小企業 DX 失敗しない 進め方",
-    "AIエージェントガバナンス SaaS 比較",
-    "ホテル 旅館 観光業 AI 予約管理",
-    "スタートアップ AI 体制構築",
-    "AI導入 社内抵抗 乗り越え方",
-    "EU AI Act 日本企業 該当例",
-    "EU AI Act ハイリスクAI 日本 該当例",
-    "ISO 42001 認証 中小企業",
-    "ISO 42001 取得 ロードマップ",
-    "生成AI 社内規程 ひな形",
-    "生成AI 利用規程 テンプレート 中小企業",
-    "ChatGPT 社内利用 規程 テンプレート",
-    "shadow AI 対策 企業",
-    "シャドーAI 検知 ガバナンス",
-    "AIエージェント 権限管理 設計",
-    "生成AI 機密情報 漏洩 対策",
-    "AIリスクアセスメント テンプレート",
-    "AI-BCP 事業継続計画 生成AI",
-    "Model Context Protocol MCP 中小企業",
-    "A2A プロトコル エージェント間協調",
-    "Agent observability 評価 ログ",
-    "AIレッドチーミング 中小企業 手順",
-    "日本 AI推進法 中小企業 影響",
-    "Vertex AI Agent Builder Bedrock AgentCore 比較",
-    "AIエージェント 監査 ログ 保管",
-    "Claude Opus 4 業務活用 中小企業",
-    "Claude Sonnet 4.6 ビジネス活用",
-    "Claude Haiku 4.5 低コスト エージェント",
-    "生成AI データクリーンルーム 中小企業"
-  ]
+  "keyword_bank": {
+    "_comment": "track別の技術キーワード。キュー枯渇時は scripts/blog-coverage-report.mjs で本数の少ないトラック/読者層を優先して選定する。audience は keyword の語彙（IAM/SSO/VPC/マルチテナント等=enterprise）から判定する。業務・業種・ROI・補助金・規程テンプレ等は Case / Case Studies の領域のため本バンクには含めない。",
+    "architecture": [
+      "エージェントハーネス 状態管理 リトライ設計",
+      "コンテキストエンジニアリング トークン予算 設計",
+      "エージェント メモリ アーキテクチャ 短期 長期",
+      "RAG とツール使用 エージェント 設計の違い",
+      "イベント駆動 エージェント ワークフロー 設計",
+      "ヒューマンインザループ 承認フロー 設計"
+    ],
+    "protocols": [
+      "MCP リソース プロンプト ツール 使い分け",
+      "MCP セキュリティ OAuth スコープ 設計",
+      "MCP と A2A の違い 相互運用",
+      "Function calling 構造化出力 ツール定義 設計"
+    ],
+    "security": [
+      "エージェント IAM スコープ付き 認証情報 設計",
+      "ツール実行 サンドボックス 分離 設計",
+      "エージェント シークレット管理 ローテーション",
+      "生成AI 機密情報 漏洩 技術対策 データクリーンルーム",
+      "AIレッドチーミング 攻撃シナリオ 自動化"
+    ],
+    "evaluation": [
+      "9軸評価 LLM-as-a-judge 自動採点",
+      "エージェント 回帰テスト ゴールデンデータセット",
+      "オンライン評価 本番トラフィック サンプリング",
+      "エージェント評価 KPI メトリクス 設計"
+    ],
+    "platform-infra": [
+      "VPC内 LLM デプロイ データレジデンシー",
+      "SSO SCIM エージェント基盤 ID連携",
+      "マルチテナント エージェント 分離設計",
+      "AIプラットフォームエンジニアリング 内製基盤",
+      "Vertex AI Agent Builder Bedrock AgentCore 比較",
+      "推論コスト最適化 バッチ キャッシュ ルーティング"
+    ],
+    "governance-tech": [
+      "ポリシーエンジン エージェント 実行時 ガードレール",
+      "監査ログ スキーマ 改ざん防止 設計",
+      "ISO 42001 技術統制 実装",
+      "モデル調達 ベンダーリスク 技術評価",
+      "AIエージェント ハルシネーション 検知 技術"
+    ],
+    "model-capability": [
+      "Claude Opus Sonnet Haiku ツール使用 性能 比較",
+      "長文脈 モデル コンテキストウィンドウ 活用設計",
+      "推論モデル extended thinking 使いどころ",
+      "マルチモーダル エージェント computer use 画面操作"
+    ]
+  }
 }
