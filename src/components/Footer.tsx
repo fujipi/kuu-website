@@ -23,7 +23,7 @@ const columns: { heading: string; links: { href: string; label: string }[] }[] =
 				{ href: "/managed-agents/", label: "Managed Agents" },
 				{ href: "/eu-ai-act-jp/", label: "EU AI Act" },
 				{ href: "/glossary/", label: "Glossary" },
-				{ href: "/case-studies/", label: "Case Studies" },
+				{ href: "/case/", label: "Case" },
 				{ href: "/resources/", label: "Resources" },
 				{ href: "/blog/", label: "Blog" },
 			],
