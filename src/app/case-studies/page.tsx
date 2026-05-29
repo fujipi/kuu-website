@@ -6,7 +6,11 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllCaseStudies } from "@/lib/caseStudies";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -14,8 +18,6 @@ const navLinks = [
 	{ href: "/managed-agents/", label: "Managed Agents" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export const metadata: Metadata = seoMetadata({
 	title:
@@ -52,14 +54,10 @@ export default function CaseStudiesIndexPage() {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{ "@type": "ListItem", position: 2, name: "導入事例", item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "導入事例", path: "/case-studies/" },
+		]),
 	];
 
 	return (

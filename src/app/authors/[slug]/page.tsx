@@ -7,7 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllAuthors, getAuthorBySlug } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ slug: string }>;
@@ -79,25 +79,11 @@ export default async function AuthorPage({ params }: Props) {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{
-					"@type": "ListItem",
-					position: 1,
-					name: "ホーム",
-					item: "https://kuucorp.com",
-				},
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "著者一覧",
-					item: "https://kuucorp.com/authors/",
-				},
-				{ "@type": "ListItem", position: 3, name: author.name, item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "著者一覧", path: "/authors/" },
+			{ name: author.name, path: `/authors/${slug}/` },
+		]),
 	];
 
 	return (

@@ -7,7 +7,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { paginatePosts } from "@/lib/blog-pagination";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
 
 export const metadata: Metadata = seoMetadata({
@@ -24,8 +28,6 @@ const navLinks = [
 	{ href: "/about/", label: "About" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export default function BlogListPage() {
 	const allPosts = getAllPosts();
@@ -55,24 +57,10 @@ export default function BlogListPage() {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{
-					"@type": "ListItem",
-					position: 1,
-					name: "ホーム",
-					item: BASE_URL,
-				},
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "ブログ",
-					item: `${BASE_URL}/blog/`,
-				},
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "ブログ", path: "/blog/" },
+		]),
 	];
 
 	return (

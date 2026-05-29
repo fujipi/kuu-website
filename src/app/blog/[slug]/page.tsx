@@ -10,7 +10,7 @@ import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { readingTimeMinutes } from "@/lib/readingTime";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
 
@@ -315,30 +315,11 @@ export default async function BlogPostPage({ params }: Props) {
 				cssSelector: [".answer-block"],
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{
-					"@type": "ListItem",
-					position: 1,
-					name: "ホーム",
-					item: "https://kuucorp.com",
-				},
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "ブログ",
-					item: "https://kuucorp.com/blog/",
-				},
-				{
-					"@type": "ListItem",
-					position: 3,
-					name: post.title,
-					item: `https://kuucorp.com/blog/${slug}/`,
-				},
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "ブログ", path: "/blog/" },
+			{ name: post.title, path: `/blog/${slug}/` },
+		]),
 	];
 
 	return (
@@ -462,6 +443,7 @@ export default async function BlogPostPage({ params }: Props) {
 						// Content is static markdown from local files, no external user input possible.
 						// This is safe as it's rendered at build time (output: 'export').
 						// eslint-disable-next-line react/no-danger
+						// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown
 						dangerouslySetInnerHTML={{ __html: contentHtml }}
 					/>
 

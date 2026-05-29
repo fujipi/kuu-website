@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
 import { tagDescription } from "@/lib/tagDescriptions";
 import { getAllTags, getPostsByTagSlug } from "@/lib/tags";
 
@@ -98,25 +98,11 @@ export default async function TagArchivePage({ params }: Props) {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{
-					"@type": "ListItem",
-					position: 1,
-					name: "ホーム",
-					item: "https://kuucorp.com",
-				},
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "ブログ",
-					item: "https://kuucorp.com/blog/",
-				},
-				{ "@type": "ListItem", position: 3, name: tag, item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "ブログ", path: "/blog/" },
+			{ name: tag, path: `/blog/tags/${slug}/` },
+		]),
 	];
 
 	return (

@@ -44,7 +44,9 @@ export function getAllResources(): ResourceMeta[] {
 	return getAllResourceSlugs()
 		.map((slug) => {
 			const base = path.join(RESOURCES_DIR, slug);
-			const filePath = fs.existsSync(`${base}.mdx`) ? `${base}.mdx` : `${base}.md`;
+			const filePath = fs.existsSync(`${base}.mdx`)
+				? `${base}.mdx`
+				: `${base}.md`;
 			const { data } = matter(fs.readFileSync(filePath, "utf-8"));
 			return {
 				slug,

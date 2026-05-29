@@ -6,7 +6,12 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 const navLinks = [
 	{ href: "/", label: "Top" },
@@ -16,8 +21,7 @@ const navLinks = [
 	{ href: "/contact/", label: "Contact" },
 ];
 
-const BASE_URL = "https://kuucorp.com";
-const URL = `${BASE_URL}/ai-governance/`;
+const PAGE_URL = `${BASE_URL}/ai-governance/`;
 
 export const metadata: Metadata = seoMetadata({
 	title: "エージェントガバナンスとは——中小企業向け完全ガイド | Kuu株式会社",
@@ -65,11 +69,7 @@ const jsonLd = [
 		headline: "エージェントガバナンスとは——中小企業向け完全ガイド",
 		description:
 			"AIエージェントガバナンスの定義・9軸評価・EU AI Act / ISO 42001 対応・体制構築5ステップを中小企業向けに解説。",
-		author: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		author: ORG_REF,
 		publisher: {
 			"@type": "Organization",
 			name: "Kuu株式会社",
@@ -81,8 +81,8 @@ const jsonLd = [
 		},
 		datePublished: "2026-04-17",
 		dateModified: "2026-04-17",
-		mainEntityOfPage: { "@type": "WebPage", "@id": URL },
-		url: URL,
+		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
+		url: PAGE_URL,
 		inLanguage: "ja",
 		articleSection: "Pillar",
 		keywords:
@@ -140,19 +140,10 @@ const jsonLd = [
 			},
 		],
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "エージェントガバナンス",
-				item: URL,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "エージェントガバナンス", path: "/ai-governance/" },
+	]),
 ];
 
 export default function AiGovernancePillarPage() {

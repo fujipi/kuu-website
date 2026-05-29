@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const columns: { heading: string; links: { href: string; label: string }[] }[] =
@@ -53,11 +54,8 @@ export default function Footer() {
 							))}
 						</ul>
 						{col.heading === "Company" ? (
-							<div
-								className="footer-security-action"
-								aria-label="SECURITY ACTION 二つ星 セキュリティ対策自己宣言"
-							>
-								<img
+							<div className="footer-security-action">
+								<Image
 									src="/images/security_action_futatsuboshi-large_bw.png"
 									alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
 									width={60}

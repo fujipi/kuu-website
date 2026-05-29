@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { generateMetadata } from "@/lib/seo";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title:
@@ -13,8 +13,6 @@ export const metadata: Metadata = generateMetadata({
 		"Kuu株式会社の会社情報。代表・藤平賢人が2022年に設立。AIネイティブAX/DX戦略・FDE・AIエージェント実装・ガバナンス運用までを一社で包括実行する東京のテクノロジー企業です。",
 	path: "/about/",
 });
-
-const BASE_URL = "https://kuucorp.com";
 
 const aboutJsonLd = [
 	{
@@ -60,24 +58,10 @@ const aboutJsonLd = [
 			availableLanguage: "Japanese",
 		},
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "BreadcrumbList",
-		itemListElement: [
-			{
-				"@type": "ListItem",
-				position: 1,
-				name: "ホーム",
-				item: BASE_URL,
-			},
-			{
-				"@type": "ListItem",
-				position: 2,
-				name: "会社情報",
-				item: `${BASE_URL}/about/`,
-			},
-		],
-	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "会社情報", path: "/about/" },
+	]),
 ];
 
 const navLinks = [

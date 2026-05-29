@@ -240,6 +240,7 @@ export default function Constellation() {
 	}, []);
 
 	return (
+		// biome-ignore lint/a11y/noAriaHiddenOnFocusable: decorative background canvas, not focusable (no tabindex/interactive content)
 		<canvas
 			ref={canvasRef}
 			className="constellation-canvas"

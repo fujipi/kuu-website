@@ -8,7 +8,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { POSTS_PER_PAGE, paginatePosts } from "@/lib/blog-pagination";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
 
 const navLinks = [
@@ -18,8 +22,6 @@ const navLinks = [
 	{ href: "/about/", label: "About" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export async function generateStaticParams() {
 	const total = getAllPosts().length;
@@ -84,30 +86,11 @@ export default async function BlogListPaginatedPage({ params }: PageProps) {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{
-					"@type": "ListItem",
-					position: 1,
-					name: "ホーム",
-					item: BASE_URL,
-				},
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "ブログ",
-					item: `${BASE_URL}/blog/`,
-				},
-				{
-					"@type": "ListItem",
-					position: 3,
-					name: `${page}ページ目`,
-					item: url,
-				},
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "ブログ", path: "/blog/" },
+			{ name: `${page}ページ目`, path: `/blog/page/${page}/` },
+		]),
 	];
 
 	return (

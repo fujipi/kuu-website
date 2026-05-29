@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
-import { BASE_ORG, generateMetadata } from "@/lib/seo";
+import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "Kuu株式会社｜AIネイティブAX/DX戦略×FDE×エージェント実装×ガバナンス",
@@ -44,8 +44,6 @@ const navLinks = [
 	{ href: "/#about", label: "About" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 const homeJsonLd = [
 	{
@@ -116,11 +114,7 @@ const homeJsonLd = [
 		name: "AIエージェント実装・ガバナンス（Kuu）",
 		description:
 			"自律エージェントの設計と既存システム接続（ハーネス）、9軸評価による品質・コスト・安全性の継続統治までを一貫実装。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "AIエージェント実装・運用",
 		areaServed: "JP",
 		keywords: [
@@ -142,11 +136,7 @@ const homeJsonLd = [
 		name: "AX・DX戦略・現場ディスカバリ",
 		description:
 			"経営課題から逆算したDX/AXロードマップ設計と、顧客の業務・既存システムに深く入る現場ディスカバリ。実装可能な計画に落とすまで。",
-		provider: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-		},
+		provider: ORG_REF,
 		serviceType: "DX/AX戦略・ディスカバリ",
 		areaServed: "JP",
 		keywords: [
@@ -189,8 +179,10 @@ export default function Home() {
 			<main>
 				<section className="hero">
 					<Constellation />
-					<div className="hero-content fade-in">
-						<h1 className="hero-heading">しくみが事業に浸透し、あらゆる人の自由をつくる</h1>
+					<div className="hero-content hero-reveal">
+						<h1 className="hero-heading">
+							しくみが事業に浸透し、あらゆる人の自由をつくる
+						</h1>
 						<p className="hero-sub">Embedded Systems, Freedom for All</p>
 					</div>
 				</section>
@@ -199,9 +191,7 @@ export default function Home() {
 					<h2 className="section-label fade-in">Service</h2>
 					<div className="service-list fade-in-stagger">
 						<div className="service-item fade-in-item">
-							<div className="service-stage">
-								Stage 01 · Strategy
-							</div>
+							<div className="service-stage">Stage 01 · Strategy</div>
 							<div className="service-name">AX/DX戦略コンサルティング</div>
 							<div className="service-desc">
 								経営課題から逆算したAX/DXロードマップを設計し、実装可能な計画に落とします。戦略パワポで終わらせない理由は、Kuuがこの先の実装・運用まで自社で担うからです。
@@ -216,17 +206,17 @@ export default function Home() {
 								AIエージェント実装・ガバナンスFDE
 							</div>
 							<div className="service-desc">
-								FDE（Forward Deployed Engineer）が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から9軸評価による継続ガバナンスまで、実装と運用を一気通貫で担います。
+								FDE（Forward Deployed
+								Engineer）が顧客環境に入り込み、AIエージェントの設計・ハーネス接続から9軸評価による継続ガバナンスまで、実装と運用を一気通貫で担います。
 							</div>
 						</div>
 
 						<div className="service-item fade-in-item">
-							<div className="service-stage">
-								Stage 02 · Discovery
-							</div>
+							<div className="service-stage">Stage 02 · Discovery</div>
 							<div className="service-name">RDEディスカバリ</div>
 							<div className="service-desc">
-								RDE（Reinvention Deployed Engineering）が顧客の業務・既存システム・データ資産に深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。発見と再構想を両輪で進める変革型ディスカバリです。
+								RDE（Reinvention Deployed
+								Engineering）が顧客の業務・既存システム・データ資産に深く入り込み、業務フローごとAI前提で再設計するための仮説と機会を抽出します。発見と再構想を両輪で進める変革型ディスカバリです。
 							</div>
 						</div>
 

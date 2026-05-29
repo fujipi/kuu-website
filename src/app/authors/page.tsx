@@ -7,7 +7,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllAuthors } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = seoMetadata({
 	title: "著者一覧 | Kuu株式会社",
@@ -23,8 +27,6 @@ const navLinks = [
 	{ href: "/about/", label: "About" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export default function AuthorsIndexPage() {
 	const authors = getAllAuthors();
@@ -59,14 +61,10 @@ export default function AuthorsIndexPage() {
 				})),
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{ "@type": "ListItem", position: 2, name: "著者一覧", item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "著者一覧", path: "/authors/" },
+		]),
 	];
 
 	return (

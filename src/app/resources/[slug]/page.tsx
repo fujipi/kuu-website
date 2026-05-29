@@ -7,11 +7,16 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { mdToHtml } from "@/lib/mdToHtml";
 import {
-	getAllResources,
 	getAllResourceSlugs,
+	getAllResources,
 	getResourceBySlug,
 } from "@/lib/resources";
-import { generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ slug: string }>;
@@ -24,8 +29,6 @@ const navLinks = [
 	{ href: "/case-studies/", label: "Cases" },
 	{ href: "/contact/", label: "Contact" },
 ];
-
-const BASE_URL = "https://kuucorp.com";
 
 export async function generateStaticParams() {
 	return getAllResourceSlugs().map((slug) => ({ slug }));
@@ -81,12 +84,8 @@ export default async function ResourceDetailPage({ params }: Props) {
 			encodingFormat: r.format,
 			numberOfPages: r.pages || undefined,
 			keywords: r.tags.join(", "),
-			author: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
-			publisher: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: BASE_URL,
-			},
+			author: ORG_REF,
+			publisher: ORG_REF,
 			offers: {
 				"@type": "Offer",
 				price: "0",
@@ -95,20 +94,11 @@ export default async function ResourceDetailPage({ params }: Props) {
 				url: `${BASE_URL}/contact/`,
 			},
 		},
-		{
-			"@context": "https://schema.org",
-			"@type": "BreadcrumbList",
-			itemListElement: [
-				{ "@type": "ListItem", position: 1, name: "ホーム", item: BASE_URL },
-				{
-					"@type": "ListItem",
-					position: 2,
-					name: "リソース",
-					item: `${BASE_URL}/resources/`,
-				},
-				{ "@type": "ListItem", position: 3, name: r.title, item: url },
-			],
-		},
+		buildBreadcrumb([
+			{ name: "ホーム", path: "/" },
+			{ name: "リソース", path: "/resources/" },
+			{ name: r.title, path: `/resources/${slug}/` },
+		]),
 	];
 
 	return (
@@ -186,6 +176,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 						style={{ maxWidth: "760px", marginBottom: "3rem" }}
 					>
 						<section
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown
 							dangerouslySetInnerHTML={{ __html: contentHtml }}
 							suppressHydrationWarning
 						/>

@@ -15,6 +15,7 @@ export default function JsonLd({ data }: JsonLdProps) {
 		<>
 			{schemas.map((schema, i) => (
 				<script
+					// biome-ignore lint/suspicious/noArrayIndexKey: static schema list rendered once, never reordered
 					key={i}
 					type="application/ld+json"
 					// JSON.stringify output of static schema objects is safe; no user-controlled content
