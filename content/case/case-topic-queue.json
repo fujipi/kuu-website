@@ -16,7 +16,7 @@
       "persona": "医療機関の事務長・受付責任者",
       "industry": "医療・ヘルスケア",
       "use_case": "予約・問診・リマインドの一次対応自動化",
-      "status": "queued"
+      "status": "published"
     },
     {
       "slug": "restaurant-shift-inventory-agent",
