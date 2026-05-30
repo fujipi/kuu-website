@@ -1,0 +1,146 @@
+---
+title: "MCPサーバー実装ガイド——ツール・リソース・プロンプトの公開設計"
+description: "MCPサーバーでTools・Resources・Promptsを公開する実装手順を解説。inputSchema設計・2層エラーハンドリング・transport選択（stdio/Streamable HTTP）の設計パターン。"
+date: "2026-05-30"
+lastModified: "2026-05-30"
+tags: ["MCP", "プロトコル", "AIエージェント", "実装"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://modelcontextprotocol.io/specification/2025-11-25"
+  - "https://modelcontextprotocol.io/docs/concepts/tools"
+  - "https://modelcontextprotocol.io/specification/2025-06-18/basic/transports"
+  - "https://github.com/modelcontextprotocol/typescript-sdk"
+pillar: "ai-governance"
+---
+
+自社のデータベースや社内ツールをAIエージェントに接続したい——そう考えたとき、最初に向き合うのが**MCP（[Model Context Protocol](/glossary/mcp/)）サーバーの実装**です。MCPは2024年11月にAnthropicが公開し、2025年にLinux Foundation傘下のAgentic AI Foundation（AAIF）へ移管されたオープンプロトコルです。LLMがツールを呼び出す仕組みの事実上の標準となりつつある一方、「3つのプリミティブの使い分け」「エラーハンドリングの2層設計」「transportの選択」の3点でつまずくエンジニアが多く見られます。
+
+本記事はMCPサーバーを設計・実装するバックエンドエンジニア向けに、公式仕様（2025-11-25版）に基づいて整理したものです。[エージェントガバナンス](/glossary/agent-governance/)の実装基盤として位置づけており、[Kuuのエージェントガバナンスアプローチ](/ai-governance/)と合わせて参照してください。
+
+## MCPの3プリミティブ——ツール・リソース・プロンプトの役割
+
+> MCPはTools・Resources・Promptsの3プリミティブをJSON-RPCで公開し、LLMが自律的に呼び出すmodel-controlled設計です。
+
+MCPサーバーが公開できるのは3種類のプリミティブです。役割を混同すると、LLMに意図が正しく伝わりません。
+
+| プリミティブ | 制御主体 | 主な用途 |
+|---|---|---|
+| **Tools** | LLM（model-controlled） | API呼び出し・DB操作・副作用を伴う実行 |
+| **Resources** | クライアント（application-controlled） | ファイル・DBレコード・APIレスポンスのコンテキスト提供 |
+| **Prompts** | ユーザー（user-controlled） | 引数付き再利用テンプレート・スラッシュコマンド |
+
+Toolsは「実行して結果を返す」、Resourcesは「読み込ませるデータを提供する」、Promptsは「ユーザーが選んで使う定型テンプレート」と覚えると整理しやすいです。副作用（書き込み・外部API呼び出し等）はTools、参照データはResourcesという原則で設計します。
+
+## Toolsの実装——inputSchema設計とJSON-RPC
+
+> ToolsはinputSchemaで入力型を厳密に定義し、LLMが自律判断で呼び出すmodel-controlled実行モデルで動きます。
+
+ツール定義の必須フィールドは`name`・`description`・`inputSchema`の3つです。`description`はLLMがツールを選択する際の判断根拠になるため、「どんな状況で使うべきか」を含めた自然言語の説明が効果的です。
+
+```json
+{
+  "name": "search_products",
+  "description": "商品カタログを全文検索する。カテゴリ・価格帯で絞り込み可能。在庫確認や商品提案の際に使う。",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query":    { "type": "string", "description": "検索クエリ" },
+      "category": { "type": "string", "enum": ["electronics", "clothing", "food"] },
+      "max_price":{ "type": "number" }
+    },
+    "required": ["query"]
+  }
+}
+```
+
+TypeScript SDKでは[Zod](https://zod.dev/)による型定義がinputSchemaに自動変換されます。Python SDKのFastMCPはデコレータ形式で型アノテーションから同等の定義を生成します。`required`フィールドの漏れは、LLMが不完全な引数でツールを呼び出す直接原因になるため要注意です。
+
+### outputSchema（2025年仕様追加）
+
+MCP仕様2025年版では`outputSchema`フィールドが追加されました。構造化データを返すツールでは`outputSchema`と`structuredContent`を組み合わせることで、クライアント側の型検証が可能になります。後方互換のため、構造化レスポンスはTextContentにもJSONシリアライズして同梱するのが推奨です。
+
+## エラーハンドリングの2層設計
+
+> MCPのエラーはプロトコルエラー（JSON-RPCエラー応答）と実行エラー（`isError: true`のtool result）の2層で分離され、処理経路が異なります。
+
+MCPのエラー処理は必ず2層で設計します。混同すると、LLMが適切なリトライ判断をできなくなります。
+
+**第1層：プロトコルエラー（JSON-RPCエラー）**
+
+存在しないツール名の呼び出し・不正なJSON-RPCリクエスト・サーバー初期化失敗などを返します。HTTPの4xx/5xxに相当し、クライアントはリクエスト自体を再考すべきシグナルとして扱います。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "error": {
+    "code": -32602,
+    "message": "Unknown tool: invalid_tool_name"
+  }
+}
+```
+
+**第2層：ツール実行エラー（`isError: true`）**
+
+外部APIのレート制限・DBコネクション失敗・業務ロジック上の不正入力は、HTTP 200でtool resultを返しながら`isError: true`を付与します。LLMがエラー内容を読んでリトライや代替手段を検討できる設計です。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+    "content": [{ "type": "text", "text": "在庫APIへの接続失敗: タイムアウト。30秒後に再試行してください。" }],
+    "isError": true
+  }
+}
+```
+
+`isError: true`の`content.text`には**リトライ可否と代替アクション**を明示することがポイントです。LLMはこのメッセージを読んで次の行動を決定します。エラーメッセージが曖昧だと、LLMが同じ呼び出しを繰り返すループに陥ります。
+
+## ResourcesとPromptsの公開設計
+
+> ResourcesはURIで識別したデータをコンテキストとして提供し、Promptsは引数付きテンプレートをサーバーで管理します。
+
+### Resourcesの設計
+
+ResourcesはURIで識別したデータをLLMのコンテキストに提供します。URIスキームは`file://`（ファイル）・`database://`（DBレコード）・`api://`（外部APIレスポンス）など任意に定義できます。変更通知が必要なリソースは`subscribe`/`unsubscribe`メソッドを実装し、更新時に`notifications/resources/updated`をプッシュするモデルが仕様標準です。テキスト・画像・バイナリのいずれも返却できますが、LLMへの提供はUTF-8テキストが基本です。
+
+### Promptsの設計
+
+Promptsはスラッシュコマンドや選択UIと連動する再利用テンプレートです。引数定義を持ち、埋め込みリソースを含む構造化メッセージを返せます。社内向けMCPサーバーでは「週次レポート生成」「コードレビュー依頼」などをPromptsとして定義すると、ユーザーが一貫したフォーマットでエージェントを呼び出せます。ToolsとPromptsを混同すると、本来ユーザーが制御すべきフローをLLMが自律判断で実行するリスクが生じます。
+
+## transportの選択——stdioとStreamable HTTP
+
+> ローカル統合にはstdio、リモート接続にはStreamable HTTP（2025年3月導入）を使い、旧SSEは非推奨です。
+
+MCPが定義するtransportは主に2種類です。
+
+**stdio**はサーバーをサブプロセスとして起動し、stdin/stdoutでJSON-RPCメッセージを交換します。セットアップが最もシンプルで、ローカル開発・CI・単一クライアント接続に適しています。メッセージは改行区切りで、埋め込み改行を含んではならない制約があります。
+
+**Streamable HTTP**は2025年3月の仕様更新で追加されたリモート接続向けtransportです。単一HTTPエンドポイントへのPOST/GETで双方向通信を行い、オプションでSSEによるストリーミングもサポートします。複数クライアントへの同時対応・認証・スケーリングが必要な本番環境ではStreamable HTTPが標準です。**旧来のSSE transportは現行仕様で非推奨（deprecated）**となっており、新規実装での使用は避けてください。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB（中小企業）向け**
+
+社内ツールを最初の1〜2本MCPサーバーとして実装するケースでは、stdioで始めるのが最速です。FastMCP（Python）またはTypeScript SDKの`McpServer`クラスを使えば、既存APIのラッパーを数十行で書けます。完璧な設計より「動くツールを1本」を優先し、エラーハンドリングは第2フェーズで厚くしていく段階的アプローチが現実的です。[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)では実装コンサルティングも対応しています。
+
+**エンタープライズ向け**
+
+複数チームが独立したMCPサーバーを持つ場合、認証・認可の標準化が最初の壁です。MCP仕様はOAuth 2.0ベースの認証をサポートしており、スコープ付きトークンでツール呼び出しを制御できます。Streamable HTTP transport上でLLMゲートウェイと組み合わせることで、トークンコスト計装・レート制限・監査ログを一元管理できます。マルチテナント構成や大規模コンプライアンス対応については[RDEサービス](https://kuucorp.com/services/rde/)のエンタープライズ設計支援を参照してください。
+
+## 参考
+
+- [MCP仕様書 2025-11-25 — Model Context Protocol](https://modelcontextprotocol.io/specification/2025-11-25)
+- [Tools — Model Context Protocol](https://modelcontextprotocol.io/docs/concepts/tools)
+- [Transports — Model Context Protocol Specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+- [typescript-sdk — GitHub / modelcontextprotocol](https://github.com/modelcontextprotocol/typescript-sdk)
+
+## まとめ
+
+MCPサーバーの実装で押さえるべきポイントは3点です。①Tools・Resources・Promptsの制御主体と用途を正しく区別する、②エラーをプロトコルエラーと実行エラー（`isError: true`）の2層で設計する、③transportはローカルにstdio・リモートにStreamable HTTPを選ぶ（旧SSEは使わない）。この設計判断を最初に固めることで、自社のAPIや社内ツールをAIエージェントが安全に利用できる接続基盤を構築できます。
+
+MCPサーバーの設計・実装から本番運用まで一貫したサポートが必要な場合は、[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)にご相談ください。

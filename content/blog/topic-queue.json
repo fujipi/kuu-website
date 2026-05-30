@@ -408,7 +408,7 @@
       "title_hint": "MCPサーバーを実装する——ツール・リソース・プロンプトの公開設計とエラーハンドリング",
       "persona": "自社データ・社内ツールをAIエージェントに接続したいバックエンドエンジニア",
       "service_link": "/services/ai-ops/",
-      "status": "queued",
+      "status": "published",
       "audience": "both",
       "track": "protocols",
       "tech_depth": "deep",
