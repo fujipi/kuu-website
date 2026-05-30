@@ -423,7 +423,7 @@
       "title_hint": "AIエージェントの可観測性——トレース／スパン設計とLLM呼び出しの計装パターン",
       "persona": "本番のエージェント挙動を監視・デバッグしたいSRE／プラットフォームエンジニア",
       "service_link": "/services/ai-ops/",
-      "status": "queued",
+      "status": "published",
       "audience": "both",
       "track": "evaluation",
       "tech_depth": "deep",

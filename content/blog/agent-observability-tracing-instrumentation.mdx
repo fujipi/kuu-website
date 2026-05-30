@@ -1,0 +1,145 @@
+---
+title: "AIエージェントのトレース計装——スパン設計とLLM呼び出し追跡"
+description: "OpenTelemetry GenAI規約に基づきAIエージェントのLLM呼び出しをスパン階層で追跡します。3スパン型・トークン数・停止理由・コストを標準属性として計装し、Langfuseで可視化する設計パターンを解説します。"
+date: "2026-05-30"
+lastModified: "2026-05-30"
+tags: ["OpenTelemetry", "可観測性", "LLMトレース", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "both"
+track: "evaluation"
+tech_depth: "deep"
+sources:
+  - "https://opentelemetry.io/blog/2026/genai-observability/"
+  - "https://opentelemetry.io/blog/2025/ai-agent-observability/"
+  - "https://langfuse.com/integrations/native/opentelemetry"
+  - "https://arize-ai.github.io/openinference/spec/semantic_conventions.html"
+pillar: "ai-governance"
+---
+
+本番のAIエージェントが誤動作したとき、ログのエラーメッセージだけでは「どのステップでLLMを何回呼び出し、どこで遅延が発生し、ツール呼び出しは成功したか」を追えないことに気づきます。この問いに答えるのが**分散トレーシング**です。OpenTelemetry（OTel）のGenAI Semantic Conventionsにより、AIエージェントのトレース設計は2025年以降、標準化の段階に入っています。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツに連動しています。[エージェントハーネスの設計](/blog/agent-harness-architecture/)と合わせて参照してください。
+
+## スパン階層でエージェントの実行フローを記録する
+
+> エージェントのトレースはinvoke_agent・chat・execute_toolの3スパン型を親子関係で構成し、LLM実行フローを記録します。
+
+分散トレーシングの基本単位は**スパン（Span）**です。1つのスパンは「ある処理の開始から終了まで」を表し、スパンが親子関係でつながったツリーが**トレース（Trace）**を構成します。OpenTelemetry GenAI SIGが確定したエージェント向けセマンティック規約では、実行フローを次の3種のスパン型で表現します。
+
+| スパン型 | `gen_ai.operation.name` | 説明 |
+|---|---|---|
+| エージェント起動 | `invoke_agent` | ユーザーリクエストを受け付けてエージェントが動き始めるルートスパン |
+| LLM呼び出し | `chat` | モデルへのリクエスト1回を表すスパン。複数回呼び出す場合は`invoke_agent`の子として複数生成される |
+| ツール実行 | `execute_tool` | エージェントがツールを呼び出す1ステップ。`chat`の子スパンとして記録する |
+
+この3層の親子関係がトレースの骨格です。ひとつのユーザーリクエストが`invoke_agent`でルートスパンを開き、内部でLLMを3回呼び出せば`chat`スパンが3本生成され、各`chat`からツールが呼ばれた分だけ`execute_tool`がぶら下がります。この構造を見ることで「どのターンでどのツールを何回使い、どこで時間がかかったか」がひと目で把握できます。
+
+ログ（個別イベントの記録）とトレース（因果関係の記録）は別レイヤーとして独立させる設計が原則です。ログは「何が起きたか」を残し、トレースは「どの順で何を経由して結果に至ったか」を記録します。両者を混在させるとどちらも役に立たなくなります。
+
+## OpenTelemetry GenAI Semantic Conventions——標準属性スキーマ
+
+> OTel GenAI Semantic Conventionsは2026年時点でexperimentalステータスですが、Datadog・Langfuse・Grafanaが採用を開始しています。
+
+OpenTelemetry GenAI SIGが定めた`gen_ai`名前空間の属性群は、LLMスパンに付与すべきメタデータを標準化します。`chat`スパンに最低限記録すべき属性は以下です。
+
+```
+gen_ai.system                   = "anthropic" | "openai" | "google_vertex_ai"
+gen_ai.request.model            = "claude-opus-4-8" | "gpt-4o" ...
+gen_ai.usage.input_tokens       = 1024    # プロンプトのトークン数
+gen_ai.usage.output_tokens      = 312     # コンプリーションのトークン数
+gen_ai.response.finish_reasons  = ["stop"] | ["tool_calls"] | ["max_tokens"]
+```
+
+`gen_ai.response.finish_reasons`は診断に直結する属性です。`max_tokens`での停止が多発している場合はプロンプト設計の見直しが必要で、`tool_calls`が期待より多い場合はループ設計の確認シグナルになります。
+
+**プロンプト・コンプリーション内容の記録**については、セマンティック規約はスパン属性ではなく「スパンイベント（span event）」として分離することを推奨しています。イベントとして記録することで、機密を含むプロンプト内容をサンプリング制御の対象にしつつ、通常のメトリクス収集から切り離せます。デフォルトで内容をログに吐かない設計が、データガバナンスの観点から原則です。
+
+OTelに対してArize-AIが提唱する**OpenInference**仕様も実装で広く使われています。OpenInferenceは`llm.input_messages.0.message.role`や`llm.token_count.prompt`・`llm.token_count.completion`など、よりLLMアプリ特化の属性体系を定義しており、Langfuseはどちらの規約も受け付けます。
+
+## LLM呼び出しの計装パターン——自動計装と手動計装
+
+> 自動計装パッケージはAnthropicやOpenAIのSDK呼び出しに数行のセットアップでスパンを生成し、手動計装は粒度の制御に使います。
+
+### 自動計装
+
+OpenInferenceが提供するパッケージを使うと、SDKの既存コードにほとんど手を加えずにスパンを生成できます。Python環境での典型的なセットアップを示します。
+
+```python
+from openinference.instrumentation.anthropic import AnthropicInstrumentor
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+provider = TracerProvider()
+provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint="http://localhost:4318/v1/traces"))
+)
+trace.set_tracer_provider(provider)
+
+AnthropicInstrumentor().instrument()  # これだけで Anthropic SDK 呼び出しがスパンになる
+```
+
+`AnthropicInstrumentor().instrument()`の1行を追加するだけで、以降のAnthropic SDKコールは自動的に`chat`スパンを生成します。`gen_ai.usage.input_tokens`・`gen_ai.usage.output_tokens`・`gen_ai.response.finish_reasons`はSDKレスポンスから自動抽出されます。OpenAI、LangChain、LlamaIndex向けにも同様のパッケージが提供されています。
+
+### 手動計装
+
+ツール実行や独自ビジネスロジックには手動でスパンを切ります。
+
+```python
+tracer = trace.get_tracer("agent.tools")
+
+with tracer.start_as_current_span("execute_tool") as span:
+    span.set_attribute("gen_ai.tool.name", "search_products")
+    span.set_attribute("gen_ai.tool.call.id", tool_call_id)
+    result = search_products(query=query)
+    span.set_attribute("tool.success", True)
+    span.set_attribute("tool.result_count", len(result))
+```
+
+コスト計算は計装レイヤーで行わず、観測ツール側のモデル料金テーブルに任せるのが保守性の観点から合理的です。モデルの価格が変わるたびに計装コードを修正する必要がなくなります。
+
+## 観測ツールの選択と運用設計
+
+> Langfuse・LangSmith・Datadogの3ツールがLLMトレース収集の実用主流で、OTelエクスポーターで既存の可観測性スタックと統合できます。
+
+### Langfuse
+
+オープンソース（AGPL/商用ライセンス）のLLMエンジニアリングプラットフォームです。OTelネイティブで受信したスパンを「Generation（LLM呼び出し）」「Span（任意処理）」「Event（ポイントインタイムの記録）」の3種に自動変換します。トークンコストをモデルごとの料金テーブルに基づいて自動算出し、プロンプト管理・評価・データセット管理と統合されています。セルフホスト可能なため、機密プロンプトを外部に送りたくない環境でも採用されています。
+
+### LangSmith
+
+LangChainエコシステムと密結合したトレーシングプラットフォームです。LangChain・LangGraphベースのエージェントを使う場合に最もシームレスで、OTelからの受信も対応しています。
+
+### Datadog LLM Observability
+
+Datadog v1.37でOTel GenAI Semantic Conventionsのネイティブサポートが追加されました。既存のAPM監視基盤を変更せずにLLMスパンを追加でき、トークンコスト・エラー率・レイテンシパーセンタイルをダッシュボードで即座に可視化できます。
+
+### 設計上の判断ポイント
+
+3ツールに共通する設計判断を整理します。
+
+- **サンプリングレート**: 低スループット環境では100%収集でよいですが、高スループット環境では5〜10%のトレースサンプリングが現実的です
+- **プロンプト内容の保存**: セマンティック規約の推奨に従いデフォルトはオフにし、デバッグ環境のみオプトインで有効化します
+- **保持期間**: コスト分析目的では集計メトリクスを長期保存し、生のトレースは7〜30日程度が一般的です
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: Langfuseのセルフホスト版またはクラウド版から始めるのが最速です。まず`AnthropicInstrumentor`または`OpenAIInstrumentor`で自動計装を入れ、コストとエラー率の可視化を短期間で達成できます。Kuuの[AIエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)では、トレース設計から計装実装・ダッシュボード設定までの伴走支援を提供しています。
+
+**エンタープライズの場合**: OTelコレクターをサイドカーとして配置し、複数のエージェントサービスからトレースを集約した上でDatadogやGrafanaへエクスポートする構成が標準です。IAM/RBACによるトレースデータへのアクセス制御、VPC内でのOTelコレクター配置によるデータレジデンシー確保が必要になります。大規模なトレース基盤と[エージェントガバナンス](/glossary/agent-governance/)設計については[RDEサービス](https://kuucorp.com/services/rde/)のエンタープライズ設計支援を参照してください。
+
+## 参考
+
+- [Inside the LLM Call: GenAI Observability with OpenTelemetry（OpenTelemetry公式）](https://opentelemetry.io/blog/2026/genai-observability/)
+- [AI Agent Observability - Evolving Standards and Best Practices（OpenTelemetry公式）](https://opentelemetry.io/blog/2025/ai-agent-observability/)
+- [OpenTelemetry（OTEL）for LLM Observability — Langfuse](https://langfuse.com/integrations/native/opentelemetry)
+- [OpenInference Semantic Conventions — Arize-AI](https://arize-ai.github.io/openinference/spec/semantic_conventions.html)
+
+## まとめ
+
+AIエージェントのトレース計装は、OpenTelemetry GenAI Semantic Conventionsが提供する3スパン型（invoke_agent・chat・execute_tool）の親子階層を骨格に、標準属性（モデル名・トークン数・停止理由）を付与することで構成されます。OpenInferenceの自動計装パッケージを使えばSDKコードを変更せずにスパン生成を始められます。
+
+観測ツールはOTelエクスポーターを経由することでLangfuse・DatadogいずれともオープンなAPIで連携でき、ベンダーロックインを避けた設計が可能です。トレースを起点にコスト最適化・品質改善・インシデント対応を回す運用サイクルを構築することが、[エージェントガバナンス](/glossary/agent-governance/)の具体的な実装となります。
+
+計装設計・Langfuse構築・Datadog統合など、可観測性基盤の立ち上げを検討中の場合は[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)にご相談ください。
