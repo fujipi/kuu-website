@@ -453,7 +453,7 @@
       "title_hint": "LLMゲートウェイ設計——モデルルーティング・レート制限・コスト配賦を一元化する",
       "persona": "複数チームのLLM利用を統制したい大企業のプラットフォームエンジニア",
       "service_link": "/services/rde/",
-      "status": "queued",
+      "status": "published",
       "audience": "enterprise",
       "track": "platform-infra",
       "tech_depth": "deep",
