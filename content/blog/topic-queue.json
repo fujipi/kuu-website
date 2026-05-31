@@ -438,7 +438,7 @@
       "title_hint": "プロンプトインジェクションの多層防御——入力検証・権限分離・出力監査をアーキテクチャで止める",
       "persona": "エージェントのセキュリティ設計を担うセキュリティアーキテクト／IT担当",
       "service_link": "/services/ai-ops/",
-      "status": "queued",
+      "status": "published",
       "audience": "both",
       "track": "security",
       "tech_depth": "deep",
