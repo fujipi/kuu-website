@@ -52,7 +52,7 @@
       "persona": "建設会社の現場監督・工事管理",
       "industry": "建設",
       "use_case": "工事日報・現場写真の整理とドラフト生成",
-      "status": "queued"
+      "status": "published"
     },
     {
       "slug": "cost-roi-estimation-agent",
