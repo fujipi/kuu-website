@@ -1,0 +1,93 @@
+---
+title: "LLMトークンコストの計装と配賦——AI FinOps入門"
+description: "LLM/エージェントのトークンコストはOpenTelemetry GenAI規約でスパン計装し、cost_center・teamタグで部門配賦する。FinOps for AI初期設計から最適化施策まで実装の要点を整理。"
+date: "2026-06-01"
+lastModified: "2026-06-01"
+tags: ["AI FinOps", "LLM", "トークンコスト", "OpenTelemetry"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "intermediate"
+sources:
+  - "https://opentelemetry.io/blog/2024/llm-observability/"
+  - "https://www.finops.org/wg/finops-for-ai-overview/"
+  - "https://www.virtasant.com/blog/finops-for-ai"
+pillar: "ai-governance"
+---
+
+複数のLLM/エージェントを本番運用し始めると、月次の請求書が届くまでどのチームがどれだけトークンを消費したか分からない——という状況が典型的な課題になります。VMやストレージと異なり、LLMはトークン単位で課金されるため、従来のクラウドFinOpsの計測・配賦手法がそのまま適用できません。計装・部門配賦・最適化の3層を順に整理し、大企業のプラットフォームチームがすぐに着手できる実装指針を示します。
+
+## AI FinOpsとは——従来クラウドコスト管理との違い
+
+> AI FinOpsはVMやストレージと課金単位が根本的に異なり、入力・出力トークン数×モデル単価が予算管理の中心に置かれます。
+
+従来のクラウドFinOpsはvCPU時間・GB単位のストレージ・データ転送量を計測の起点としてきました。LLMコストはこれと構造が異なります。まず**課金の粒度がリクエストではなくトークン**です。同じリクエスト数でも、プロンプトが長ければ入力トークン（input tokens）が増え、出力が冗長であれば出力トークン（output tokens）が増えます。AnthropicもOpenAIも入力と出力で単価が異なり、モデルファミリーによって1Mトークンあたりの単価が10倍以上差があります。
+
+次に**消費の帰属が不明瞭**になりやすい点です。複数チームが同一のBedrock / Anthropic API / Azure OpenAIエンドポイントを共有すると、プロバイダーの請求書は組織全体の合計しか示しません。「誰の設計判断がコストを跳ね上げたか」は後から追えなくなります。
+
+FinOps Foundationの定義では、AI FinOpsはコスト管理の新たなスコープとして「トークンコスト・GPU稼働率・推論スループット」を従来のクラウドメトリクスと並列に扱います。
+
+## 計装設計——OpenTelemetry GenAI規約でトークン数を記録する
+
+> OpenTelemetryのGenAIセマンティック規約に従い、gen_ai.usage.input_tokensとgen_ai.usage.output_tokensをスパン属性として記録することがコスト追跡の起点です。
+
+OpenTelemetry（OTel）コミュニティはLLMアプリケーション向けの**GenAIセマンティック規約**を定義しており、LLM APIコールのスパンに付与すべき標準属性を規定しています。コスト管理に関わる主要属性は次のとおりです。
+
+| 属性 | 内容 |
+|---|---|
+| `gen_ai.system` | モデルプロバイダー（anthropic / openai / vertexai 等） |
+| `gen_ai.request.model` | リクエスト時のモデル名 |
+| `gen_ai.usage.input_tokens` | 入力トークン数 |
+| `gen_ai.usage.output_tokens` | 出力トークン数 |
+
+`openlit` ライブラリを使うと、既存のAnthropic/OpenAI SDK呼び出しに対してほぼコード変更なしにOTelスパンを付与できます。
+
+```python
+import openlit
+openlit.init(otlp_endpoint="http://otelcol:4318")
+# 以降のAnthropic/OpenAI呼び出しが自動的に計装される
+```
+
+スパンには**ビジネスコンテキスト属性**も追加します。`team_id`・`project_id`・`env`（production/staging）の3つを必須化し、OTelコレクター側でこれらを部門配賦の集計キーとして使います。Grafana / Datadog / Uptraceなど主要なOTelバックエンドは、スパン属性をGroupBy軸としてダッシュボードに集計できます。[エージェントの可観測性設計](/blog/agent-observability-tracing-instrumentation/)との統合で、コストとレイテンシ・品質を同一トレースで追跡する基盤が整います。
+
+## 部門配賦設計——タグ戦略とチャージバックモデル
+
+> 配賦の基盤はアプリケーション層での「タグファースト設計」で、cost_center・team・projectの3タグをすべてのLLM呼び出しに必須化します。
+
+FinOps for AIにおける配賦の難しさは、同一モデルを複数のチーム・機能が共有するシナリオにあります。プロバイダーのAPIキーを組織で1本共有している場合、プロバイダー請求書から消費者を逆引きすることはできません。配賦は**アプリケーション層で計装する段階でのみ正確に実施できます**。
+
+推奨するタグ設計の最小セットは3軸です。
+
+- **`cost_center`**: 予算帰属の最小単位（例: `eng-platform`・`product-search`）
+- **`team`**: チーム識別子（例: `infra`・`ml-ops`）
+- **`project`**: 機能・プロダクト単位（例: `rag-pipeline`・`support-bot`）
+
+OTelコレクターで収集したスパンをFOCUS（FinOps Open Cost and Usage Specification）準拠の形式でエクスポートすると、既存のFinOpsダッシュボードとデータ形式が一致します。一部のAIゲートウェイ製品はFOCUS 1.0〜1.3互換のログを自動生成し、既存のクラウドコスト管理ツールへの統合を簡略化します。
+
+配賦モデルは**ショーバック**（可視化のみ・コスト転嫁なし）から始め、コスト意識が醸成された段階で**チャージバック**（チーム予算に実コストを転嫁）へ移行するのが現実的です。まず「どのチームがどれだけ消費しているか」を2〜4週間可視化するだけで、設計上の無駄（不要なコンテキスト送信・レスポンスの過剰生成）が発見されることが多いです。
+
+## 計装データを起点とした最適化施策
+
+> 計装で得たトークン消費データからプロンプト圧縮・モデル振り分け・プロンプトキャッシュの3施策に直接着手できます。
+
+計装が整ってはじめて、どの施策が効果的かを定量的に判断できます。
+
+**① プロンプト圧縮**は入力トークン削減の最短経路です。コンテキストウィンドウに全ドキュメントを詰め込む設計から、関連チャンクのみをRAGで選択する設計に切り替えると、入力トークン数を大幅に削減できます。
+
+**② コスト優先ルーティング**は、タスクの複雑度に応じてモデルを振り分けます。定型分類・要約・構造化抽出にはHaiku/Gemini Flash相当の小型モデルを使い、複雑な推論タスクにのみSonnet/Pro相当を投入します。ルーティングポリシーはアプリケーションコードではなく[LLMゲートウェイ層](/blog/llm-gateway-routing-rate-limiting/)に集約することで、デプロイなしに変更できます。
+
+**③ プロンプトキャッシュ**はAnthropicとOpenAIが提供する機能で、同一のシステムプロンプトや大量のコンテキストを繰り返し送る場合に入力コストを大幅に削減できます。計装データでキャッシュヒット率を追跡し、期待値と乖離している箇所をプロンプト設計にフィードバックします。
+
+大規模なAIプラットフォームのコスト可視化・配賦設計・FinOps基盤の整備は、[Kuu株式会社のRDEサービス](https://kuucorp.com/services/rde/)で一貫して支援しています。
+
+## 参考
+
+- [An Introduction to Observability for LLM-based applications using OpenTelemetry — OpenTelemetry](https://opentelemetry.io/blog/2024/llm-observability/)
+- [FinOps for AI Overview — FinOps Foundation](https://www.finops.org/wg/finops-for-ai-overview/)
+- [FinOps for AI: Creating Token-Level Visibility for Practitioners — Virtasant](https://www.virtasant.com/blog/finops-for-ai)
+
+## まとめ
+
+AI FinOpsの基本構造は「計装 → 配賦 → 最適化」の3ループです。OpenTelemetry GenAI規約でスパンにトークン数を記録し、cost_center・team・projectタグで部門配賦可能な状態を作り、計装データを起点にプロンプト圧縮・モデルルーティング・キャッシュ活用の施策を判断する——この順序を守ることで、データのない状態で最適化を議論するコストを回避できます。
+
+複数チームのLLM消費を統制するAIプラットフォーム基盤の構築については、[Kuu株式会社のRDEサービス](https://kuucorp.com/services/rde/)までご相談ください。

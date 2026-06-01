@@ -483,7 +483,7 @@
       "title_hint": "AI FinOps入門——トークンコストの計装・部門配賦・最適化を運用基盤に組み込む",
       "persona": "AIプラットフォームのコストを計装・配賦したい大企業のプラットフォーム／FinOps担当",
       "service_link": "/services/rde/",
-      "status": "queued",
+      "status": "published",
       "audience": "enterprise",
       "track": "platform-infra",
       "tech_depth": "intermediate",
