@@ -468,7 +468,7 @@
       "title_hint": "A2Aプロトコルでエージェントを相互運用する——認証・タスク委譲・MCPとの使い分け",
       "persona": "組織横断で複数ベンダーのエージェントを連携させたいアーキテクト",
       "service_link": "/services/rde/",
-      "status": "queued",
+      "status": "published",
       "audience": "enterprise",
       "track": "protocols",
       "tech_depth": "deep",

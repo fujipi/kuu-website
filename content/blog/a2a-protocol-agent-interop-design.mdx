@@ -1,0 +1,134 @@
+---
+title: "A2AプロトコルとMCPの使い分け——認証・委譲設計の実装"
+description: "A2Aはエージェント間の水平連携、MCPはLLMとツールの垂直統合を担う補完関係にある。エンタープライズではOAuth 2.0やmTLSでエージェントIDを認証し、Agent CardとスキルスコープでA2AとMCPを組み合わせて設計する。"
+date: "2026-06-01"
+lastModified: "2026-06-01"
+tags: ["A2A", "MCP", "プロトコル", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://a2a-protocol.org/latest/specification/"
+  - "https://www.stackone.com/blog/mcp-vs-a2a-protocol/"
+  - "https://stellagent.ai/insights/a2a-protocol-google-agent-to-agent"
+pillar: "ai-governance"
+---
+
+複数ベンダーのAIエージェントを組織横断で連携させるアーキテクチャが現実のものとなった2026年、設計者が直面する問いは「A2AとMCPをどこで切り替えるか」と「エージェント間の認証をどう実装するか」の2点に集約される。A2A v1.0が2026年初頭にリリースされ、150以上の組織が採用した現在、プロトコル仕様の理解は設計の前提条件だ。[Kuuのエージェントガバナンスアプローチ](/ai-governance/)と合わせて本稿を参照してほしい。
+
+## A2Aのアーキテクチャ——Agent CardとJSON-RPCメソッド
+
+> A2Aはエージェントの能力・認証要件をAgent Cardで公開し、JSON-RPC 2.0を基盤にタスクを委譲するオープン仕様だ。
+
+A2A（Agent-to-Agent Protocol）は2025年4月にGoogleが発表し、同年6月にLinux Foundationへ移管されたオープン仕様だ。HTTP・Server-Sent Events（SSE）・gRPCをトランスポートとし、ペイロードはJSON-RPC 2.0で統一されている。
+
+**Agent Cardの構造**
+
+各エージェントは RFC 8615 に従い `/.well-known/agent.json` にAgent Cardを公開する。Agent Cardには名称・バージョン・サービスエンドポイント・認証スキーム・スキル（入出力モードを含む）が含まれる。
+
+```json
+{
+  "name": "inventory-agent",
+  "version": "1.0.0",
+  "url": "https://agents.example.com/inventory",
+  "authentication": { "schemes": ["oauth2"] },
+  "skills": [
+    {
+      "id": "check-stock",
+      "description": "指定SKUの在庫数を返す",
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}
+```
+
+A2A v1.0では「拡張Agent Card」が追加され、認証済みクライアントのみ詳細なスキル一覧・制約情報を取得できる二段階公開モデルになった。パブリックなAgent Cardでは機能の存在だけを宣言し、機密性の高いスキル詳細は認証後に開示する設計が標準化されている。
+
+**コアJSON-RPCメソッド**
+
+仕様が定義するメソッドは `SendMessage`・`SendStreamingMessage`・`GetTask`・`ListTasks`・`CancelTask`・`SubscribeToTask` などだ。ストリーミングとWebhookベースのプッシュ通知が仕様に組み込まれているため、長時間タスクの進捗通知を追加インフラなしで実装できる。
+
+## 認証フロー——OAuth 2.0・mTLS・拡張Agent Cardの実装
+
+> エンタープライズのA2A認証はOAuth 2.0またはmTLSを既存のIDインフラに組み込む形で実装し、エージェントID検証と委譲スコープを分離して管理する。
+
+A2A仕様が規定する認証スキームはOpenAPI Security Schemeと同等で、APIキー・HTTP Basic・OAuth 2.0/OIDC・mTLSが選択できる。
+
+**OAuth 2.0（クライアントクレデンシャルフロー）**
+
+エージェント間通信でユーザーの認可が不要な場合はClient Credentialsフローが適合する。クライアントエージェントは認可サーバー（Keycloak・Azure AD等）からアクセストークンを取得し、`Authorization: Bearer` ヘッダに付与してリモートエージェントを呼び出す。スコープはスキルID単位（例: `inventory:read`・`order:write`）で切るのが最小権限の原則に沿った設計だ。[権限管理設計の詳細](/blog/ai-agent-permission-management-design/)も参照のこと。
+
+**mTLS——ゼロトラスト境界でのエージェント認証**
+
+PKIを持つ組織ではmTLSが有力な選択肢だ。クライアント・サーバー双方が証明書を提示するため、ネットワーク境界だけでなくアプリケーション層でもエージェントIDを検証できる。Istioなどのサービスメッシュと組み合わせる場合、mTLSはインフラ側で終端し、アプリケーションはSPIFFE ID経由でエージェントIDを受け取るパターンが一般的だ。
+
+**拡張Agent CardとJWT**
+
+認証後に詳細なスキル情報を返す拡張Agent Cardでは、エージェント間でJWTを発行・検証してスキルアクセスを制御する実装が増えている。JWTのクレームにはエージェントID・許可スキルリスト・有効期限を含め、委譲チェーンのトレーサビリティを確保する。
+
+## タスクライフサイクルと委譲設計パターン
+
+> A2Aのタスクはこれらの状態を遷移する：SUBMITTED→WORKING→COMPLETED/FAILED/CANCELED/REJECTED。INPUT_REQUIREDでは人間の介入をプロトコルレベルで組み込める。
+
+**タスク状態遷移**
+
+```
+SUBMITTED
+  └→ WORKING
+       ├→ INPUT_REQUIRED  （クライアントへの追加情報要求）
+       ├→ AUTH_REQUIRED   （再認証要求）
+       ├→ COMPLETED
+       ├→ FAILED
+       ├→ CANCELED
+       └→ REJECTED
+```
+
+タスクが `INPUT_REQUIRED` に遷移した場合、クライアントは `SendMessage` で追加情報を送信して再開できる。[ヒューマンインザループ設計](/blog/ai-agent-human-in-the-loop-design/)と自然に統合できる仕組みがプロトコルに内包されている。
+
+**委譲チェーンの設計原則**
+
+委譲の連鎖が深くなると権限境界の管理が複雑になる。実装上の原則は以下の3点だ。
+
+1. **委譲深度に上限を設ける**: オーケストレーターからサブエージェントへの委譲は最大2〜3段に制限し、それを超える依頼は明示的に失敗させる
+2. **委譲スコープを明文化する**: 各エージェントが委譲できるスキルIDのホワイトリストをAgent Cardのメタデータまたは外部ポリシーエンジンで管理する
+3. **trace-idをタスクIDに連結する**: 親タスクのIDをサブタスクのメタデータに含め、OpenTelemetry等の分散トレーシング基盤でエンド・ツー・エンドの追跡を実現する
+
+可観測性の実装方針は[エージェント可観測性——トレース・スパン設計](/blog/agent-observability-tracing-instrumentation/)で詳述している。
+
+## MCPとA2Aの設計境界——垂直統合と水平連携
+
+> MCPはLLMとツールの垂直統合、A2Aはエージェント間の水平連携を担い、A2Aレイヤーの侵害がMCPレイヤーに波及するリスクに注意が必要だ。
+
+**役割の違い**
+
+| 比較軸 | MCP | A2A |
+|---|---|---|
+| 統合方向 | 垂直（LLM↕ツール） | 水平（エージェント↔エージェント） |
+| 通信相手 | データソース・外部API | 別のAIエージェント |
+| 認証の主体 | ツール/リソースへのアクセス制御 | エージェントIDの検証・委譲スコープ管理 |
+| マルチテナント | テナントスコープのツール可視性 | テナントスコープのエージェント可視性 |
+| 主導組織 | Anthropic（Linux Foundation） | Google（Linux Foundation） |
+
+**使い分けの判断基準**
+
+LLMが直接ツールやデータを呼び出す接続（DBクエリ・Slack送信・カレンダー参照等）には[MCP](/glossary/mcp/)を使う。AIエージェントが別のAIエージェントにタスクを委任する場面（受注エージェントが在庫エージェントに問い合わせる、プランナーエージェントがエグゼキューターエージェントを呼び出す等）には[A2Aプロトコル](/glossary/a2a-protocol/)を使う。
+
+実務では両者が同一フロー内に混在する。受注エージェント（A2A委譲）が在庫エージェントを呼び出し、在庫エージェントはMCPでERPデータベースを直接参照するという構成が典型例だ。
+
+**ハイブリッド構成のリスク管理**
+
+A2AとMCPを組み合わせた場合、A2Aレイヤーが侵害されるとMCPレイヤーへ権限が波及するリスクが存在する。緩和策として、エージェント間の委譲スコープをMCPリソースのアクセス権よりも厳しく設定し、テナント境界をA2A・MCPの双方のレイヤーで独立して施行する。Kuuの[エンタープライズAI実装支援（RDE）](https://kuucorp.com/services/rde/)では、A2A/MCPハイブリッド構成の設計・セキュリティレビューを一貫して支援している。
+
+## 参考
+
+- [Agent2Agent (A2A) Protocol Specification](https://a2a-protocol.org/latest/specification/)
+- [MCP vs A2A: Architecture, Security, and When to Use Each | StackOne](https://www.stackone.com/blog/mcp-vs-a2a-protocol/)
+- [A2A Protocol Explained: 150+ Organizations in One Year | Stellagent](https://stellagent.ai/insights/a2a-protocol-google-agent-to-agent)
+
+## まとめ
+
+A2AとMCPは担う役割が異なる補完関係のプロトコルだ。エンタープライズでは、LLMとツールの接続にMCP、エージェント間の委任にA2Aを使い分け、OAuth 2.0またはmTLSによる認証・Agent Cardを通じたスキル公開・タスク状態遷移の明示的な管理を組み合わせることで、組織横断のマルチエージェント基盤を安全に構築できる。
+
+マルチベンダーのエージェント連携アーキテクチャの設計・実装・セキュリティ評価は、[Kuuのエンタープライズ向けAI実装支援](https://kuucorp.com/services/rde/)にご相談ください。
