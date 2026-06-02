@@ -1,3 +1,19 @@
+const fs = require("node:fs");
+
+// Returns true when the exported HTML for a path carries a noindex robots meta.
+// Used to keep noindex pages (e.g. the not-found placeholder emitted for an
+// empty paginated route) out of the sitemap.
+function isNoindex(urlPath) {
+	const p = urlPath.replace(/\/$/, "");
+	const htmlFile = p === "" ? "out/index.html" : `out${p}/index.html`;
+	try {
+		const html = fs.readFileSync(htmlFile, "utf8");
+		return /name=["']robots["'][^>]*noindex/i.test(html);
+	} catch {
+		return false;
+	}
+}
+
 /** @type {import('next-sitemap').IConfig} */
 const config = {
 	siteUrl: "https://kuucorp.com",
@@ -43,6 +59,8 @@ const config = {
 	transform: async (_config, path) => {
 		const p = path.replace(/\/$/, "") || "/";
 		const now = new Date().toISOString();
+		// Drop noindex pages (e.g. /case/page/N placeholder while cases ≤ one page).
+		if (isNoindex(path)) return null;
 		if (p === "/") {
 			return { loc: path, changefreq: "weekly", priority: 1.0, lastmod: now };
 		}
@@ -66,6 +84,9 @@ const config = {
 		}
 		if (p === "/case") {
 			return { loc: path, changefreq: "daily", priority: 0.85, lastmod: now };
+		}
+		if (p.startsWith("/case/page/")) {
+			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
 		}
 		if (p.startsWith("/case/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
