@@ -669,6 +669,22 @@
       "persona": "AIエージェント導入後に誤出力リスクを管理したい中小企業のIT担当者・経営者",
       "service_link": "/services/ai-ops/",
       "status": "published"
+    },
+    {
+      "slug": "event-driven-agent-workflow-design",
+      "keyword": "イベント駆動 エージェント ワークフロー 設計",
+      "title_hint": "イベント駆動エージェント設計：非同期ワークフローで大規模化する",
+      "persona": "マルチエージェント構成を設計するバックエンド／プラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "status": "published",
+      "audience": "enterprise",
+      "track": "architecture",
+      "tech_depth": "deep",
+      "target_query": "イベント駆動型エージェントはどう設計すればよいか",
+      "sources": [
+        "https://www.anthropic.com/engineering/building-effective-agents",
+        "https://www.confluent.io/blog/the-future-of-ai-agents-is-event-driven/"
+      ]
     }
   ],
   "keyword_bank": {
