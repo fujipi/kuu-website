@@ -28,7 +28,7 @@ const OUT_OG = path.join(ROOT, "out/og");
 const OUT_DIR = PUBLIC_OG;
 const FONT_CACHE = path.join(ROOT, "scripts/.cache/fonts");
 const SITE = "Kuu株式会社";
-const TAGLINE = "しくみが事業に浸透し、あらゆる人の自由をつくる";
+const TAGLINE = "しくみが浸透し、あらゆる人の自由をつくる";
 
 function writeAsset(absPublic, buf) {
 	fs.mkdirSync(path.dirname(absPublic), { recursive: true });

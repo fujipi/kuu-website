@@ -49,7 +49,7 @@ const homeJsonLd = [
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		description:
 			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用まで一社で横串に担う伴走実装パートナー。",
-		slogan: "しくみが事業に浸透し、あらゆる人の自由をつくる",
+		slogan: "しくみが浸透し、あらゆる人の自由をつくる",
 		address: {
 			"@type": "PostalAddress",
 			streetAddress: "東神田一丁目13番14号",
@@ -175,7 +175,7 @@ export default function Home() {
 					<Constellation />
 					<div className="hero-content hero-reveal">
 						<h1 className="hero-heading">
-							しくみが事業に浸透し、あらゆる人の自由をつくる
+							しくみが浸透し、あらゆる人の自由をつくる
 						</h1>
 						<p className="hero-sub">Embedded Systems, Freedom for All</p>
 					</div>
