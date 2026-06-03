@@ -1,0 +1,135 @@
+---
+title: "Extended Thinking設計指針——adaptive thinkingとeffort制御"
+description: "Claude推論モデルのextended thinkingをいつ使うべきか、adaptive thinkingへの移行とeffortパラメータによるコスト・レイテンシ最適化を設計判断の観点で整理します。"
+date: "2026-06-03"
+lastModified: "2026-06-03"
+tags: ["extended thinking", "adaptive thinking", "推論モデル", "Claude API"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude extended thinkingはどこで使うべきか、adaptive thinkingとの違いは何か"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/extended-thinking"
+  - "https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking"
+---
+
+LLMの推論能力を引き出す「extended thinking」を本番ワークフローに組み込んでいるエンジニアの多くが、同じ疑問に突き当たります。「どのリクエストでthinkingを有効にすべきか」「コストがどこまで膨らむか」「Opus 4.8では動作仕様が変わったが何が変わったのか」——これらは、thinking機能が2026年に大きく再設計されたことで整理できます。
+
+## Extended Thinkingの仕組みと2026年の設計原則
+
+> Extended thinkingはClaudeが内部推論を`thinking`ブロックに記録してから回答を生成する機能で、2026年の最新モデルではadaptive thinkingへの移行が公式に推奨されています。
+
+APIリクエストにthinking設定を付与すると、Claudeはまず`thinking`タイプのコンテンツブロックを生成し、その後`text`ブロックで最終回答を出力します。2026年時点で最初に把握すべきなのは、**モデル世代によって設定方法が根本的に異なる**点です。
+
+| モデル | サポートされるthinkingモード |
+|--------|---------------------------|
+| Claude Opus 4.8 / Opus 4.7 | `adaptive`のみ。`budget_tokens`付き`enabled`は400エラー |
+| Claude Opus 4.6 / Sonnet 4.6 | `adaptive`推奨。`budget_tokens`は動作するが非推奨 |
+| Sonnet 4.5以前 | `thinking: {type: "enabled", budget_tokens: N}`のみ |
+
+```python
+# Opus 4.8 / Opus 4.7 での正しい設定
+response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=16000,
+    thinking={"type": "adaptive"},
+    messages=[{"role": "user", "content": "..."}]
+)
+```
+
+thinking blockの返し方は`display`フィールドで制御できます。`"summarized"`（推論の要約を返す）か`"omitted"`（thinking blockを空にし署名だけ返す）の二択です。Opus 4.8 / Opus 4.7のデフォルトは`"omitted"`で、ストリーミング時のtime-to-first-textが短縮されます。ただし**コストは内部で生成された全thinking tokenが課金**され、displayの設定でコストは変わりません。
+
+## Adaptive Thinkingへの移行——budget_tokensが非推奨になった理由
+
+> Adaptive thinkingはClaudeがリクエストの複雑さを動的評価し推論深度を自動決定するモードで、固定budget_tokensより多くのワークフローで高い性能を発揮します。
+
+`budget_tokens`方式では全リクエストに同一の推論上限を設定するため、単純な質問にも過剰な推論を割り当てる非効率が生じていました。Adaptive thinkingは各リクエストを個別に評価し、単純なクエリは推論をスキップ、多段階タスクには深い推論を適用します。
+
+移行時の実装チェックポイント：
+
+1. `thinking: {type: "adaptive"}`に切り替え、推論深度の制御は`output_config.effort`に委ねる
+2. マルチターン会話での制約が緩和：adaptive modeでは直前のassistantターンがthinking blockで始まらなくても動作する（手動モードより検証が柔軟）
+3. ツール使用との組み合わせ：adaptive modeではinterleaved thinkingが自動有効化され、ツールコール間でも推論が走る。多段階エージェントワークフローとの相性が向上
+
+移行後の可観測性を確保するには、`thinking.display: "summarized"`を明示的に設定することを推奨します。Opus 4.8のデフォルト（`"omitted"`）のままでは推論内容を観察できず、プロンプトチューニングが困難になります。
+
+## effortパラメータ：5段階の使いどころと設計判断
+
+> effortパラメータはClaudeの推論深度へのソフトガイダンスで、`max`〜`low`の5段階でコスト・品質・レイテンシのトレードオフを制御します。
+
+`output_config.effort`の5段階と推奨ユースケースを整理します。
+
+| effort | thinking動作 | 適したユースケース |
+|--------|------------|-----------------|
+| `max` | 制限なし・常に深く推論 | 数学的証明・長期アクションプランニング・高精度コード生成 |
+| `xhigh` | 深い探索・常に推論（Opus 4.8/4.7のみ） | 複雑なマルチステップ推論・重大な意思決定支援 |
+| `high`（デフォルト） | ほぼ常に推論 | 複雑な分析・コードデバッグ・構造化情報抽出 |
+| `medium` | 適度な推論・単純タスクはスキップ | バイモーダルワークフロー（複雑なクエリと単純なクエリが混在） |
+| `low` | 推論を最小化 | 要約・分類・単純Q&A・レイテンシ優先のインタラクティブUI |
+
+```python
+# medium effortでコストを抑えつつadaptive
+response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=8192,
+    thinking={"type": "adaptive"},
+    output_config={"effort": "medium"},
+    messages=[{"role": "user", "content": "..."}]
+)
+```
+
+設計上の重要な判断ポイントが2点あります。第一に、`max` / `high` effortでは`stop_reason: "max_tokens"`が発生しやすくなります。`max_tokens`を十分大きく設定するか、effortを下げるかで対処します。第二に、推論の発生頻度をsystem promptでも調整可能で、「この質問は多段階推論を要する。回答前によく考えること」のような指示で推論を促せます。
+
+[AIエージェントの可観測性](/blog/agent-observability-tracing-instrumentation/)の記事で解説しているように、`usage.output_tokens_details.thinking_tokens`をトレースに組み込み、thinking専用コストを部門・ユースケース別に計測することを強く推奨します。
+
+## コスト・レイテンシのトレードオフを設計に組み込む
+
+> Thinking tokenはoutput tokenレートで課金され、表示を省略してもコストは変わらない。`display: "omitted"`はレイテンシ最適化、effort制御はコスト最適化の手段です。
+
+**課金の仕組み**
+
+Thinking tokenはoutput tokenとして課金されます。`display: "summarized"`で返ってくるのは要約ですが、課金対象は内部で生成された生の推論全量です。APIレスポンスの`usage.output_tokens`には推論を含む全output tokenが含まれ、`usage.output_tokens_details.thinking_tokens`がその内訳です。
+
+```json
+{
+  "usage": {
+    "input_tokens": 120,
+    "output_tokens": 4280,
+    "output_tokens_details": {
+      "thinking_tokens": 3950
+    }
+  }
+}
+```
+
+この例では出力の92%がthinking tokenです。`effort: "medium"`や`effort: "low"`に下げると、単純なクエリではthinking自体が発生しなくなるためコストが大幅に下がります。
+
+**プロンプトキャッシュとthinkingの関係**
+
+同一のthinkingモード（`adaptive`）を使い続ける限りキャッシュbreakpointは維持されます。`adaptive` ↔ `enabled` ↔ `disabled`を動的に切り替えると、messageキャッシュが失われます（system promptとtool定義は維持）。キャッシュを活用する設計では、thinkingモードを途中で変更しないことがコスト削減の原則です。
+
+**レイテンシ設計**
+
+ストリーミング構成では`thinking_delta`と`text_delta`を分離してハンドリングします。`display: "omitted"`を設定するとthinking tokenの転送をスキップし、text blockのstreamingが早く始まります。tool useとinterleaved thinkingを組み合わせた多段階エージェントは高精度ですが往復レイテンシが増えるため、エンドユーザー向けのインタラクティブUIには`low` effortか、thinkingなしのパスを用意するのが現実的です。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBでの実装優先順位**
+
+最初のステップは`medium` effort + adaptive thinkingで運用し、`output_tokens_details.thinking_tokens`をモニタリングして実際のthinkingコスト比率を把握することです。ほとんどのSMBユースケースでは`medium`以下が費用対効果に優れます。[エージェント運用管理サービス](/services/ai-ops/)では、thinking tokenの計装設定と最適effortレベルの決定をサポートしています。
+
+**エンタープライズでの統制設計**
+
+複数チームが異なるモデル・effortレベルを使う環境では、[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)でeffort設定ごとのthinkingコストをチーム別に集計・配賦する設計が必要です。過去のthinkingトークン使用量を分析してチームごとのeffortポリシーを定める統制フレームワークの構築は、[RDE](/services/rde/)での支援対象です。
+
+## 参考
+
+- [Building with extended thinking — Anthropic Docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking)
+- [Adaptive thinking — Anthropic Docs](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)
+
+## まとめ
+
+Extended thinkingは「とりあえず有効にする」機能ではなく、タスク複雑度・コスト許容度・レイテンシ要件を踏まえた設計判断が必要な推論制御機構です。2026年現時点では最新モデル（Opus 4.8/4.7）でadaptive thinkingが唯一の選択肢となり、effort制御がコスト管理の中心的手段になっています。`budget_tokens`を使い続けているコードは、adaptive + effortへの移行を計画してください。
+
+Thinking設計も含めたAIエージェントの運用基盤構築を検討している場合は、[Kuuのエージェント運用管理サービス](/services/ai-ops/)にご相談ください。大規模なエンタープライズ統制が必要な場合は[RDE](/services/rde/)も対象です。
