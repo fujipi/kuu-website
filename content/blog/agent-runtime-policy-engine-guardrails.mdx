@@ -1,0 +1,96 @@
+---
+title: "ポリシーエンジンでエージェントを守る——実行時ガードレールの設計"
+description: "ポリシーエンジンは、AIエージェントがツールを実行する直前に割り込み、OPA Regoルールで許可/拒否を決定する実行時ガードレールです。SMBはローカルOPA、エンタープライズはMCPゲートウェイ層での集中管理が標準構成です。"
+date: "2026-06-03"
+lastModified: "2026-06-03"
+tags: ["ポリシーエンジン", "ガードレール", "エージェントガバナンス", "セキュリティ"]
+author: "kuu-engineering"
+audience: "both"
+track: "governance-tech"
+tech_depth: "deep"
+sources:
+  - "https://gokhan-gokalp.com/runtime-governance-for-ai-agents-policy-as-code-with-opa/"
+  - "https://platform.claude.com/docs/en/docs/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks"
+  - "https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/"
+pillar: "ai-governance"
+---
+
+AIエージェントのシステムプロンプトに「禁止事項」を列挙するだけでは、プロンプトインジェクションや権限逸脱を確実には止められない。モデルは確率的に動くため、どれだけ丁寧に制約を書いても迂回される余地が残る。ポリシーエンジンはその欠点を補う——LLMの判断とは独立した、**確定的な実行時ガードレール**として機能する。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツに連動しています。
+
+## ポリシーエンジンをエージェントの外に置く理由
+
+> AIエージェントのポリシー制御は、ツール呼び出し前に外部ポリシーエンジンを挟むことで確定的なガードレールになります。
+
+AIエージェントが意図しない動作をする経路は主に3つある。①ユーザーが意図的に悪意ある入力を送り込む**直接プロンプトインジェクション**、②エージェントが読み込む外部コンテンツ（メール本文・Webページ・ツール結果）に埋め込まれた**間接プロンプトインジェクション**、③エージェント自身の推論エラーによる**権限外ツールの実行**だ。
+
+システムプロンプトでの禁止は①の一部にしか効かない。LLMは文脈を解釈して動くため、巧妙な言い回しや長い文脈に隠れた指示で迂回されることがある。対してポリシーエンジンを**LLMの推論後・ツール実行前**に差し込む構成は、エージェントがどの経路で操作されたとしても、ルール違反なら実行を止める。ポリシーの判定はLLMの推論とは独立しており、確定的（deterministic）だ。
+
+OWASP Top 10 for Agentic Applications（2026年版）はエージェントゴールハイジャックを最上位リスクに掲げており、外部ポリシー強制による実行時制御を対策の柱としている。
+
+## ツール呼び出し層への介入アーキテクチャ
+
+> ポリシーエンジンはLLMの判断後・ツール実行前に介入し、RegoルールでOPAが許可/拒否を確定的に決定します。
+
+標準実装はミドルウェアパターンだ。エージェントのチャットパイプライン（`IChatClient`相当）に`OpaAuthorizationMiddleware`を挟み、ツール呼び出しリクエストをOPA（Open Policy Agent）に転送する。OPAはユーザーのロール・ツール名・引数を受け取り、Regoポリシーで`allow / deny`を評価したうえで決定ログを出力する。
+
+```rego
+package agent.authz
+
+default allow := false
+
+allow if {
+  input.tool == "read_file"
+  input.user.role == "analyst"
+}
+
+allow if {
+  input.tool == "send_email"
+  input.user.role == "manager"
+  input.args.to == input.user.email   # 自分宛てのみ
+}
+```
+
+このポリシーはコードとして管理・バージョン管理・CI/CDでテストができる。システムプロンプトの自然言語指示と違い、Regoは形式的に検証可能であり、変更差分がコードレビューで可視化される。
+
+間接インジェクション対策では構造も重要だ。Anthropicの公式ドキュメントは「外部コンテンツは必ず`tool_result`ブロック経由で渡し、JSONエンコードで区切りを明確にする」設計を推奨している。JSONエンコードにより、攻撃者がクォートや特殊文字を使って命令コンテキストに「脱出」する経路を閉じられる。ポリシーエンジンはこの信頼境界設計をツール実行層でさらに補強する。
+
+## ガードレールの多層実装パターン
+
+> ガードレールは決定論的スキャン・LLMスクリーン・ポリシーエンジンの3層で構成し、速度と精度を両立します。
+
+実運用では速度・精度の異なる3層を組み合わせるのが基本だ。
+
+**Layer 1: 決定論的スキャン（<10ms）**
+正規表現・拒否リスト・シークレット検出・不可視文字スキャンなどの高速チェック。コストはほぼゼロで、既知の悪意パターンを排除する入口フィルタとして機能する。
+
+**Layer 2: 軽量LLMスクリーン（<100ms）**
+Claude Haiku 4.5などの小型モデルで入力を事前スクリーニングする。`structured outputs`を使って`is_harmful: boolean`のみを返す構成にすることで、レイテンシを抑えながら意味論的な判断を補完できる。Anthropicのガイドでは「ハーモネスススクリーン」と呼んでいる実装パターンだ。
+
+**Layer 3: ポリシーエンジン判定（<1ms）**
+OPAなどの外部エンジンがツール呼び出し直前に最終評価を行う。Microsoft Agent Governance Toolkit（2026年4月リリース）はYAML・OPA Rego・Cedarの3言語でポリシーを記述でき、p99レイテンシ0.1ms以下を実現している。YAML・OPA Rego・Cedarのいずれを選ぶかは、チームのインフラ標準と既存ポリシー管理基盤に合わせればよい。
+
+3層を直列に並べることで、Layer 1が既知パターンを弾き、Layer 2が文脈的な異常を検知し、Layer 3が権限制御を確定する——という役割分担になる。各層は独立してスケール・更新できるため、一層の誤検知率が上がっても他層で補完できる。
+
+[AIエージェントの権限管理設計](/blog/ai-agent-permission-management-design/)と組み合わせて最小権限の原則を適用することで、万が一インジェクションが成功しても実害を最小化できる。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**
+ローカルOPAサーバー（サイドカー構成）か、マネージド型ポリシーサービスから始めるのが現実的だ。最初のRegoポリシーは5〜10ルールで十分で、ツール種別×ユーザーロール×業務時間帯の3変数で大半の権限逸脱は防げる。[KuuのAI運用管理サービス](/services/ai-ops/)ではポリシー設計の初期サポートを提供している。
+
+**エンタープライズ**
+MCPゲートウェイ層での集中管理が標準構成だ。チームごとにRegoポリシーをOCIレジストリで配布し、全エージェントが一元化されたポリシーサーバーを参照する。ポリシーの変更はCI/CDでコンフォーマンステストを通過したものだけが本番適用される。決定ログはSIEMに転送し、異常なツール呼び出しパターンをリアルタイム検知する。大規模な統制設計には[RDEサービス](/services/rde/)で対応している。
+
+## 参考
+
+- [Runtime Governance for AI Agents: Policy-as-Code with OPA – Gökhan Gökalp](https://gokhan-gokalp.com/runtime-governance-for-ai-agents-policy-as-code-with-opa/)
+- [Mitigate jailbreaks and prompt injections – Anthropic Claude Docs](https://platform.claude.com/docs/en/docs/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks)
+- [Introducing the Agent Governance Toolkit – Microsoft Open Source Blog](https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/)
+
+## まとめ
+
+プロンプト指示によるガードレールは確率的で迂回可能だ。ポリシーエンジンはその弱点を補う確定的な外部制御機構として、ツール呼び出し前インターセプトという設計で機能する。OPAなどのポリシーエンジンを多層防御の第3層に置き、決定論的スキャン・軽量LLMスクリーンと組み合わせることで、直接インジェクション・間接インジェクション・権限逸脱の3経路を網羅的に封じられる。
+
+エージェントの制御設計に課題を感じている場合は、[Kuuのエージェントガバナンス支援](/services/ai-ops/)を起点に整理するところから始めてほしい。
