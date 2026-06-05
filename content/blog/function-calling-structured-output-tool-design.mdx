@@ -1,0 +1,152 @@
+---
+title: "LLMツール定義設計——JSON schema制約とstrict tool useの実装指針"
+description: "Claude APIのtool useでJSON schema設計を誤ると本番でスキーマ不合格やコスト増に直面する。grammar compilation・strict tool use・20ツール上限の制約と設計パターンを解説する。"
+date: "2026-06-05"
+lastModified: "2026-06-05"
+tags: ["function calling", "tool use", "JSON schema", "LLMエージェント"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/structured-outputs"
+  - "https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview"
+pillar: "ai-governance"
+---
+
+大規模エージェント基盤でツール定義を設計するとき、最初に直面するのが「なぜLLMが意図したツールを選ばないのか」「strict tool useを有効にしたらレイテンシが跳ね上がった」という問いだ。tool use（function calling）とstructured outputsの技術的な仕組みを理解しないまま実装を進めると、本番で静かに問題が積み上がる。本記事はClaude APIの公式仕様をもとに、エンタープライズ規模のツール定義設計で知っておくべき制約と設計判断を整理する。
+
+[エージェントガバナンス](/glossary/agent-governance/)の観点からも、ツール定義はLLMが実行できる「権限の範囲」を決める設計であり、[Kuuのエージェントガバナンスアプローチ](/ai-governance/)と連携して検討することを推奨する。
+
+## ツール定義の3要素——name・description・inputSchemaの役割
+
+> ツール定義はname・description・inputSchemaの3要素で構成され、descriptionがLLMのツール選択精度を左右する最重要フィールドです。
+
+tool useの基本単位は1つのツール定義オブジェクトだ。Claude APIでは以下の3フィールドが必須になる。
+
+```json
+{
+  "name": "search_inventory",
+  "description": "倉庫在庫をSKUまたはカテゴリで検索する。在庫確認・補充判断・引当可否の確認に使う。リアルタイムデータを返す。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sku":          { "type": "string", "description": "SKUコード（省略時はカテゴリ検索）" },
+      "category":     { "type": "string", "enum": ["electronics", "apparel", "food"] },
+      "warehouse_id": { "type": "string" }
+    },
+    "required": ["warehouse_id"]
+  }
+}
+```
+
+**nameの設計**: snake_caseで意味が明確な動詞+名詞構成が推奨される。`get_`・`search_`・`create_`など動詞プレフィックスで操作種別を示すと、LLMが同名衝突なく選択できる。
+
+**descriptionの設計**: LLMはdescriptionを読んでツールを選択する。「何をするか」だけでなく「どんな状況で使うか」「他のツールとの使い分け」を含めると選択精度が上がる。descriptionが薄いと、意味的に近い複数ツールが並んだ場合に誤選択が発生する。
+
+**input_schemaの設計**: JSON Schema（draft 7ベース）でパラメータ型を厳密に定義する。`required`フィールドの漏れが最も多いミスで、LLMが不完全な引数でツールを呼び出す直接原因になる。型定義にはPython SDKならPydantic、TypeScript SDKならZodを使うとinput_schemaへの自動変換が可能で、コードと定義の乖離を防げる。
+
+### tool_choiceによる呼び出し制御
+
+デフォルトの`tool_choice: {"type": "auto"}`では、LLMが各ターンでツール呼び出しか直接応答かを自律判断する。
+
+- `auto`: LLMが判断（デフォルト）
+- `any`: 何らかのツールを必ず呼ぶ
+- `tool`: 特定のツールを強制呼び出し
+
+system promptでの誘導も有効で、「調査してから回答せよ」という指示はtool呼び出し頻度を高め、「状況を判断して直接応答してよい」は保守的にする。呼び出しの保証が必要な場面では`tool_choice: {"type": "tool", "name": "..."}` で明示的に強制するほうが設計がシンプルになる。
+
+## 構造化出力とstrict tool use——grammar compilationで保証する仕組み
+
+> strict tool useはJSON schemaをgrammarにコンパイルし、トークン生成を制約してスキーマ準拠を保証します。初回リクエストに100〜300msのオーバーヘッドがあり、24時間キャッシュされます。
+
+2025年11月にAnthropicが公開したStructured Outputs（beta）は2つの機能で構成される。
+
+| 機能 | 用途 | APIフィールド |
+|---|---|---|
+| **JSON outputs** | Claudeの応答をJSONスキーマに準拠させる | `output_config.format` |
+| **Strict tool use** | ツール呼び出しの引数をスキーマ保証する | ツール定義の`strict: true` |
+
+**grammar compilationの仕組み**: 従来の「JSONで返してください」プロンプトとは根本的に異なり、strict tool useはJSON schemaをgrammar（形式文法）にコンパイルし、推論中のトークン生成そのものを制約する。これにより`JSON.parse()`失敗・リトライループ・バリデーション後の例外処理が原理的に不要になる。
+
+ただし保証から外れる例外が2つある。**safety refusal**（`stop_reason: "refusal"`）の場合は応答がスキーマに沿わず、トークンは課金される。**max_tokens到達**（`stop_reason: "max_tokens"`）の場合は出力が途中で切れる。どちらも200 OKで返ってくるため、`stop_reason`の確認を必須処理に組み込む設計が必要だ。
+
+**grammarキャッシュ**: 初回コンパイルに100〜300msのレイテンシが上乗せされるが、同じスキーマ構造のリクエストは24時間キャッシュが効く。キャッシュ無効化のトリガーはスキーマ構造の変更と厳密ツール名の変更で、`description`フィールドの変更はキャッシュに影響しない。スキーマを頻繁に変更するデプロイパイプラインでは、このキャッシュ動作を意識した変更管理が必要になる。
+
+**JSON outputs + strict tool useの組み合わせ**: 両機能を同一リクエストで併用すれば、ツール呼び出しの引数と最終応答の両方をスキーマ準拠にできる。なお`tool_choice: "none"`の場合のみ`output_config.format`が効果を持つ点に注意が必要だ。
+
+**PHIの扱い**: JSON schema自体はZero Data Retention（ZDR）の対象外となる（24時間のgrammarキャッシュに保持される）。HIPAA適用対象システムでは、PHIをschema定義（`description`フィールドを含む）に含めてはならない。PHIはmessage contentにのみ含める設計にする。
+
+現在のサポートモデルはClaude Opus 4.8、Opus 4.7、Sonnet 4.6、Haiku 4.5以降で、Amazon BedrockおよびVertex AIでも利用可能だ。
+
+## スキーマ設計の制約——20ツール上限とoptional parameter制限
+
+> strict tool useは1リクエスト20ツール・optional parameter 24件・union type 16件の上限があり、大規模エージェント構成では設計段階からの考慮が不可欠です。
+
+エンタープライズ規模のエージェントでよく直面するのが、strict tool useの複雑性上限だ。
+
+| 制約項目 | 上限値 |
+|---|---|
+| strict tool use 数 | 20ツール/リクエスト |
+| optional parameter 数（全スキーマ合計） | 24件 |
+| union type parameter 数（全スキーマ合計） | 16件 |
+| grammar compilationタイムアウト | 180秒 |
+
+**サポートされるJSON schema機能と非サポートの一覧**:
+
+```
+✓  基本型: object / array / string / integer / number / boolean / null
+✓  enum, const, anyOf, allOf（制限あり）
+✓  $ref と $defs（外部参照不可）
+✓  文字列フォーマット: date-time, date, email, uuid, uri, ipv4, ipv6
+✓  minItems: 0 または 1 のみ
+✗  数値制約: minimum / maximum / multipleOf
+✗  文字列長: minLength / maxLength
+✗  複雑な配列制約
+✗  再帰スキーマ
+✗  additionalProperties: true（falseのみ可）
+```
+
+**ツール数が20を超える場合**: ツールをドメイン別に分割し、エージェント単位でコンテキストに渡すツールセットを絞り込む。サブエージェントにツールセットを分担させる[サブエージェント・オーケストレーション](/blog/subagent-orchestration-design-patterns/)パターンが有効で、各サブエージェントが20以下のツールセットを担当する構成にする。
+
+**optional parameterが多い場合**: 任意フィールドを別のツールに分割するか、JSON Stringとして渡してアプリ側でパースする回避策がある。後者はstrict保証が部分的に外れるトレードオフを伴うため、設計意図を明文化しておく必要がある。
+
+**union type（anyOf）のコスト**: grammar compilationコストが高く、union type 1件あたりの制約消費が大きい。設計段階で`anyOf`を極力`enum`や具体型に置き換え、union typeを使う箇所を最小限にする。
+
+Python/TypeScript SDKを経由してスキーマを送ると、SDKが非サポート制約を自動除去し、`description`にその情報を付記する。ただし自動変換後の挙動が意図通りか検証テストを書いておくことを強く推奨する。
+
+## tool useのコスト計装——モデル別トークン消費とLLMゲートウェイ統制
+
+> Claude Opus 4.8のtool_choice: autoでは290トークンのシステムプロンプトが自動追加される。tool定義・tool_useブロック・tool_resultブロックもすべて入力トークンとして課金される。
+
+tool useリクエストのコストは4層構造になっている。
+
+1. **tool定義トークン**: `tools`パラメータに含まれるname・description・schemaのトークン数
+2. **tool use system prompt**: モデルがtool useを理解するために自動追加されるプロンプト（モデル・tool_choiceで異なる）
+3. **tool_useブロック**: LLMが生成するツール呼び出しブロック（出力トークン）
+4. **tool_resultブロック**: アプリが返す実行結果（次ターンの入力トークン）
+
+主要モデルのtool use system promptトークン数（少なくとも1つのtoolを提供した場合）:
+
+| モデル | tool_choice: auto/none | tool_choice: any/tool |
+|---|---|---|
+| Claude Opus 4.8 | 290トークン | 410トークン |
+| Claude Sonnet 4.6 | 497トークン | 589トークン |
+| Claude Haiku 4.5 | 496トークン | 588トークン |
+
+Opusが最もシステムプロンプトトークン数が少ない点は設計上の注意点だ。**tool定義のdescriptionが長いほど入力トークンが増える**ため、descriptionは要点を絞った必要最低限の記述にする。特にツール数が多い構成では、descriptionの1文が全リクエストのコストに積み重なる。
+
+**LLMゲートウェイとの統合**: 複数チームが独自ツールセットを持つ大規模構成では、LLMゲートウェイでtool定義の標準化・バリデーション・トークンコスト計装を集約する。各チームのtool定義をゲートウェイ層で一元管理することで、ツール名衝突の防止・コスト配賦の部門別集計・禁止ツールのポリシー適用が可能になる。詳細な構成は[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)を参照してほしい。
+
+エンタープライズ規模でのtool use設計・ガバナンス基盤の構築については、[KuuのRDEサービス](https://kuucorp.com/services/rde/)でアーキテクチャ支援を提供している。
+
+## 参考
+
+- [Structured outputs — Claude API Docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+- [Tool use overview — Claude API Docs](https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview)
+
+## まとめ
+
+LLMのtool use設計で押さえるべきポイントは4点だ。①descriptionはLLMのツール選択判断根拠になるため「いつ・なぜ使うか」を含める。②strict tool useはgrammar compilationによりスキーマ準拠を保証するが、20ツール・optional parameter 24件の上限を設計段階で考慮する。③safety refusalとmax_tokens超過は`stop_reason`で検出し必須処理として実装する。④tool定義のdescriptionとtool use system promptトークンがコストの変数になるため、LLMゲートウェイで計装して部門配賦に接続する。
+
+大規模マルチチーム構成でのtool定義標準化やガバナンス基盤の設計については、[KuuのRDEサービス](https://kuucorp.com/services/rde/)にご相談ください。
