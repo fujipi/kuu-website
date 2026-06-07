@@ -1,0 +1,106 @@
+---
+title: "MCPサーバーのOAuth 2.1認可フロー——スコープ設計指針"
+description: "MCPはOAuth 2.1とResource Indicators（RFC 8707）を2026年仕様で必須化した。スコープ段階付与・トークン束縛・PKCEフローの設計をMCP仕様原文に基づいて解説する。"
+date: "2026-06-07"
+lastModified: "2026-06-07"
+tags: ["MCP", "OAuth 2.1", "認可設計", "プロトコル"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://modelcontextprotocol.io/specification/draft/basic/authorization"
+  - "https://www.rfc-editor.org/rfc/rfc8707.html"
+pillar: "ai-governance"
+---
+
+MCPサーバーを本番に持ち込む段階で、認可設計の選択肢が複数あることに気づき実装が止まる。Dynamic Client RegistrationとClient ID Metadata Documents、どちらが適切か。スコープをどう粒度で設計し、トークン有効期限切れにどう対応するか。MCP仕様（2026年時点のdraft）はOAuth 2.1を基盤に、これらすべての設計判断に規範的な答えを与えている。
+
+[MCP（Model Context Protocol）](/glossary/mcp/)の認可仕様は[エージェントガバナンス](/glossary/agent-governance/)の技術基盤として位置づけられる。サーバー実装の基礎については[MCPサーバー実装ガイド](/blog/mcp-server-implementation-tool-design/)も参照してほしい。
+
+## MCPの認可モデル——OAuth 2.1が前提となった理由
+
+> MCPの認可はOAuth 2.1 draftを必須標準とし、HTTPトランスポートでの保護リソースアクセスを規定する。STDIOでは環境変数から認証情報を取得する別経路を設ける。
+
+OAuth 2.1が採用された理由は明快だ。OAuth 2.0の実装で頻発したImplicit FlowやResource Owner Password Credentials Flowのセキュリティ上の問題をゼロにするため、OAuth 2.1ではPKCE（Proof Key for Code Exchange）が全フローで必須化され、安全でないフローは廃止された。MCPサーバーが外部に公開されるエージェント基盤である以上、アクセストークン詐取リスクには設計段階で対処する必要がある。
+
+MCP認可アーキテクチャのロールは3つだ。**MCPサーバー**はOAuth 2.1リソースサーバーとして機能しアクセストークンを検証する。**MCPクライアント**はリソースオーナーを代行してリクエストを行うOAuth 2.1クライアントだ。**認可サーバー**はトークンを発行する独立エンティティで、MCPサーバーと同居することも分離することもできる。
+
+## Protected Resource MetadataとAuthorization Server Discovery
+
+> MCPサーバーはRFC 9728に準拠したProtected Resource Metadataを必須実装し、クライアントがこのメタデータを起点に認可サーバーを自動発見する。
+
+MCPクライアントがトークンなしでリクエストを送ると、MCPサーバーは`HTTP 401 Unauthorized`を返す。このレスポンスの`WWW-Authenticate`ヘッダーには`resource_metadata`パラメーターが含まれており、クライアントはそのURLに問い合わせてProtected Resource Metadataドキュメントを取得する。これが認可サーバー発見フローの起点だ。
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource",
+                         scope="files:read"
+```
+
+Protected Resource Metadataの`authorization_servers`フィールドから認可サーバーのエンドポイントを特定し、MCP仕様が要求する2つのディスカバリーメカニズム（OAuth 2.0 Authorization Server Metadata [RFC 8414] と OpenID Connect Discovery 1.0）でメタデータを取得する。クライアントは両方に対応しなければならない。
+
+クライアント登録の経路は優先度順に以下の3つだ。
+
+1. **Client ID Metadata Documents（推奨）**: クライアントはHTTPS URLを`client_id`として使用し、認可サーバーがそのURLからJSONメタデータを取得する。
+2. **事前登録（Pre-registered client）**: 既存のクライアントIDを使用する。
+3. **Dynamic Client Registration（RFC 7591）**: 後方互換のために残されているが非推奨。
+
+## スコープ設計の最小権限戦略
+
+> MCPのスコープ選択はWWW-Authenticateヘッダーのscope値を最優先とし、段階付与フローで必要最小限の権限を逐次取得する設計が基本だ。
+
+仕様が定めるスコープ選択の優先順位は2段階だ。まず401レスポンスの`WWW-Authenticate`ヘッダーに`scope`パラメーターがある場合はそれを使用する。なければProtected Resource Metadataの`scopes_supported`に列挙されたすべてのスコープを要求する。`scopes_supported`はMCPサーバーの基本機能に最低限必要なスコープセットを表す設計が推奨される。
+
+スコープのネーミング規則として`files:read`・`files:write`・`users:admin`のように**リソース:アクション**形式を採用すると、403レスポンスでの不足スコープの明示とクライアント側のパースが容易になる。スコープ不足時のレスポンス例：
+
+```http
+HTTP/1.1 403 Forbidden
+WWW-Authenticate: Bearer error="insufficient_scope",
+                         scope="files:write",
+                         resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource",
+                         error_description="File write permission required for this operation"
+```
+
+設計上の落とし穴として、スコープを細かく分割しすぎて単一操作に必要なスコープを複数の403ラウンドトリップで取得させてしまうパターンがある。MCP仕様は「現在の操作に必要なすべてのスコープを1回のチャレンジで返すべき」と明記している。クライアント側はStep-Up Authorization Flowを実装し、受け取ったスコープと過去に取得済みのスコープの和集合を計算して再認可リクエストを発行する。
+
+## Resource Indicatorsによるトークン束縛
+
+> MCPクライアントはRFC 8707のresourceパラメーターを認可・トークンリクエスト両方に必須で含め、トークンが特定サーバーだけに有効であることを保証する。
+
+Resource Indicators（RFC 8707）はMCP認可設計において特に重要な仕様だ。`resource`パラメーターにMCPサーバーの正規URIを指定することで、そのトークンが指定サーバー以外では使用不可能になる。複数のMCPサーバーが存在する環境でのトークン流用攻撃の防止に直結する。
+
+```
+# Authorization request
+...&resource=https%3A%2F%2Fmcp.example.com&code_challenge=...
+
+# Token request
+resource=https://mcp.example.com&code_verifier=...
+```
+
+正規URIの構成ルール：httpsスキーム＋ホスト＋必要に応じてパスの形式を使用する。フラグメント（`#`以降）は含めない。末尾スラッシュなしの形式（`https://mcp.example.com`）を推奨する。
+
+MCPサーバー（リソースサーバー）はトークン受信時に以下の項目を検証する義務がある。
+
+- 署名またはトークンイントロスペクションによる正当性確認
+- 発行者（issuer）の一致
+- 有効期限（expiry）のチェック
+- オーディエンス（audience）バインディング確認
+- Resource Indicators（RFC 8707）によるリソース束縛確認
+- スコープの十分性
+- 失効ステータス（サポートする場合）
+
+検証失敗は`HTTP 401`を返す。スコープ不足は`HTTP 403`を返し必要スコープを`WWW-Authenticate`ヘッダーに明示する。不正な認可リクエストは`HTTP 400`を返す。
+
+エンタープライズ規模のMCPサーバー基盤設計・社内認可サーバーとのOAuth 2.1統合・複数チームへのデプロイ体制については[KuuのRDEサービス](https://kuucorp.com/services/rde/)が支援している。
+
+## 参考
+
+- [Authorization — Model Context Protocol Specification](https://modelcontextprotocol.io/specification/draft/basic/authorization)
+- [Resource Indicators for OAuth 2.0 — RFC 8707](https://www.rfc-editor.org/rfc/rfc8707.html)
+
+## まとめ
+
+MCPサーバーのOAuth 2.1認可設計は5要素で構成される。①Protected Resource Metadata（RFC 9728）の実装、②PKCE必須のAuthorization Code Flow、③Client ID Metadata Documents優先のクライアント登録、④Resource Indicators（RFC 8707）によるトークン束縛、⑤Step-Up Authorization Flowによるスコープの段階付与だ。これらを正しく組み合わせることで、エージェントが正規のMCPサーバーにのみアクセスできる安全な認可基盤が完成する。
+
+認可設計・企業内認可サーバーとの統合・マルチテナントMCPデプロイに課題を感じている場合は、[KuuのRDEサービス](/services/rde/)にご相談ください。
