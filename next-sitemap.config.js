@@ -25,7 +25,13 @@ const config = {
 	sitemapSize: 5000,
 	// /case-studies/* は Case へ統合済み。リダイレクト用スタブのみ残るため
 	// sitemap からは除外（noindex 設定済み）。
-	exclude: ["/case-studies", "/case-studies/*"],
+	exclude: [
+		"/case-studies",
+		"/case-studies/*",
+		// 旧 /authors/fujihira-kento/ は /about/ へのリダイレクトスタブ（noindex）。
+		"/authors/fujihira-kento",
+		"/authors/fujihira-kento/*",
+	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {
 		additionalSitemaps: ["https://kuucorp.com/sitemap.xml"],

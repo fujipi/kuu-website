@@ -207,7 +207,7 @@ export const BASE_ORG = {
 		"@type": "Person",
 		name: "藤平 賢人",
 		jobTitle: "Kuu株式会社 代表取締役",
-		url: `${BASE_URL}/authors/fujihira-kento/`,
+		url: `${BASE_URL}/about/`,
 	},
 	sameAs: [`${BASE_URL}/about/`],
 	numberOfEmployees: {
