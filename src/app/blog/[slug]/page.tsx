@@ -5,13 +5,19 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import ReadingTime from "@/components/ReadingTime";
+import Redirect from "@/components/Redirect";
 import Stars from "@/components/Stars";
 import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
+import { BLOG_REDIRECTS } from "@/lib/blog-redirects";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
 import { readingTimeMinutes } from "@/lib/readingTime";
-import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
 
@@ -20,12 +26,26 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-	const slugs = getAllPostSlugs();
-	return slugs.map((slug) => ({ slug }));
+	const slugs = new Set([...getAllPostSlugs(), ...Object.keys(BLOG_REDIRECTS)]);
+	return [...slugs].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { slug } = await params;
+	const redirectTarget = BLOG_REDIRECTS[slug];
+	if (redirectTarget) {
+		const to = `/blog/${redirectTarget}/`;
+		return {
+			...seoMetadata({
+				title: "記事を移動しました",
+				description:
+					"この記事は統合されました。最新の内容は移動先の記事をご覧ください。",
+				path: `/blog/${slug}/`,
+			}),
+			alternates: { canonical: `${BASE_URL}${to}` },
+			robots: { index: false, follow: true },
+		};
+	}
 	const post = getPostBySlug(slug);
 	if (!post) {
 		return { title: "記事が見つかりません" };
@@ -210,6 +230,21 @@ function mdToHtml(md: string, idMap?: Map<string, string>): string {
 
 export default async function BlogPostPage({ params }: Props) {
 	const { slug } = await params;
+
+	const redirectTarget = BLOG_REDIRECTS[slug];
+	if (redirectTarget) {
+		return (
+			<>
+				<Stars />
+				<Header navLinks={getMainNav()} />
+				<main>
+					<Redirect to={`/blog/${redirectTarget}/`} />
+				</main>
+				<Footer />
+			</>
+		);
+	}
+
 	const post = getPostBySlug(slug);
 
 	if (!post) {

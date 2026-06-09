@@ -162,7 +162,7 @@ export default function ManagedAgentsPillarPage() {
 	const allPosts = getAllPosts();
 	const relatedSlugs = [
 		"ai-agent-managed-intro",
-		"managed-agents-cost-benefit",
+		"ai-investment-cost-guide",
 		"agent-governance-framework",
 		"ai-agent-roi-measurement",
 		"multi-agent-architecture-sme",
@@ -390,8 +390,8 @@ export default function ManagedAgentsPillarPage() {
 						<p>
 							Kuuのプラン別料金は <Link href="/contact/">無料相談</Link>{" "}
 							でご案内します。詳細な費用対効果は{" "}
-							<Link href="/blog/managed-agents-cost-benefit/">
-								Managed Agents の費用対効果
+							<Link href="/blog/ai-investment-cost-guide/">
+								AI導入のコストと費用対効果
 							</Link>{" "}
 							で解説しています。
 						</p>

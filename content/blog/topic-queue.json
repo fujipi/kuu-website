@@ -62,7 +62,8 @@
       "title_hint": "Managed Agentsで月いくらかかる？コストと得られる価値の正直な話",
       "persona": "AI投資対効果を経営会議で説明しなければならない中小企業の経営者",
       "service_link": "/services/ai-ops/",
-      "status": "published"
+      "status": "consolidated",
+      "redirect_to": "ai-investment-cost-guide"
     },
     {
       "slug": "ai-agent-roi-measurement",
@@ -102,7 +103,8 @@
       "title_hint": "DXとAXは何が違うのか——デジタル変革とエージェント変革を整理する",
       "persona": "DX推進の次のステップを探している中小企業の経営企画担当者",
       "service_link": "/services/ax-dx/",
-      "status": "published"
+      "status": "consolidated",
+      "redirect_to": "ax-vs-dx-comprehensive"
     },
     {
       "slug": "business-automation-starting-point",
@@ -556,7 +558,8 @@
       "title_hint": "AIチャットボットの顧客対応費用はいくら？初期・月額・回収期間を解説",
       "persona": "AIチャットボット導入の費用感を把握したい中小企業のIT担当者・経営者",
       "service_link": "/services/ax-dx/",
-      "status": "published"
+      "status": "consolidated",
+      "redirect_to": "ai-investment-cost-guide"
     },
     {
       "slug": "sme-dx-success-guide",
@@ -644,7 +647,8 @@
       "title_hint": "AIエージェントの運用コストを抑える——中小企業のためのコスト最適化5施策",
       "persona": "AIエージェント運用コストの増大に悩む中小企業のIT担当者・経営者",
       "service_link": "/services/ai-ops/",
-      "status": "published"
+      "status": "consolidated",
+      "redirect_to": "ai-investment-cost-guide"
     },
     {
       "slug": "ai-agent-prompt-injection-defense",
@@ -652,7 +656,8 @@
       "title_hint": "AIエージェントへのプロンプトインジェクション攻撃——中小企業が実装すべき5つの防御策",
       "persona": "IT担当・セキュリティ担当（中小企業でAIシステムのセキュリティを担当する人）",
       "service_link": "/services/ai-ops/",
-      "status": "published"
+      "status": "consolidated",
+      "redirect_to": "prompt-injection-layered-defense-architecture"
     },
     {
       "slug": "shadow-ai-countermeasures-enterprise",
