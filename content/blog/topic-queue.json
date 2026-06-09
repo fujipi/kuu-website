@@ -691,6 +691,23 @@
         "https://www.anthropic.com/engineering/building-effective-agents",
         "https://www.confluent.io/blog/the-future-of-ai-agents-is-event-driven/"
       ]
+    },
+    {
+      "slug": "function-calling-structured-output-tool-design",
+      "keyword": "Function calling 構造化出力 ツール定義 設計",
+      "title_hint": "Function callingのツール定義——JSON Schemaと構造化出力の設計要点",
+      "persona": "マルチエージェント構成を設計するバックエンド／プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "status": "published",
+      "audience": "both",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "Function callingとJSON Schemaでツールを定義・設計するにはどうすればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/tool-use/implement-tool-use",
+        "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+        "https://www.anthropic.com/engineering/writing-tools-for-agents"
+      ]
     }
   ],
   "keyword_bank": {
