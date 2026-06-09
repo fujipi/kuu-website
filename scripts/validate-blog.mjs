@@ -28,6 +28,8 @@
  *
  * 警告（warning、exit 0 のまま report のみ）:
  *   - 本文中の /services/ リンク欠落（既存に 2 件存在するため hard にしない）
+ *   - 近接重複（near_duplicate）: title 文字 bigram 類似・共有タグ・target_query 一致で
+ *     既存記事とテーマ重複する新規記事を警告。NEAR_DUP_ALLOWLIST で併存ペアを除外。
  *
  * 不採用（CLAUDE.md「バリデーション基準」には残るが機械 gate にしない）:
  *   - 本文 1,600〜2,400字（既存 50 件が範囲外。深い技術記事は超過する）
@@ -35,7 +37,8 @@
  *   - frontmatter audience / track / tech_depth / sources 必須化（移行前の旧 93 記
  *     事は未設定で blog-coverage-report.mjs もヒューリスティック分類している）
  *   - Direct-Answer Block 40-60字（既存に逸脱多数。誤検知リスク高）
- *   - 意味的重複検出（誤検知リスク高、AI 判定が必要）
+ *   - 本文レベルの意味的重複検出（誤検知リスク高、AI 判定が必要）。ただし
+ *     title/タグ/target_query ベースの近接重複は warning として採用（上記「警告」）。
  *
  * fictional チェック・実在企業 deny-list は Blog では入れない（Blog は実在企業を正当
  * に論評するメディアで、Case とはスコープが逆。詳細は本ファイル末尾 NOTE 参照）。
@@ -71,6 +74,18 @@ const BANNED_PHRASES = [
 	"いかがでしたでしょうか",
 ];
 
+/**
+ * 意図的に併存させる近接記事ペア（読者層・切り口が明確に異なるもの）。
+ * near_duplicate 警告から除外する。順序非依存。
+ */
+const NEAR_DUP_ALLOWLIST = new Set(
+	[
+		["agent-governance-framework", "agent-governance-checklist"],
+		["ai-risk-management-sme", "ai-risk-assessment-template"],
+		["ai-agent-roi-measurement", "ai-agent-evaluation-kpi"],
+	].map((pair) => pair.slice().sort().join("|")),
+);
+
 const files = fs
 	.readdirSync(BLOG_DIR)
 	.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"));
@@ -79,6 +94,7 @@ const violations = []; // { file, kind, message }
 const warnings = []; // 同じ shape
 
 const seenSlugs = new Map(); // slug -> first file
+const metas = []; // { slug, title, tags, targetQuery } — near_duplicate 検出用
 
 for (const file of files) {
 	const slug = file.replace(/\.(mdx|md)$/, "");
@@ -108,6 +124,14 @@ for (const file of files) {
 	}
 
 	const { data, content } = parsed;
+
+	metas.push({
+		slug,
+		title: typeof data.title === "string" ? data.title : "",
+		tags: Array.isArray(data.tags) ? data.tags : [],
+		targetQuery:
+			typeof data.target_query === "string" ? data.target_query : "",
+	});
 
 	// (1) 必須 frontmatter
 	if (typeof data.title !== "string" || data.title.length === 0) {
@@ -201,6 +225,49 @@ for (const file of files) {
 			kind: "no_service_link",
 			message: `本文に /services/ への内部リンクが無い（新規生成では 1 個以上推奨）。`,
 		});
+	}
+}
+
+// 近接重複検出（warning のみ・exit 1 にしない）。新規生成が既存記事とテーマ重複して
+// いないかを機械的に警告する。誤検知リスクと正当な併存ペアがあるため hard gate には
+// せず、除外は NEAR_DUP_ALLOWLIST で行う。タイトルは日本語なので文字 bigram で比較する。
+function titleBigrams(s) {
+	const chars = (s || "")
+		.toLowerCase()
+		.replace(/[\s「」『』（）()、。・:：,.\-—_　/]/g, "");
+	const grams = [];
+	for (let i = 0; i < chars.length - 1; i++) grams.push(chars.slice(i, i + 2));
+	return grams;
+}
+function jaccard(a, b) {
+	const A = new Set(a);
+	const B = new Set(b);
+	if (A.size === 0 || B.size === 0) return 0;
+	let inter = 0;
+	for (const x of A) if (B.has(x)) inter++;
+	return inter / (A.size + B.size - inter);
+}
+for (let i = 0; i < metas.length; i++) {
+	for (let j = i + 1; j < metas.length; j++) {
+		const a = metas[i];
+		const b = metas[j];
+		if (NEAR_DUP_ALLOWLIST.has([a.slug, b.slug].sort().join("|"))) continue;
+		const titleSim = jaccard(titleBigrams(a.title), titleBigrams(b.title));
+		const sharedTags = a.tags.filter((t) => b.tags.includes(t)).length;
+		const sameQuery = Boolean(a.targetQuery) && a.targetQuery === b.targetQuery;
+		// 日本語タイトルの文字 bigram Jaccard は同一テーマでも 0.3 前後で頭打ちのため、
+		// 実コーパスで較正した 0.27 を閾値にする（無関係ペアは 0.26 以下に収まる）。
+		if (titleSim >= 0.27 || sameQuery) {
+			warnings.push({
+				file: `${a.slug}.mdx`,
+				kind: "near_duplicate",
+				message: `「${b.slug}」とテーマ高類似（title類似=${titleSim.toFixed(
+					2,
+				)}, 共有タグ=${sharedTags}${
+					sameQuery ? ", target_query一致" : ""
+				}）。新規なら既存記事の更新に切替、正当な併存なら NEAR_DUP_ALLOWLIST に追加。`,
+			});
+		}
 	}
 }
 

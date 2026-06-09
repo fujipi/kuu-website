@@ -144,7 +144,7 @@ const jsonLd = [
 export default function FdePillarPage() {
 	const allPosts = getAllPosts();
 	const relatedSlugs = [
-		"ax-dx-difference-guide",
+		"ax-vs-dx-comprehensive",
 		"agent-governance-framework",
 		"why-agent-governance",
 		"ai-agent-managed-intro",

@@ -31,6 +31,17 @@ const config = {
 		// 旧 /authors/fujihira-kento/ は /about/ へのリダイレクトスタブ（noindex）。
 		"/authors/fujihira-kento",
 		"/authors/fujihira-kento/*",
+		// 近接重複により統合した旧 blog 記事は /blog/<canonical>/ へのリダイレクトスタブ（noindex）。
+		"/blog/ax-dx-difference-guide",
+		"/blog/iso-42001-ai-management-sme",
+		"/blog/shadow-ai-detection-governance",
+		"/blog/agent-observability-evaluation-log",
+		"/blog/ai-agent-prompt-injection-defense",
+		"/blog/managed-agents-cost-benefit",
+		"/blog/ai-chatbot-customer-support-cost",
+		"/blog/ai-agent-cost-optimization-sme",
+		"/blog/agent-online-evaluation-production-sampling",
+		"/blog/chatgpt-usage-policy-template",
 	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {
