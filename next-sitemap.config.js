@@ -41,6 +41,7 @@ const config = {
 		"/blog/ai-chatbot-customer-support-cost",
 		"/blog/ai-agent-cost-optimization-sme",
 		"/blog/agent-online-evaluation-production-sampling",
+		"/blog/chatgpt-usage-policy-template",
 	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {

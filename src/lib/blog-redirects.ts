@@ -17,4 +17,6 @@ export const BLOG_REDIRECTS: Record<string, string> = {
 	// 本番オンライン評価の自動生成重複（新しく本数の多い方を canonical に）。
 	"agent-online-evaluation-production-sampling":
 		"online-evaluation-production-traffic-sampling",
+	// 生成AI利用規程テンプレート（汎用版が ChatGPT 特化版を包含）。
+	"chatgpt-usage-policy-template": "ai-usage-policy-template-sme",
 };

@@ -83,8 +83,6 @@ const NEAR_DUP_ALLOWLIST = new Set(
 		["agent-governance-framework", "agent-governance-checklist"],
 		["ai-risk-management-sme", "ai-risk-assessment-template"],
 		["ai-agent-roi-measurement", "ai-agent-evaluation-kpi"],
-		// 生成AI利用規程（汎用・7条項）と ChatGPT特化（3条項）は狙う検索KWが異なるため併存。
-		["ai-usage-policy-template-sme", "chatgpt-usage-policy-template"],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 
