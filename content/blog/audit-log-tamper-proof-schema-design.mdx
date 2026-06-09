@@ -1,0 +1,115 @@
+---
+title: "監査ログのスキーマと改ざん防止——HMAC・WORM・署名の実装"
+description: "AIエージェント基盤の監査ログをどうスキーマ設計し、改ざん防止するか。HMACハッシュチェーン・WORM・KMS署名を組み合わせた多層防御の実装指針をエンタープライズ向けに解説。"
+date: "2026-06-07"
+lastModified: "2026-06-07"
+tags: ["監査ログ", "AIエージェント", "改ざん防止", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "governance-tech"
+tech_depth: "deep"
+sources:
+  - "https://tracehold.ai/blog/immutable-audit-log-hmac-hash-chain/"
+  - "https://microsoft.github.io/agent-governance-toolkit/tutorials/04-audit-and-compliance/"
+  - "https://nono.sh/blog/secure-agent-audit"
+  - "https://cloudsecurityalliance.org/blog/2025/05/08/iso-42001-lessons-learned-from-auditing-and-implementing-the-framework"
+pillar: "ai-governance"
+---
+
+エンタープライズのAIエージェント基盤でインシデントが発生したとき、「何が起きたか」を法的に証明できるか——それはログが「ある」だけでは足りない。記録が改ざんされていれば、その監査ログは内部統制の証拠にも法的証拠にもならない。改ざん防止は後付けでは不可能な設計判断であり、スキーマ設計と多層防御を最初から同時に決定しなければならない。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツと連動しています。
+
+## 監査ログのスキーマ設計原則
+
+> AIエージェント監査ログには12フィールドが最低要件で、canonical string（正規化連結文字列）を設計初期に凍結することがハッシュチェーンの前提条件です。
+
+Microsoft Agent Governance Toolkitのスキーマ仕様とTracehold社の実装分析に基づき、各エントリには以下のフィールドを定義する。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `entry_id` | UUID | 一意識別子 |
+| `sequence_number` | 単調増加整数 | チェーン順序の基準（組織単位） |
+| `timestamp` | UTC datetime | イベント発生時刻（ISO 8601） |
+| `event_type` | enum | `tool_invocation` / `policy_violation` / `approval_gate` 等 |
+| `agent_did` | DID | エージェントの分散識別子 |
+| `action` | enum | `allow` / `deny` / `audit` / `quarantine` |
+| `resource` | string | アクセス対象リソース |
+| `outcome` | enum | `success` / `failure` / `denied` / `error` |
+| `trace_id` | UUID | 分散トレーシング連携用 |
+| `prev_entry_hash` | hex string | 直前エントリのHMAC値 |
+| `entry_hash` | hex string | 本エントリのHMAC値 |
+| `hmac_schema_version` | semver | canonical stringの版管理 |
+
+設計上の最重要判断が**canonical stringの凍結**だ。canonical stringは各フィールドの値をデリミタで連結した文字列で、HMACの入力原材料となる。一度デプロイした後にフィールドを追加・変更すると既存チェーン全体が無効化される。スキーマ変更が必要になったときは `hmac_schema_version` をインクリメントし、新旧チェーンを別テーブルで管理するマイグレーション設計が必要だ。
+
+コンプライアンス要件が高い環境では、PII（個人情報）を本テーブルに直接格納せず、別の `audit_content` テーブルにAES-256で暗号化して保持し、本テーブルにはハッシュ参照のみを置く設計も有効だ。コンプライアンス担当者はコンテンツを復号せずにアクセスパターンを監査できる。
+
+## HMACハッシュチェーンによる改ざん検知
+
+> HMACハッシュチェーンは `chain[i] = HMAC(key, entry[i] ‖ chain[i-1])` の構造で、1エントリの改ざんが後続するすべてのハッシュを無効化します。
+
+Tracehold社の実装分析が示すハッシュ計算手順は以下の通りだ。
+
+1. **アドバイザリーロック取得**: `pg_advisory_xact_lock(org_id)` を取得し、並列追記によるチェーン分岐を防ぐ。ロックはトランザクション単位で組織ごとに取得する
+2. **直前ハッシュの取得**: `sequence_number` の最大値のエントリから `entry_hash` を取得する（先頭エントリはジェネシス定数を使用）
+3. **canonical string構築**: `seq|ts|event_type|agent_did|action|resource|outcome|trace_id|prev_hash` を固定デリミタで連結
+4. **HMAC計算**: `entry_hash = HMAC-SHA256(hmac_key, canonical_string)` を計算してエントリとともに格納
+
+**検証フロー**: 検証ジョブはエントリを `sequence_number` 昇順に走査し、各エントリのcanonical stringを `hmac_schema_version` に対応した関数で再構築してHMACを再計算する。初めて不一致が発生した `sequence_number` が改ざん境界を示す。
+
+HMAC-SHA256を採用する理由は鍵を持たない第三者がHMACを再計算できないためで、SQLアクセス権限を持つインサイダーへの耐性を確保できる。ただしHMACキー自体が侵害された場合はチェーンを再構築できてしまう。そのため後述のKMS署名と組み合わせてキー管理を分離する設計が必要だ。
+
+データベーストリガーでUPDATE/DELETEを禁止するレイヤーも組み合わせることで、アプリケーションコードを迂回したSQL直接操作への対策を多重化できる。
+
+## WORMストレージとKMS署名の多層防御
+
+> WORMはストレージ層、HMACはアプリ層、KMS署名はキー管理層で改ざんをブロックし、単一侵害点を排除する3層アーキテクチャです。
+
+nono.shのセキュアエージェント監査実装が示す通り、3層の多層防御が本番環境の実践的設計だ。
+
+**Layer 1: HMACハッシュチェーン（アプリケーション層）**
+上述の手法。SQLアクセス権限を持つインサイダーへの対策。HMACキーはKMSで管理し、アプリケーションプロセス内でのみマテリアライズして使用後はゼロフィルする。
+
+**Layer 2: WORMストレージ（ストレージ層）**
+S3 Object Lock（Compliance mode）やNetApp SnapLockのようなWORMストレージを使い、ログオブジェクトの上書き・削除を物理的に禁止する。ISO 42001の技術統制要件（A.6.1）およびSOC 2 CC7.2のログ不変性要件への適合に直結する。アーカイブストレージへのコールドティアリング設定と組み合わせることでコストを制御できる。
+
+**Layer 3: Merkleルートのアンカリング（定期検証層）**
+nono.shの実装が採用するMerkleツリーアーキテクチャでは、全エントリをリーフノードとして構成したMerkleルートをKMSで署名し、定期的に外部ストアへアンカリングする。外部監査員はO(log n)のMerkle proofで特定エントリの存在を確認できるため、ログ全量を渡さずに検証可能だ。
+
+DSSE（Dead Simple Signing Envelope）を使った署名バンドルの保存も有効だ。MerkleルートへのPKCS#8署名をDSSE envelopeとして別ストアに格納し、侵害が上位の基盤コードに及ばない限りルートの偽造は計算量的に不可能にする。
+
+## 運用体制：自動検証とISO 42001対応
+
+> 夜間の自動検証ジョブがchain break検出とアラートを自動化することが、ISO 42001技術統制の実装証拠になります。
+
+**自動夜間検証ジョブ**
+
+Tracehold社の知見が示す通り、「暗号チェーンは誰かが整合性チェックを実行しなければ改ざん防止の証明にならない」。設計として必須なのは手動・四半期レビューではなく自動化された検証だ。夜間バッチで全チェーンを走査し、chain breakを検出したらPagerDutyやSlackへアラートを発砲する。中断したチェーン番号をインシデントとして記録し、フォレンジック調査のエントリポイントとする。
+
+**ISO 42001 / SOC 2技術統制との対応**
+
+Cloud Security Allianceのレポートが指摘するように、ISO 42001認証審査では「ポリシー文書だけでなく技術的証拠」が求められる。上記の多層防御実装は以下の統制要件に対応する。
+
+- **ISO 42001 A.6.1**（AIシステムのリスク対応記録）: WORM + HMACによる不変ログ
+- **SOC 2 CC7.2**（論理的アクセスのモニタリング）: `agent_did` + `event_type` によるエージェントアクセスログ
+- **EU AI Act Article 12**（高リスクAIシステムのログ要件）: `timestamp` と `trace_id` を含む完全トレース
+
+**マルチテナント環境での設計考慮**
+
+大企業の複数事業部・マルチテナント構成では、`sequence_number` と `pg_advisory_xact_lock` の取得をテナント（`org_id`）単位に分離し、チェーンの混在を防ぐ設計が必要だ。テナント横断のクエリが発生する場合は `org_id` を必ずパーティションキーとして検索に含め、チェーン検証もテナントごとに独立して実行する。
+
+監査ログ基盤の設計から既存プラットフォームへの組み込み、運用体制の整備まで一貫して対応が必要な場合は、Kuuの[エンタープライズAIガバナンス支援（RDE）](/services/rde/)をご活用ください。
+
+## 参考
+
+- [How to build an immutable audit log with HMAC hash chaining - Tracehold](https://tracehold.ai/blog/immutable-audit-log-hmac-hash-chain/)
+- [Audit & Compliance - Microsoft Agent Governance Toolkit](https://microsoft.github.io/agent-governance-toolkit/tutorials/04-audit-and-compliance/)
+- [What Really Happened In There? A Tamper-Evident Audit Trail for AI Agents - nono.sh](https://nono.sh/blog/secure-agent-audit)
+- [ISO 42001: Lessons Learned from Auditing and Implementing the Framework - CSA](https://cloudsecurityalliance.org/blog/2025/05/08/iso-42001-lessons-learned-from-auditing-and-implementing-the-framework)
+
+## まとめ
+
+AIエージェント基盤の監査ログは「存在する」だけでは不十分で、改ざん防止が技術的に証明できる設計でなければ内部統制の証跡として機能しない。HMACハッシュチェーンによるアプリケーション層の整合性保証、WORMストレージによる物理的な上書き禁止、Merkleルートのアンカリングによる外部検証可能性——この3層を組み合わせることで、ISO 42001・SOC 2・EU AI Actの技術統制要件に対応できる監査ログ基盤が構築できる。
+
+大規模なマルチテナント環境での監査ログ基盤の設計や運用体制の整備を検討している場合は、Kuuの[RDEサービス](/services/rde/)へお気軽にご相談ください。
