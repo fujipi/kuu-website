@@ -1,0 +1,146 @@
+---
+title: "Computer Use APIの実装設計——サンドボックスとIAMの構築パターン"
+description: "Claude Computer Use APIをエンタープライズ本番環境に乗せる際のサンドボックス分離・IAM・プロンプトインジェクション対策・監査ログ設計を実装パターンで解説します。"
+date: "2026-06-09"
+lastModified: "2026-06-09"
+tags: ["Computer Use", "エージェント設計", "サンドボックス", "セキュリティ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude Computer Use APIをエンタープライズ本番環境でどう設計・安全に運用するか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool"
+  - "https://www.anthropic.com/research/building-effective-agents"
+  - "https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo"
+pillar: "ai-governance"
+---
+
+APIを持たないレガシーシステムや社内ポータルをClaudeが直接操作するシナリオが、エンタープライズのエージェント設計において現実的な選択肢になっている。Claude Computer Use APIはスクリーンショット取得・マウス操作・キーボード入力のフィードバックループでデスクトップを制御するが、本番投入には「サンドボックス分離」「IAM」「プロンプトインジェクション対策」「監査ログ」を一体で設計しなければ実運用に耐えない。本稿ではその実装判断を整理する。
+
+## Computer Use APIと対応モデルの現状
+
+> Claudeのコンピューター使用はクライアントサイドのベータ機能で、ZDR（Zero Data Retention）対応によりエンタープライズのデータ保護要件を充足できます。
+
+Computer UseはAnthropicのAPIとして提供されるベータ機能で、Claudeが画面を「見て」次のアクションを推論するフィードバックループを持つ。従来のAPIインテグレーションとの決定的な違いは、Claudeがスクリーンショットを受け取るたびに「現在の画面状態」を判断材料として組み込む点だ。
+
+**対応モデルとベータヘッダー**
+
+最新ヘッダー `"computer-use-2025-11-24"` を使うと、Claude Opus 4.8/4.7/4.6、Claude Sonnet 4.6、Claude Opus 4.5でコンピューター使用が有効になる。Claude Opus 4.8では2,576ピクセルの高解像度ビジョンが統合されており、密度の高い業務UIでも座標精度が向上している。旧モデル（Sonnet 4.5、Haiku 4.5等）は `"computer-use-2025-01-24"` ヘッダーを使用する。
+
+エンタープライズで重要なのは本機能が**ZDR（Zero Data Retention）対応**である点だ。ZDR契約があればスクリーンショットを含むすべてのデータはAPIレスポンス返却後にAnthropicのインフラに残らない。規制業種での利用や機密画面の処理において、データ主権の要件を満たせる。スクリーンショット・マウスアクション・キーボード入力はすべてクライアント側の環境に留まり、Anthropicが保持しないことを仕様上確認しておく。
+
+## エージェントループの設計とツール定義
+
+> Computer Useエージェントの核心はスクリーンショット→推論→アクション→再スクリーンショットのループで、ツール定義は`computer_20251124`タイプで宣言し、ループ深度に上限を必ず設ける。
+
+ツール定義の基本形は次のとおりだ。
+
+```python
+response = client.beta.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=4096,
+    tools=[
+        {
+            "type": "computer_20251124",
+            "name": "computer",
+            "display_width_px": 1366,
+            "display_height_px": 768,
+            "display_number": 1,
+        },
+        {"type": "text_editor_20250728", "name": "str_replace_based_edit_tool"},
+        {"type": "bash_20250124", "name": "bash"},
+    ],
+    messages=[{"role": "user", "content": task}],
+    betas=["computer-use-2025-11-24"],
+)
+```
+
+`display_width_px` / `display_height_px` はClaudeが座標計算に使う解像度だ。実際のコンテナ解像度と一致させないと座標のズレが生じる。複数モニター構成は `display_number` で対象ディスプレイを指定する。
+
+**アクション種別**
+
+Computer Useツールが持つ主要アクションは次のとおり。
+
+| アクション | 説明 |
+|---|---|
+| `screenshot` | 現在の画面をキャプチャしClaudeに渡す |
+| `mouse_move` / `left_click` / `right_click` / `double_click` | マウス操作 |
+| `type` / `key` | テキスト入力・ショートカット |
+| `scroll` | スクロール |
+| `left_click_drag` | ドラッグ操作 |
+
+エージェントループの実装では、Claudeの応答が `tool_use` ブロックを含む間はアクションを実行し続け、`stop_reason: "end_turn"` で処理を終了するパターンが基本形だ。ループ深度はトークン消費とコストに直結するため、`max_turns` による上限設定は必須の設計判断となる。
+
+## サンドボックス分離とIAM——最小権限の実装
+
+> Computer UseエージェントはAPIを持たないレガシーシステム操作であっても専用コンテナで動作させ、ホストネットワークへのアクセスをデフォルト遮断することが本番運用の前提条件です。
+
+**コンテナ設計の原則**
+
+Anthropicの公式勧告に従い、Computer UseエージェントはAPIレスポンスなしの社内アプリへのアクセスであっても、専用コンテナ／VMで動作させる。エンタープライズ向けの推奨構成は次のとおりだ。
+
+1. **OSレベル分離**: Docker + gVisorなどを使いホストファイルシステムへのマウントを排除する。読み書き可能なパスをジョブ固有の一時ディレクトリに限定し、ジョブ終了後に破棄する
+2. **ネットワーク許可リスト**: コンテナのegressをAnthropicのAPIエンドポイントと業務対象システムのみに制限する。`--network=none` を起点として必要なエンドポイントのみ許可リスト化する
+3. **エフェメラルパターン**: マルチテナント環境ではテナントごとにコンテナを分離し、ジョブ完了後に環境ごと破棄することで状態の漏洩を防ぐ
+
+**IAMとシークレット管理**
+
+操作対象アプリの認証情報をエージェントのコンテキストに直接渡してはならない。ログイン操作が必要な場合は次のいずれかを選択する。
+
+- **Human-in-the-Loop認証**: 認証ステップでオペレーターに処理を委ね、セッション確立後にエージェントに制御を戻す
+- **シークレット注入**: Vault等のシークレットマネージャーからセッション直前に認証情報を注入し、スクリーンショットに露出しないよう設計する
+
+大規模なマルチチーム統制では、エージェントのツール実行ポリシーをOPA（Open Policy Agent）等で中央管理し、ジョブ種別ごとの許可アクションを宣言的に定義する方法が有効だ。[RDEサービス](/services/rde/)ではこの統制基盤の設計・構築を支援している。
+
+## プロンプトインジェクション対策と承認フロー
+
+> Anthropicはスクリーンショット上のインジェクション検出クラシファイアを自動実行するが、本番環境では多層防御と意味のある実世界の操作前のHuman-in-the-Loopが不可欠です。
+
+Computer UseはWebページや画像に埋め込まれた指示（プロンプトインジェクション）の影響を受けやすい。Anthropicはクラシファイアをスクリーンショット上で自動実行し、インジェクションを検出した場合にユーザー確認を求める仕組みを持つ。ただしこの保護はオプトアウト可能であり、またクラシファイアをすり抜けるケースもある。
+
+**設計上の多層対策**
+
+- **承認フロー**: 金融取引・フォーム送信・外部システムへの書き込みなど「意味のある実世界への影響」を持つアクションの前にHuman-in-the-Loopの承認ステップを必ず挟む
+- **ドメイン制限**: インターネットアクセスを許可するドメインをallowlistで絞り込み、未知サイトのコンテンツ経由のインジェクションリスクを最小化する
+- **センシティブ情報の排除**: スクリーンショットに個人情報・機密データが映り込まないよう、処理対象画面を最小化する設計にする
+- **コンテキスト汚染の検知**: エージェントループ内でClaudeが想定外のURLに遷移しようとした場合や、タスクスコープ外の操作を試みた場合に中断するガードを実装する
+
+[プロンプトインジェクションの多層防御アーキテクチャ](/blog/prompt-injection-layered-defense-architecture/)では、入力検証から出力監査までの全体像を別途解説している。
+
+## 監査ログと可観測性の設計
+
+> Computer Useの監査ログはスクリーンショットハッシュ・アクション種別・tool_use IDを含む構造化ログで記録し、コンプライアンス要件に合わせた保管期間とストレージ方針を定める。
+
+Computer UseはクライアントサイドのツールのためAnthropicにログが残らない。自インフラ上でのログ設計が必須だ。
+
+**構造化ログの最小スキーマ**
+
+| フィールド | 説明 |
+|---|---|
+| `job_id` | 実行単位の識別子 |
+| `tenant_id` | マルチテナント対応に必須 |
+| `turn_index` | ループの何番目か |
+| `tool_use_id` | Claudeが発行したtool_useブロックのID |
+| `action_type` | アクション種別（screenshot / left_click等） |
+| `screenshot_hash` | スクリーンショットのSHA-256（実画像保管要否はポリシー次第） |
+| `timestamp_utc` | UTCタイムスタンプ |
+| `latency_ms` | ターン処理時間 |
+
+スクリーンショット実体の長期保管はストレージコストが大きい。SOC 2 Type IIやISO 27001等のコンプライアンス要件に基づき、hashのみ保管するか暗号化してオブジェクトストレージに格納するかを方針化する。
+
+**AI FinOps視点のコスト計装**
+
+Computer Useはスクリーンショット取得のたびにマルチモーダルトークンコストが発生する。ループ深度とスクリーンショット解像度がコストに直接影響するため、[AI FinOpsの計装設計](/blog/ai-finops-token-cost-instrumentation/)で解説しているように、ジョブ種別ごとの消費トークン量をトレースするFinOpsダッシュボードの構築を推奨する。エンタープライズでは部門ごとのコスト配賦モデルと合わせて設計することが重要だ。
+
+## 参考
+
+- [Computer use tool — Anthropic API Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
+- [Building Effective Agents — Anthropic](https://www.anthropic.com/research/building-effective-agents)
+- [Computer use reference implementation — GitHub](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo)
+
+## まとめ
+
+Claude Computer Use APIをエンタープライズ本番環境に乗せるには、ツール定義とエージェントループの実装だけでなく、サンドボックス分離・IAM・プロンプトインジェクション多層防御・監査ログを最初から組み込んだ設計が必要だ。特にZDRによるデータ主権の確保と、Human-in-the-Loopを組み込んだ承認フローは、規制業種や大規模マルチチーム環境では不可欠な要件となる。
+
+Computer UseエージェントのサンドボックスやIAM統制基盤の設計・構築を検討しているチームは、[Kuuのエンタープライズ向けRDEサービス](/services/rde/)にご相談ください。
