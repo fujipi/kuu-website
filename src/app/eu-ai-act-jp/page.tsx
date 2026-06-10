@@ -120,7 +120,7 @@ export default function EuAiActPillarPage() {
 			<Header navLinks={getMainNav()} />
 
 			<main>
-				<div className="page-content">
+				<div className="page-content" data-pagefind-body>
 					<nav
 						className="fade-in"
 						style={{
@@ -138,6 +138,7 @@ export default function EuAiActPillarPage() {
 					</nav>
 
 					<h1
+						data-pagefind-meta="title"
 						className="fade-in"
 						style={{
 							fontSize: "clamp(1.3rem, 3vw, 1.9rem)",

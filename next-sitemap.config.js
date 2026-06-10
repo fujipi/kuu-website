@@ -156,6 +156,9 @@ const config = {
 		if (p === "/privacy-policy" || p === "/security") {
 			return { loc: path, changefreq: "yearly", priority: 0.3, lastmod: now };
 		}
+		if (p === "/search") {
+			return { loc: path, changefreq: "monthly", priority: 0.4, lastmod: now };
+		}
 		return { loc: path, changefreq: "weekly", priority: 0.7, lastmod: now };
 	},
 };

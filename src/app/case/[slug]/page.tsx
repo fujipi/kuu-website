@@ -143,6 +143,8 @@ export default async function CaseDetailPage({ params }: Props) {
 					</nav>
 
 					<h1
+						data-pagefind-body
+						data-pagefind-meta="title"
 						className="fade-in"
 						style={{
 							fontSize: "clamp(1.3rem, 3vw, 1.9rem)",
@@ -254,6 +256,7 @@ export default async function CaseDetailPage({ params }: Props) {
 
 					{/* 本文 */}
 					<article
+						data-pagefind-body
 						className="blog-content fade-in"
 						style={{ maxWidth: "760px", marginBottom: "3rem" }}
 					>

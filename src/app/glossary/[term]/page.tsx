@@ -119,6 +119,8 @@ export default async function GlossaryTermPage({ params }: Props) {
 					</nav>
 
 					<h1
+						data-pagefind-body
+						data-pagefind-meta="title"
 						className="fade-in"
 						style={{
 							fontSize: "clamp(1.2rem, 2.8vw, 1.7rem)",
@@ -181,6 +183,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 					</div>
 
 					<article
+						data-pagefind-body
 						className="blog-content fade-in"
 						style={{ maxWidth: "720px", marginBottom: "3rem" }}
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown

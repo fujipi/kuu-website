@@ -240,6 +240,8 @@ export default async function BlogPostPage({ params }: Props) {
 							<ReadingTime minutes={minutes} />
 						</div>
 						<h1
+							data-pagefind-body
+							data-pagefind-meta="title"
 							className="fade-in"
 							style={{
 								fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)",
@@ -313,6 +315,7 @@ export default async function BlogPostPage({ params }: Props) {
 
 					{/* 記事本文: ビルド時変換済みHTML（ローカルファイルのみ・外部入力なし） */}
 					<article
+						data-pagefind-body
 						className="blog-content fade-in"
 						style={{ maxWidth: "720px", marginBottom: "5rem" }}
 						// Content is static markdown from local files, no external user input possible.

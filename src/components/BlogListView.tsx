@@ -93,6 +93,9 @@ export default function BlogListView({
 						>
 							Pillar
 						</Link>
+						<Link href="/search/" style={{ color: "var(--gray-medium)" }}>
+							Search
+						</Link>
 					</div>
 
 					{tracks && tracks.length > 0 ? (

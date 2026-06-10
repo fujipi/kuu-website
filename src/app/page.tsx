@@ -94,6 +94,14 @@ const homeJsonLd = [
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		inLanguage: "ja",
+		potentialAction: {
+			"@type": "SearchAction",
+			target: {
+				"@type": "EntryPoint",
+				urlTemplate: `${BASE_URL}/search/?q={search_term_string}`,
+			},
+			"query-input": "required name=search_term_string",
+		},
 		description:
 			"AX/DX戦略・現場ディスカバリ・エージェント実装・ガバナンス運用までを一社で横串に担う伴走実装パートナー。",
 		keywords: BASE_ORG.knowsAbout.join(", "),
