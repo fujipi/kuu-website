@@ -5,12 +5,14 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
+import { autoLinkGlossary } from "@/lib/autoLinkGlossary";
 import {
 	type CaseEntryMeta,
 	getAllCaseSlugs,
 	getAllCases,
 	getCaseBySlug,
 } from "@/lib/case";
+import { getAllGlossaryTerms } from "@/lib/glossary";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getMainNav } from "@/lib/navigation";
 import {
@@ -77,7 +79,7 @@ export default async function CaseDetailPage({ params }: Props) {
 	}
 
 	const url = `${BASE_URL}/case/${slug}/`;
-	const html = mdToHtml(c.content);
+	const html = autoLinkGlossary(mdToHtml(c.content), getAllGlossaryTerms());
 	const related: CaseEntryMeta[] = getAllCases()
 		.filter((x) => x.slug !== slug)
 		.slice(0, 5);

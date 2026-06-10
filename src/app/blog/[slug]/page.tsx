@@ -11,7 +11,9 @@ import SeriesNav from "@/components/SeriesNav";
 import Stars from "@/components/Stars";
 import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
+import { autoLinkGlossary } from "@/lib/autoLinkGlossary";
 import { BLOG_REDIRECTS } from "@/lib/blog-redirects";
+import { getAllGlossaryTerms } from "@/lib/glossary";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
@@ -137,13 +139,37 @@ export default async function BlogPostPage({ params }: Props) {
 	// 著者メタ
 	const author = getAuthorBySlug(post.author);
 
-	// ローカルMDXファイル（外部入力なし）をビルド時に変換したHTML
-	const contentHtml = mdToHtml(post.content, idMap);
+	// ローカルMDXファイル（外部入力なし）をビルド時に変換したHTML。
+	// glossary 用語の初出はビルド時に自動で内部リンク化する。
+	const contentHtml = autoLinkGlossary(
+		mdToHtml(post.content, idMap),
+		getAllGlossaryTerms(),
+	);
+
+	// frontmatter の track / tech_depth が技術記事を示す場合は TechArticle に昇格
+	const isTechArticle =
+		!!post.track ||
+		post.techDepth === "intermediate" ||
+		post.techDepth === "deep";
 
 	const articleJsonLd = [
 		{
 			"@context": "https://schema.org",
-			"@type": "Article",
+			"@type": isTechArticle ? "TechArticle" : "Article",
+			...(isTechArticle && post.techDepth === "deep"
+				? { proficiencyLevel: "Expert" }
+				: {}),
+			...(isTechArticle && post.techDepth === "intro"
+				? { proficiencyLevel: "Beginner" }
+				: {}),
+			...(post.sources && post.sources.length > 0
+				? {
+						citation: post.sources.map((src) => ({
+							"@type": "WebPage",
+							url: src,
+						})),
+					}
+				: {}),
 			headline: post.title,
 			description: post.description,
 			author: {

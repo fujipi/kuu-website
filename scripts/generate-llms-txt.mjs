@@ -103,7 +103,15 @@ sections.push(`## Services
 
 - Agent Governance / Managed Agents: ${SITE}/services/ai-ops/
 - AX / DX 戦略コンサルティング: ${SITE}/services/ax-dx/
+- RDE (大規模変革支援): ${SITE}/services/rde/
 - 会社情報: ${SITE}/about/
+`);
+
+sections.push(`## Browse (アーカイブ・検索)
+
+- サイト内全文検索: ${SITE}/search/
+- 技術トラック別ブログ一覧: ${SITE}/blog/track/architecture/ ほか protocols / security / evaluation / platform-infra / governance-tech / model-capability
+- 業種別ユースケース一覧: ${SITE}/case/industry/healthcare/ ほか業種別
 `);
 
 const allPillars = [
