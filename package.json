@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "biome check src/",
     "format": "biome format --write src/",
+    "test": "vitest run",
+    "check:links": "node scripts/check-internal-links.mjs",
     "coverage:blog": "node scripts/blog-coverage-report.mjs",
     "validate:case": "node scripts/validate-case.mjs",
     "validate:blog": "node scripts/validate-blog.mjs"
@@ -32,6 +34,7 @@
     "eslint-config-next": "16.2.3",
     "satori": "^0.26.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

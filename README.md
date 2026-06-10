@@ -1,108 +1,70 @@
 # Kuu株式会社 コーポレートサイト
 
-Kuu株式会社の公式Webサイトです。
+[kuucorp.com](https://kuucorp.com) のソースコード。Next.js（App Router・静的エクスポート）製で、`main` への push をトリガーに GitHub Actions が GitHub Pages へ自動デプロイする。
 
-## GitHub Pagesへのデプロイ手順
+## 技術スタック
 
-### 1. GitHubリポジトリの作成
+- **Next.js 16**（`output: "export"` による静的サイト生成、`trailingSlash: true`）
+- **React 19** / **TypeScript**（strict）
+- スタイリング: `src/app/globals.css`（CSS変数ベース）+ インラインstyle
+- コンテンツ: `content/` 配下の MDX + frontmatter（gray-matter でパース）
+- Lint/Format: **Biome**（`biome.json`）
+- テスト: **Vitest**（`src/lib/__tests__/`）
+
+## 開発
 
 ```bash
-# ローカルでGit初期化
-cd kuu-website
-git init
-git add .
-git commit -m "Initial commit"
-
-# GitHubでリポジトリを作成後
-git remote add origin https://github.com/YOUR_USERNAME/kuu-website.git
-git branch -M main
-git push -u origin main
+pnpm install        # 依存インストール
+pnpm dev            # 開発サーバー (http://localhost:3000)
+pnpm build          # 静的ビルド → out/（postbuildでOG画像・sitemap・feed・llms.txt生成）
+pnpm lint           # biome check src/
+pnpm test           # vitest（lib のユニットテスト）
+pnpm check:links    # out/ の内部リンク切れ検証（build 後に実行）
 ```
 
-### 2. GitHub Pagesの有効化
-
-1. GitHubリポジトリの **Settings** タブを開く
-2. 左メニューから **Pages** を選択
-3. **Source** で `Deploy from a branch` を選択
-4. **Branch** で `main` を選択、フォルダは `/ (root)` を選択
-5. **Save** をクリック
-
-### 3. カスタムドメインの設定（kuucorp.com）
-
-#### DNSの設定
-
-お使いのドメインレジストラまたはDNSプロバイダで以下を設定：
-
-**Aレコード（apex domain: kuucorp.com）:**
-```
-185.199.108.153
-185.199.109.153
-185.199.110.153
-185.199.111.153
-```
-
-**CNAMEレコード（www.kuucorp.com → YOUR_USERNAME.github.io）**
-
-#### GitHubでの設定
-
-1. リポジトリの **Settings** → **Pages**
-2. **Custom domain** に `kuucorp.com` を入力
-3. **Enforce HTTPS** にチェック
-
-#### CNAMEファイルの追加
-
-このリポジトリのルートに `CNAME` ファイルを作成：
-```
-kuucorp.com
-```
+> **注意**: `package.json` を変更したら必ず `pnpm install` で `pnpm-lock.yaml` を同期し、同じコミットに含めること。CI は `--frozen-lockfile` のためズレるとデプロイ全体が失敗する。
 
 ## ディレクトリ構成
 
 ```
-kuu-website/
-├── index.html          # トップページ
-├── css/
-│   └── style.css       # スタイルシート
-├── img/
-│   ├── logo.svg        # ロゴ
-│   ├── sphere.svg      # 背景装飾
-│   └── favicon.svg     # ファビコン
-├── about/
-│   └── index.html      # 企業情報ページ
-├── privacy_policy/
-│   └── index.html      # プライバシーポリシー
-├── CNAME               # カスタムドメイン設定
-└── README.md           # このファイル
+content/
+  blog/        技術ブログ（毎日自動生成。topic-queue.json 駆動）
+  case/        業務/業種別ユースケース（自動生成。fictional: true 必須）
+  glossary/    用語集
+  resources/   テンプレート・チェックリスト
+  news/        お知らせ・プレスリリース
+  authors/     著者プロファイル（JSON）
+src/
+  app/         ルーティング（App Router）
+  components/  共通コンポーネント
+  lib/         コンテンツパーサ・SEO・タクソノミ等のロジック
+scripts/       ビルド補助・検証スクリプト（下記）
 ```
 
-## ローカルでの確認
+## スクリプト一覧（scripts/）
 
-```bash
-# Python 3の場合
-python -m http.server 8000
+| スクリプト | 役割 | 実行タイミング |
+|---|---|---|
+| `validate-blog.mjs` | Blog frontmatter・禁止フレーズ・重複の安全ゲート | commit 前 / CI |
+| `validate-case.mjs` | Case の fictional 漏れ・実在企業 deny-list 検出 | commit 前 / CI |
+| `check-internal-links.mjs` | `out/` の内部リンク切れ検証 | build 後 / CI |
+| `generate-og-images.mjs` | OG画像（1200×630 PNG）生成 | postbuild |
+| `generate-feed.mjs` | RSS / Atom / JSON Feed 生成 | postbuild |
+| `generate-llms-txt.mjs` | llms.txt / llms-full.txt 生成 | postbuild |
+| `blog-coverage-report.mjs` | track×audience カバレッジ診断 | 手動 |
 
-# Node.jsの場合
-npx serve
-```
+## コンテンツ運用
 
-ブラウザで `http://localhost:8000` を開いて確認できます。
+Blog / Case は `CLAUDE.md` のガイドラインに従って自動生成され、`main` へ直 push される（PR は作らない）。生成フロー・frontmatter スキーマ・バリデーション基準・文体ルールは **`CLAUDE.md` を一次情報源とする**。
 
-## 更新方法
+- Blog: `content/blog/topic-queue.json` のキューから生成。技術コンテンツ専用
+- Case: `content/case/case-topic-queue.json` のキューから生成。業務/業種ユースケース（提案コンテンツ・架空バッジ必須）
 
-1. ファイルを編集
-2. `git add .`
-3. `git commit -m "更新内容"`
-4. `git push`
+## デプロイ
 
-GitHub Pagesは自動的に更新されます（通常1〜2分）。
+`.github/workflows/deploy.yml` が `main` push 時に lint → test → validate → build → リンク検証 → GitHub Pages デプロイを実行する。カスタムドメインは `public/CNAME`（→ `out/CNAME`）で維持。
 
-## 技術スタック
+環境変数（GitHub Actions の Variables / ローカルは `.env.local`）:
 
-- HTML5
-- CSS3（CSS Variables使用）
-- Vanilla JavaScript（モバイルメニューのみ）
-- Google Fonts（Outfit, Noto Sans JP）
-
-## ライセンス
-
-© 2022 Kuu株式会社 All Rights Reserved.
+- `NEXT_PUBLIC_GA_ID` — Google Analytics 4 measurement ID
+- `NEXT_PUBLIC_GSC_VERIFICATION` — Google Search Console 検証トークン

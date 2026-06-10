@@ -11,6 +11,7 @@ import {
 	getGlossaryTermBySlug,
 } from "@/lib/glossary";
 import { getPostsMentioningTerm } from "@/lib/glossaryMentions";
+import { mdToHtml } from "@/lib/mdToHtml";
 import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
@@ -36,55 +37,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		description: t.description || t.shortDefinition,
 		path: `/glossary/${slug}/`,
 	});
-}
-
-function mdToHtml(md: string): string {
-	const rawBlocks = md.split(/\n\n+/);
-	const out: string[] = [];
-	for (const rawBlock of rawBlocks) {
-		const block = rawBlock.trim();
-		if (!block) continue;
-		if (/^#{1,4} /.test(block)) {
-			out.push(
-				block
-					.replace(/^#### (.+)$/gm, "<h4>$1</h4>")
-					.replace(/^### (.+)$/gm, "<h3>$1</h3>")
-					.replace(/^## (.+)$/gm, "<h2>$1</h2>")
-					.replace(/^# (.+)$/gm, "<h1>$1</h1>")
-					.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-					.replace(/\*(.+?)\*/g, "<em>$1</em>")
-					.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-					.replace(/`([^`]+)`/g, "<code>$1</code>"),
-			);
-			continue;
-		}
-		const lines = block.split("\n");
-		const isList = lines.every(
-			(l) => /^[-*] /.test(l) || /^\d+\. /.test(l) || l.trim() === "",
-		);
-		if (isList && lines.some((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))) {
-			const ordered = lines.some((l) => /^\d+\. /.test(l));
-			const tag = ordered ? "ol" : "ul";
-			const items = lines
-				.filter((l) => /^[-*] /.test(l) || /^\d+\. /.test(l))
-				.map((l) => {
-					const text = l.replace(/^[-*] /, "").replace(/^\d+\. /, "");
-					return `<li>${text
-						.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-						.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-						.replace(/`([^`]+)`/g, "<code>$1</code>")}</li>`;
-				})
-				.join("\n");
-			out.push(`<${tag}>\n${items}\n</${tag}>`);
-			continue;
-		}
-		const inline = block
-			.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-			.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-			.replace(/`([^`]+)`/g, "<code>$1</code>");
-		out.push(`<p>${inline.replace(/\n/g, "<br />")}</p>`);
-	}
-	return out.join("\n");
 }
 
 export default async function GlossaryTermPage({ params }: Props) {
