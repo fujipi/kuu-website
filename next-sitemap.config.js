@@ -105,6 +105,9 @@ const config = {
 		if (p.startsWith("/case/page/")) {
 			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
 		}
+		if (p.startsWith("/case/industry/")) {
+			return { loc: path, changefreq: "weekly", priority: 0.65, lastmod: now };
+		}
 		if (p.startsWith("/case/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };
 		}
@@ -128,6 +131,9 @@ const config = {
 		}
 		if (p.startsWith("/blog/tags/")) {
 			return { loc: path, changefreq: "weekly", priority: 0.6, lastmod: now };
+		}
+		if (p.startsWith("/blog/track/")) {
+			return { loc: path, changefreq: "weekly", priority: 0.65, lastmod: now };
 		}
 		if (p.startsWith("/blog/")) {
 			return { loc: path, changefreq: "monthly", priority: 0.7, lastmod: now };

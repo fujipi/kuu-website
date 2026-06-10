@@ -20,49 +20,25 @@ import matter from "gray-matter";
 
 const ROOT = process.cwd();
 
-const TRACKS = [
-	"architecture",
-	"protocols",
-	"security",
-	"evaluation",
-	"platform-infra",
-	"governance-tech",
-	"model-capability",
-];
+// track 分類の単一情報源は src/lib/track-heuristics.json
+// （src/lib/taxonomy.ts と共有。変更はそちらで行う）。
+const trackData = JSON.parse(
+	fs.readFileSync(
+		path.join(ROOT, "src/lib/track-heuristics.json"),
+		"utf-8",
+	),
+);
+const TRACKS = trackData.tracks;
 const AUDIENCES = ["smb", "enterprise", "both"];
 
 /** slug → track の暫定分類（frontmatter に track が無い記事向け）。先勝ち。 */
-const TRACK_HEURISTICS = [
-	["protocols", /(mcp|a2a|protocol|model-context|function-calling)/],
-	[
-		"security",
-		/(security|permission|audit-log|red-team|injection|iam|sandbox|secret|shadow-ai|data-clean-room|leak)/,
-	],
-	[
-		"evaluation",
-		/(observability|eval|nine-axis|9-?axis|kpi|regression|golden|metric)/,
-	],
-	[
-		"platform-infra",
-		/(gateway|finops|vpc|sso|scim|tenant|platform|infra|bedrock|vertex|deploy)/,
-	],
-	[
-		"governance-tech",
-		/(governance|policy|guardrail|iso-?42001|eu-ai-act|hallucination|compliance|checklist)/,
-	],
-	[
-		"architecture",
-		/(architecture|harness|multi-agent|orchestration|memory|context|rag|workflow|continuous-improvement)/,
-	],
-	[
-		"model-capability",
-		/(opus|sonnet|haiku|model|claude-api|codex|gemini|manus|cowork|genspark)/,
-	],
-];
+const TRACK_HEURISTICS = trackData.heuristics.map(([track, pattern]) => [
+	track,
+	new RegExp(pattern),
+]);
 
 /** slug → business（Case候補）判定。ブログのスコープ外コンテンツ。 */
-const BUSINESS_RE =
-	/(manufacturing|retail|real-estate|medical|healthcare|restaurant|food-service|education|edtech|construction|logistics|warehouse|human-resource|hr-ops|legal-professional|service-industry|cost|roi|investment|talent|recruitment|dx-failure|dx-success|board-meeting|chatbot-cost|nocode|marketing-automation|knowledge-management|document-automation|customer-support|business-automation|ceo-decision|getting-started|strategy-roadmap|fde|rde|ax-|ax-vs|difference|comparison-sme|sme-dx|startup-ai-team)/;
+const BUSINESS_RE = new RegExp(trackData.business);
 
 /** keyword/slug の語彙から audience を推定（frontmatter に無い場合）。 */
 const ENTERPRISE_RE =

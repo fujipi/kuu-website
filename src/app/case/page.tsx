@@ -7,6 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllCases } from "@/lib/case";
 import { paginateCases } from "@/lib/case-pagination";
+import { getCasesByIndustry } from "@/lib/industries";
 import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
@@ -24,6 +25,11 @@ export const metadata: Metadata = seoMetadata({
 export default function CaseListPage() {
 	const allCases = getAllCases();
 	const { page, totalPages, cases } = paginateCases(allCases, 1);
+	const industries = getCasesByIndustry().map(({ group, cases: cs }) => ({
+		slug: group.slug,
+		label: group.label,
+		count: cs.length,
+	}));
 
 	const jsonLd = [
 		{
@@ -63,7 +69,12 @@ export default function CaseListPage() {
 
 			<main>
 				<div className="page-content">
-					<CaseListView cases={cases} page={page} totalPages={totalPages} />
+					<CaseListView
+						cases={cases}
+						industries={industries}
+						page={page}
+						totalPages={totalPages}
+					/>
 				</div>
 			</main>
 

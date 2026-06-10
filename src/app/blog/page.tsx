@@ -14,6 +14,7 @@ import {
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { getAllTags } from "@/lib/tags";
+import { resolveTrack, TRACK_INFO, TRACK_SLUGS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = seoMetadata({
 	title: "AIエージェント技術ブログ｜Kuu株式会社",
@@ -25,6 +26,12 @@ export const metadata: Metadata = seoMetadata({
 export default function BlogListPage() {
 	const allPosts = getAllPosts();
 	const tags = getAllTags().slice(0, 12);
+	const tracks = TRACK_SLUGS.map((slug) => ({
+		slug,
+		label: TRACK_INFO[slug].label,
+		count: allPosts.filter((p) => resolveTrack(p.slug, p.track) === slug)
+			.length,
+	})).filter((t) => t.count > 0);
 	const { page, totalPages, posts } = paginatePosts(allPosts, 1);
 
 	const blogListJsonLd = [
@@ -68,6 +75,7 @@ export default function BlogListPage() {
 					<BlogListView
 						posts={posts}
 						tags={tags}
+						tracks={tracks}
 						page={page}
 						totalPages={totalPages}
 					/>

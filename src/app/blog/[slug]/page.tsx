@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import ReadingTime from "@/components/ReadingTime";
 import Redirect from "@/components/Redirect";
+import SeriesNav from "@/components/SeriesNav";
 import Stars from "@/components/Stars";
 import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
@@ -14,6 +15,7 @@ import { mdToHtml } from "@/lib/mdToHtml";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
 import { readingTimeMinutes } from "@/lib/readingTime";
+import { getRelatedPosts, getSeriesPosts } from "@/lib/related";
 import {
 	BASE_URL,
 	buildBreadcrumb,
@@ -124,19 +126,8 @@ export default async function BlogPostPage({ params }: Props) {
 		currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
 	const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
 
-	const relatedPosts = allPosts
-		.filter((p) => p.slug !== slug)
-		.map((p) => {
-			const sharedTags = p.tags.filter((t) => post.tags.includes(t)).length;
-			const samePillar = post.pillar && p.pillar === post.pillar ? 1 : 0;
-			const sameSeries = post.series && p.series === post.series ? 1 : 0;
-			// Weight: series > pillar > tags. Series indicates explicit author intent.
-			const score = sameSeries * 10 + samePillar * 5 + sharedTags;
-			return { ...p, score };
-		})
-		.filter((p) => p.score > 0)
-		.sort((a, b) => b.score - a.score)
-		.slice(0, 4);
+	const relatedPosts = getRelatedPosts(post, allPosts);
+	const seriesPosts = post.series ? getSeriesPosts(post.series, allPosts) : [];
 
 	// TOC 構築（H2/H3 の id 対応）
 	const { toc, idMap } = buildToc(post.content);
@@ -311,6 +302,14 @@ export default async function BlogPostPage({ params }: Props) {
 					</div>
 
 					<TableOfContents items={toc} />
+
+					{post.series ? (
+						<SeriesNav
+							currentSlug={slug}
+							series={post.series}
+							posts={seriesPosts}
+						/>
+					) : null}
 
 					{/* 記事本文: ビルド時変換済みHTML（ローカルファイルのみ・外部入力なし） */}
 					<article

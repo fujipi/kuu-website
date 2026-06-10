@@ -1,0 +1,40 @@
+{
+	"$comment": "track 分類の単一情報源。src/lib/taxonomy.ts と scripts/blog-coverage-report.mjs の双方から参照される。pattern は RegExp ソース文字列（slug に対して評価・先勝ち）。",
+	"tracks": [
+		"architecture",
+		"protocols",
+		"security",
+		"evaluation",
+		"platform-infra",
+		"governance-tech",
+		"model-capability"
+	],
+	"heuristics": [
+		["protocols", "(mcp|a2a|protocol|model-context|function-calling)"],
+		[
+			"security",
+			"(security|permission|audit-log|red-team|injection|iam|sandbox|secret|shadow-ai|data-clean-room|leak)"
+		],
+		[
+			"evaluation",
+			"(observability|eval|nine-axis|9-?axis|kpi|regression|golden|metric)"
+		],
+		[
+			"platform-infra",
+			"(gateway|finops|vpc|sso|scim|tenant|platform|infra|bedrock|vertex|deploy)"
+		],
+		[
+			"governance-tech",
+			"(governance|policy|guardrail|iso-?42001|eu-ai-act|hallucination|compliance|checklist)"
+		],
+		[
+			"architecture",
+			"(architecture|harness|multi-agent|orchestration|memory|context|rag|workflow|continuous-improvement)"
+		],
+		[
+			"model-capability",
+			"(opus|sonnet|haiku|model|claude-api|codex|gemini|manus|cowork|genspark)"
+		]
+	],
+	"business": "(manufacturing|retail|real-estate|medical|healthcare|restaurant|food-service|education|edtech|construction|logistics|warehouse|human-resource|hr-ops|legal-professional|service-industry|cost|roi|investment|talent|recruitment|dx-failure|dx-success|board-meeting|chatbot-cost|nocode|marketing-automation|knowledge-management|document-automation|customer-support|business-automation|ceo-decision|getting-started|strategy-roadmap|fde|rde|ax-|ax-vs|difference|comparison-sme|sme-dx|startup-ai-team)"
+}

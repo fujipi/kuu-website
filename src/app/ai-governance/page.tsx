@@ -152,6 +152,13 @@ export default function AiGovernancePillarPage() {
 		.map((s) => allPosts.find((p) => p.slug === s))
 		.filter((p): p is NonNullable<typeof p> => !!p);
 
+	// pillar frontmatter の逆参照（Featured と重複しない最新10件）
+	const pillarPosts = allPosts
+		.filter(
+			(p) => p.pillar === "ai-governance" && !relatedSlugs.includes(p.slug),
+		)
+		.slice(0, 10);
+
 	return (
 		<>
 			<JsonLd data={jsonLd} />
@@ -466,6 +473,43 @@ export default function AiGovernancePillarPage() {
 							<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
 						</div>
 					</section>
+
+					{pillarPosts.length > 0 ? (
+						<section
+							className="fade-in"
+							style={{ maxWidth: "760px", marginBottom: "3rem" }}
+						>
+							<h2
+								style={{
+									fontSize: "0.85rem",
+									color: "var(--gray-light)",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.1em",
+									marginBottom: "1.5rem",
+								}}
+							>
+								LATEST FROM THIS PILLAR
+							</h2>
+							<div style={{ display: "flex", flexDirection: "column" }}>
+								{pillarPosts.map((p) => (
+									<Link
+										key={p.slug}
+										href={`/blog/${p.slug}/`}
+										style={{
+											padding: "1rem 0",
+											borderTop: "1px solid var(--gray-dark)",
+											fontSize: "0.9rem",
+											color: "var(--gray-medium)",
+											lineHeight: "1.7",
+										}}
+									>
+										{p.title}
+									</Link>
+								))}
+								<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+							</div>
+						</section>
+					) : null}
 				</div>
 			</main>
 

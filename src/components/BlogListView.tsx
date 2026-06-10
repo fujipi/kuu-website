@@ -8,9 +8,16 @@ interface Tag {
 	count: number;
 }
 
+interface Track {
+	slug: string;
+	label: string;
+	count: number;
+}
+
 interface Props {
 	posts: BlogPostMeta[];
 	tags: Tag[];
+	tracks?: Track[];
 	page: number;
 	totalPages: number;
 }
@@ -25,7 +32,13 @@ function formatDate(dateStr: string): string {
 	});
 }
 
-export default function BlogListView({ posts, tags, page, totalPages }: Props) {
+export default function BlogListView({
+	posts,
+	tags,
+	tracks,
+	page,
+	totalPages,
+}: Props) {
 	const showHeader = page === 1;
 
 	return (
@@ -81,6 +94,48 @@ export default function BlogListView({ posts, tags, page, totalPages }: Props) {
 							Pillar
 						</Link>
 					</div>
+
+					{tracks && tracks.length > 0 ? (
+						<div
+							className="fade-in"
+							style={{
+								display: "flex",
+								gap: "0.5rem",
+								flexWrap: "wrap",
+								alignItems: "center",
+								marginBottom: "1rem",
+								maxWidth: "720px",
+							}}
+						>
+							<span
+								style={{
+									fontSize: "0.65rem",
+									color: "var(--gray-dim)",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.1em",
+								}}
+							>
+								TRACK
+							</span>
+							{tracks.map((t) => (
+								<Link
+									key={t.slug}
+									href={`/blog/track/${t.slug}/`}
+									style={{
+										fontSize: "0.65rem",
+										color: "var(--gray-light)",
+										border: "1px solid var(--gray-dark)",
+										borderRadius: "2px",
+										padding: "0.2rem 0.6rem",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+									}}
+								>
+									{t.label} ({t.count})
+								</Link>
+							))}
+						</div>
+					) : null}
 
 					{tags.length > 0 ? (
 						<div

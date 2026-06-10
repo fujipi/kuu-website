@@ -73,6 +73,9 @@ export type PageSeoProps = {
  */
 export function resolveOgImage(pathname: string): string {
 	const p = pathname.replace(/\/+$/, "");
+	// アーカイブ系ページ（track / industry）はセクション共通 OG にフォールバック
+	if (p.startsWith("/blog/track/")) return "/og/blog.png";
+	if (p.startsWith("/case/industry/")) return "/og/case.png";
 	const blog = p.match(/^\/blog\/([^/]+)$/);
 	if (blog) return `/og/blog/${blog[1]}.png`;
 	const gloss = p.match(/^\/glossary\/([^/]+)$/);

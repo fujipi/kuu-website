@@ -7,8 +7,8 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import {
 	getAllGlossarySlugs,
-	getAllGlossaryTerms,
 	getGlossaryTermBySlug,
+	getResolvedRelatedTerms,
 } from "@/lib/glossary";
 import { getPostsMentioningTerm } from "@/lib/glossaryMentions";
 import { mdToHtml } from "@/lib/mdToHtml";
@@ -65,10 +65,7 @@ export default async function GlossaryTermPage({ params }: Props) {
 		);
 	}
 
-	const all = getAllGlossaryTerms();
-	const relatedEntries = t.relatedTerms
-		.map((rslug) => all.find((x) => x.slug === rslug))
-		.filter((x): x is NonNullable<typeof x> => !!x);
+	const relatedEntries = getResolvedRelatedTerms(slug);
 	const mentioningPosts = getPostsMentioningTerm(slug);
 
 	const url = `${BASE_URL}/glossary/${slug}/`;

@@ -2,13 +2,25 @@ import Link from "next/link";
 import type { CaseEntryMeta } from "@/lib/case";
 import { buildCasePageUrl } from "@/lib/case-pagination";
 
+interface IndustryChip {
+	slug: string;
+	label: string;
+	count: number;
+}
+
 interface Props {
 	cases: CaseEntryMeta[];
+	industries?: IndustryChip[];
 	page: number;
 	totalPages: number;
 }
 
-export default function CaseListView({ cases, page, totalPages }: Props) {
+export default function CaseListView({
+	cases,
+	industries,
+	page,
+	totalPages,
+}: Props) {
 	const showHeader = page === 1;
 
 	return (
@@ -31,19 +43,62 @@ export default function CaseListView({ cases, page, totalPages }: Props) {
 			</h1>
 
 			{showHeader ? (
-				<p
-					className="fade-in"
-					style={{
-						fontSize: "0.9rem",
-						color: "var(--gray-medium)",
-						lineHeight: "1.95",
-						maxWidth: "640px",
-						marginBottom: "2.5rem",
-					}}
-				>
-					Web の記事・X の投稿・企業の PR
-					から見えてくる最新のユースケースをもとに、自社の業務にどう実装するかを具体的な形で書き起こすコーナーです。毎日継続的に追加していきます。
-				</p>
+				<>
+					<p
+						className="fade-in"
+						style={{
+							fontSize: "0.9rem",
+							color: "var(--gray-medium)",
+							lineHeight: "1.95",
+							maxWidth: "640px",
+							marginBottom: "1.5rem",
+						}}
+					>
+						Web の記事・X の投稿・企業の PR
+						から見えてくる最新のユースケースをもとに、自社の業務にどう実装するかを具体的な形で書き起こすコーナーです。毎日継続的に追加していきます。
+					</p>
+					{industries && industries.length > 0 ? (
+						<div
+							className="fade-in"
+							style={{
+								display: "flex",
+								gap: "0.5rem",
+								flexWrap: "wrap",
+								alignItems: "center",
+								marginBottom: "2.5rem",
+								maxWidth: "960px",
+							}}
+						>
+							<span
+								style={{
+									fontSize: "0.65rem",
+									color: "var(--gray-dim)",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.1em",
+								}}
+							>
+								INDUSTRY
+							</span>
+							{industries.map((ind) => (
+								<Link
+									key={ind.slug}
+									href={`/case/industry/${ind.slug}/`}
+									style={{
+										fontSize: "0.65rem",
+										color: "var(--gray-light)",
+										border: "1px solid var(--gray-dark)",
+										borderRadius: "2px",
+										padding: "0.2rem 0.6rem",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+									}}
+								>
+									{ind.label} ({ind.count})
+								</Link>
+							))}
+						</div>
+					) : null}
+				</>
 			) : null}
 
 			{cases.length === 0 ? (
