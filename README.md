@@ -22,6 +22,16 @@ pnpm test           # vitest（lib のユニットテスト）
 pnpm check:links    # out/ の内部リンク切れ検証（build 後に実行）
 ```
 
+E2E スモークテスト（Playwright。ビルド成果物 out/ に対して実行）:
+
+```bash
+pnpm build
+pnpm exec playwright install chromium   # 初回のみ
+pnpm exec playwright test
+```
+
+E2E は毎日のコンテンツデプロイを遅らせないよう `deploy.yml` には含めず、`.github/workflows/e2e.yml`（コード変更PR・手動・週次）で実行される。
+
 > **注意**: `package.json` を変更したら必ず `pnpm install` で `pnpm-lock.yaml` を同期し、同じコミットに含めること。CI は `--frozen-lockfile` のためズレるとデプロイ全体が失敗する。
 
 ## ディレクトリ構成

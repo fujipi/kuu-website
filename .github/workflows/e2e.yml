@@ -1,0 +1,61 @@
+# E2E スモークテスト（Playwright）。
+# 毎日のコンテンツ自動生成デプロイを遅らせないよう deploy.yml には組み込まず、
+# src/ 等のコード変更 PR・手動実行・週次 cron でのみ実行する。
+name: E2E Smoke Tests
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "e2e/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "next.config.ts"
+      - "playwright.config.ts"
+  workflow_dispatch:
+  schedule:
+    # 週次（月曜 03:00 UTC）
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build site
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E smoke tests
+        run: pnpm exec playwright test
+
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
