@@ -19,6 +19,7 @@ export const metadata: Metadata = seoMetadata({
 	description:
 		"Kuuのファネル前半（Stage 01–02）。経営課題から逆算したDX/AXロードマップを引き、Claude / ChatGPT / Gemini など適切なLLM選定と、Codex・MCP・Skills を組み合わせた実装可能な計画に落とし込みます。",
 	path: "/services/ax-dx/",
+	languages: { ja: "/services/ax-dx/", en: "/en/services/ax-dx/" },
 	keywords: [
 		"AX",
 		"DX",

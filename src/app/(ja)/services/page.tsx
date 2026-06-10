@@ -32,6 +32,7 @@ export const metadata: Metadata = seoMetadata({
 	description:
 		"Kuuのサービス全体像。AX/DX戦略・RDEディスカバリ・FDE実装（Claude / ChatGPT / Codex / Gemini × MCP / Skills / サブエージェント / Routine）・9軸評価ガバナンスの4段を横串に担う伴走実装パートナー。",
 	path: "/services/",
+	languages: { ja: "/services/", en: "/en/services/" },
 	keywords: [
 		"AIエージェント",
 		"エージェントガバナンス",

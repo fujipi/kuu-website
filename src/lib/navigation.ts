@@ -18,6 +18,16 @@ interface MainNavOptions {
 	isHome?: boolean;
 }
 
+/** 英語ページ用ナビ（対訳が存在するページのみで構成） */
+export function getEnNav(): NavItem[] {
+	return [
+		{ href: "/en/about/", label: "About" },
+		{ href: "/en/services/", label: "Services" },
+		{ href: "/en/ai-governance/", label: "Agent Governance" },
+		{ href: "/en/contact/", label: "Contact" },
+	];
+}
+
 export function getMainNav(opts: MainNavOptions = {}): NavItem[] {
 	return [
 		{ href: opts.isHome ? "/#about" : "/about/", label: "About" },

@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { FORMSPREE_CONTACT, trackEvent } from "@/lib/forms";
+import type { Locale } from "@/lib/i18n";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -18,7 +19,63 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * 成功/失敗の状態表示。JS無効環境でも素の form POST として動くよう
  * action/method は残す（プログレッシブエンハンスメント）。
  */
-export default function ContactForm() {
+const TEXT = {
+	ja: {
+		companyRequired: "会社名を入力してください",
+		nameRequired: "お名前を入力してください",
+		emailRequired: "メールアドレスを入力してください",
+		emailInvalid: "メールアドレスの形式が正しくありません",
+		successTitle: "送信が完了しました。",
+		successBody: "通常1〜2営業日以内にご返信いたします。",
+		company: "会社名",
+		companyPh: "例：株式会社サンプル",
+		name: "お名前",
+		namePh: "例：山田 太郎",
+		email: "メールアドレス",
+		emailPh: "例：yamada@example.com",
+		type: "お問い合わせ種別",
+		typeDefault: "選択してください",
+		types: [
+			"プロジェクトのご相談",
+			"業務提携について",
+			"採用について",
+			"その他",
+		],
+		message: "メッセージ",
+		messagePh: "ご相談内容やご質問をご記入ください",
+		submitting: "送信中…",
+		submit: "送信する",
+		failure:
+			"送信に失敗しました。お手数ですが、時間をおいて再度お試しください。",
+		note: "通常1〜2営業日以内にご返信いたします。",
+	},
+	en: {
+		companyRequired: "Please enter your company name",
+		nameRequired: "Please enter your name",
+		emailRequired: "Please enter your email address",
+		emailInvalid: "Please enter a valid email address",
+		successTitle: "Your message has been sent.",
+		successBody: "We usually reply within 1–2 business days.",
+		company: "Company",
+		companyPh: "e.g. Example Inc.",
+		name: "Name",
+		namePh: "e.g. Taro Yamada",
+		email: "Email",
+		emailPh: "e.g. yamada@example.com",
+		type: "Inquiry type",
+		typeDefault: "Please select",
+		types: ["Project consultation", "Partnership", "Careers", "Other"],
+		message: "Message",
+		messagePh: "Tell us about your project or question",
+		submitting: "Sending…",
+		submit: "Send",
+		failure: "Failed to send. Please try again later.",
+		note: "We usually reply within 1–2 business days.",
+	},
+} as const;
+
+export default function ContactForm({ locale = "ja" }: { locale?: Locale }) {
+	const t = TEXT[locale];
 	const [status, setStatus] = useState<Status>("idle");
 	const [errors, setErrors] = useState<FieldErrors>({});
 
@@ -26,16 +83,16 @@ export default function ContactForm() {
 		const data = new FormData(form);
 		const next: FieldErrors = {};
 		if (!String(data.get("company") ?? "").trim()) {
-			next.company = "会社名を入力してください";
+			next.company = t.companyRequired;
 		}
 		if (!String(data.get("name") ?? "").trim()) {
-			next.name = "お名前を入力してください";
+			next.name = t.nameRequired;
 		}
 		const email = String(data.get("email") ?? "").trim();
 		if (!email) {
-			next.email = "メールアドレスを入力してください";
+			next.email = t.emailRequired;
 		} else if (!EMAIL_RE.test(email)) {
-			next.email = "メールアドレスの形式が正しくありません";
+			next.email = t.emailInvalid;
 		}
 		return next;
 	};
@@ -76,10 +133,10 @@ export default function ContactForm() {
 						marginBottom: "0.75rem",
 					}}
 				>
-					送信が完了しました。
+					{t.successTitle}
 				</p>
 				<p style={{ fontSize: "0.85rem", color: "var(--gray-medium)" }}>
-					通常1〜2営業日以内にご返信いたします。
+					{t.successBody}
 				</p>
 			</div>
 		);
@@ -103,14 +160,14 @@ export default function ContactForm() {
 				/>
 				<div className="form-group">
 					<label htmlFor="company">
-						会社名 <span className="required">*</span>
+						{t.company} <span className="required">*</span>
 					</label>
 					<input
 						type="text"
 						id="company"
 						name="company"
 						required
-						placeholder="例：株式会社サンプル"
+						placeholder={t.companyPh}
 						aria-invalid={!!errors.company}
 					/>
 					{errors.company ? (
@@ -121,14 +178,14 @@ export default function ContactForm() {
 				</div>
 				<div className="form-group">
 					<label htmlFor="name">
-						お名前 <span className="required">*</span>
+						{t.name} <span className="required">*</span>
 					</label>
 					<input
 						type="text"
 						id="name"
 						name="name"
 						required
-						placeholder="例：山田 太郎"
+						placeholder={t.namePh}
 						aria-invalid={!!errors.name}
 					/>
 					{errors.name ? (
@@ -139,14 +196,14 @@ export default function ContactForm() {
 				</div>
 				<div className="form-group">
 					<label htmlFor="email">
-						メールアドレス <span className="required">*</span>
+						{t.email} <span className="required">*</span>
 					</label>
 					<input
 						type="email"
 						id="email"
 						name="email"
 						required
-						placeholder="例：yamada@example.com"
+						placeholder={t.emailPh}
 						aria-invalid={!!errors.email}
 					/>
 					{errors.email ? (
@@ -156,22 +213,23 @@ export default function ContactForm() {
 					) : null}
 				</div>
 				<div className="form-group">
-					<label htmlFor="service">お問い合わせ種別</label>
+					<label htmlFor="service">{t.type}</label>
 					<select id="service" name="service">
-						<option value="">選択してください</option>
-						<option value="プロジェクトのご相談">プロジェクトのご相談</option>
-						<option value="業務提携について">業務提携について</option>
-						<option value="採用について">採用について</option>
-						<option value="その他">その他</option>
+						<option value="">{t.typeDefault}</option>
+						{t.types.map((label) => (
+							<option key={label} value={label}>
+								{label}
+							</option>
+						))}
 					</select>
 				</div>
 				<div className="form-group">
-					<label htmlFor="message">メッセージ</label>
+					<label htmlFor="message">{t.message}</label>
 					<textarea
 						id="message"
 						name="message"
 						rows={6}
-						placeholder="ご相談内容やご質問をご記入ください"
+						placeholder={t.messagePh}
 					/>
 				</div>
 				<button
@@ -179,15 +237,15 @@ export default function ContactForm() {
 					className="btn-submit"
 					disabled={status === "submitting"}
 				>
-					{status === "submitting" ? "送信中…" : "送信する"}
+					{status === "submitting" ? t.submitting : t.submit}
 				</button>
 			</form>
 			{status === "error" ? (
 				<p className="form-error" role="alert" style={{ marginTop: "1rem" }}>
-					送信に失敗しました。お手数ですが、時間をおいて再度お試しください。
+					{t.failure}
 				</p>
 			) : null}
-			<p className="form-note">通常1〜2営業日以内にご返信いたします。</p>
+			<p className="form-note">{t.note}</p>
 		</>
 	);
 }

@@ -22,6 +22,7 @@ export const metadata: Metadata = seoMetadata({
 	description:
 		"AIエージェントガバナンスの定義から9軸評価、EU AI Act・ISO 42001 対応、体制構築5ステップまで。SMBからエンタープライズまでの実務者が実装に使える決定版ガイド。",
 	path: "/ai-governance/",
+	languages: { ja: "/ai-governance/", en: "/en/ai-governance/" },
 });
 
 const tocItems = [

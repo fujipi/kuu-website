@@ -19,6 +19,7 @@ export const metadata: Metadata = seoMetadata({
 	description:
 		"Kuuのファネル後半（Stage 03–04）。FDE が顧客環境に常駐し、Claude Code・Codex・MCP・Skills・サブエージェント・Routine・オーケストレーションを組み合わせたエージェントを設計。9軸評価とAIレッドチーミングで継続統治。",
 	path: "/services/ai-ops/",
+	languages: { ja: "/services/ai-ops/", en: "/en/services/ai-ops/" },
 	keywords: [
 		"AIエージェント実装",
 		"エージェントガバナンス",

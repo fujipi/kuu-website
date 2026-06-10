@@ -14,6 +14,7 @@ export const metadata: Metadata = generateMetadata({
 	description:
 		"Kuu株式会社は、AX/DX戦略の立案から、ClaudeをはじめとするAIエージェントの導入・実装、9軸評価による継続的なエージェントガバナンスまでを一社で担う専門会社です。技術と運用の両面で企業のAI活用に伴走します。",
 	path: "/",
+	languages: { ja: "/", en: "/en/" },
 	keywords: [
 		"AIエージェント",
 		"エージェントガバナンス",

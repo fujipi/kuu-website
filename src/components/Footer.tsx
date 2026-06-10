@@ -1,46 +1,85 @@
 import Image from "next/image";
 import Link from "next/link";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import type { Locale } from "@/lib/i18n";
 
-const columns: { heading: string; links: { href: string; label: string }[] }[] =
-	[
-		{
-			heading: "Service",
-			links: [
-				{ href: "/services/", label: "Service" },
-				{ href: "/services/ax-dx/", label: "AX/DX戦略・現場ディスカバリ" },
-				{
-					href: "/services/ai-ops/",
-					label: "AIエージェント実装・ガバナンス",
-				},
-			],
-		},
-		{
-			heading: "Resources",
-			links: [
-				{ href: "/ai-governance/", label: "Agent Governance" },
-				{ href: "/fde/", label: "FDE / Forward Deployed Engineer" },
-				{ href: "/ax/", label: "AX / エージェントトランスフォーメーション" },
-				{ href: "/managed-agents/", label: "Managed Agents" },
-				{ href: "/eu-ai-act-jp/", label: "EU AI Act" },
-				{ href: "/glossary/", label: "Glossary" },
-				{ href: "/case/", label: "Case" },
-				{ href: "/resources/", label: "Resources" },
-				{ href: "/blog/", label: "Blog" },
-			],
-		},
-		{
-			heading: "Company",
-			links: [
-				{ href: "/about/", label: "About" },
-				{ href: "/contact/", label: "Contact" },
-				{ href: "/privacy-policy/", label: "Privacy" },
-				{ href: "/security/", label: "Security" },
-			],
-		},
-	];
+type FooterColumns = {
+	heading: string;
+	links: { href: string; label: string }[];
+}[];
 
-export default function Footer() {
+const columnsJa: FooterColumns = [
+	{
+		heading: "Service",
+		links: [
+			{ href: "/services/", label: "Service" },
+			{ href: "/services/ax-dx/", label: "AX/DX戦略・現場ディスカバリ" },
+			{
+				href: "/services/ai-ops/",
+				label: "AIエージェント実装・ガバナンス",
+			},
+		],
+	},
+	{
+		heading: "Resources",
+		links: [
+			{ href: "/ai-governance/", label: "Agent Governance" },
+			{ href: "/fde/", label: "FDE / Forward Deployed Engineer" },
+			{ href: "/ax/", label: "AX / エージェントトランスフォーメーション" },
+			{ href: "/managed-agents/", label: "Managed Agents" },
+			{ href: "/eu-ai-act-jp/", label: "EU AI Act" },
+			{ href: "/glossary/", label: "Glossary" },
+			{ href: "/case/", label: "Case" },
+			{ href: "/resources/", label: "Resources" },
+			{ href: "/blog/", label: "Blog" },
+		],
+	},
+	{
+		heading: "Company",
+		links: [
+			{ href: "/about/", label: "About" },
+			{ href: "/contact/", label: "Contact" },
+			{ href: "/privacy-policy/", label: "Privacy" },
+			{ href: "/security/", label: "Security" },
+		],
+	},
+];
+
+const columnsEn: FooterColumns = [
+	{
+		heading: "Service",
+		links: [
+			{ href: "/en/services/", label: "Services" },
+			{ href: "/en/services/ax-dx/", label: "AX/DX Strategy & Discovery" },
+			{
+				href: "/en/services/ai-ops/",
+				label: "Agent Implementation & Governance",
+			},
+			{ href: "/en/services/rde/", label: "RDE (Enterprise)" },
+		],
+	},
+	{
+		heading: "Resources",
+		links: [
+			{ href: "/en/ai-governance/", label: "Agent Governance Guide" },
+			{ href: "/blog/", label: "Blog (Japanese)" },
+			{ href: "/case/", label: "Use Cases (Japanese)" },
+			{ href: "/glossary/", label: "Glossary (Japanese)" },
+		],
+	},
+	{
+		heading: "Company",
+		links: [
+			{ href: "/en/about/", label: "About" },
+			{ href: "/en/contact/", label: "Contact" },
+			{ href: "/privacy-policy/", label: "Privacy (Japanese)" },
+			{ href: "/security/", label: "Security (Japanese)" },
+		],
+	},
+];
+
+export default function Footer({ locale = "ja" }: { locale?: Locale }) {
+	const columns = locale === "en" ? columnsEn : columnsJa;
 	return (
 		<footer>
 			<div className="footer-columns">
@@ -78,9 +117,11 @@ export default function Footer() {
 						marginBottom: "0.75rem",
 					}}
 				>
-					AIエージェントの技術記事・ユースケースの新着をメールでお届けします。
+					{locale === "en"
+						? "Get new articles on AI agent governance by email (Japanese)."
+						: "AIエージェントの技術記事・ユースケースの新着をメールでお届けします。"}
 				</p>
-				<NewsletterSignup />
+				<NewsletterSignup locale={locale} />
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>

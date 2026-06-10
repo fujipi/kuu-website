@@ -13,6 +13,7 @@ export const metadata: Metadata = generateMetadata({
 	description:
 		"Kuu株式会社へのお問い合わせ。AIエージェント導入・AX/DX戦略のご相談、業務提携、採用など。通常1〜2営業日以内にご返信いたします。",
 	path: "/contact/",
+	languages: { ja: "/contact/", en: "/en/contact/" },
 });
 
 const contactJsonLd = [

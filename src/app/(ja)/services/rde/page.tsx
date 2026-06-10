@@ -19,6 +19,7 @@ export const metadata: Metadata = seoMetadata({
 	description:
 		"Kuuのファネル 02。Reinvention Deployed Engineering（RDE）が業務・既存システム・データに深く入り込み、AI前提で業務フローごと再設計する仮説と機会を抽出。Obsidian / Notion / Claude / ChatGPT / Gemini を組み合わせる変革型ディスカバリ。",
 	path: "/services/rde/",
+	languages: { ja: "/services/rde/", en: "/en/services/rde/" },
 	keywords: [
 		"RDE",
 		"Reinvention Deployed Engineering",

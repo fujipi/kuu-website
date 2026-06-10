@@ -13,6 +13,7 @@ export const metadata: Metadata = generateMetadata({
 	description:
 		"Kuu株式会社の会社情報。代表・藤平賢人が2022年に設立。AIネイティブAX/DX戦略・FDE・AIエージェント実装・ガバナンス運用までを一社で包括実行する東京のテクノロジー企業です。",
 	path: "/about/",
+	languages: { ja: "/about/", en: "/en/about/" },
 });
 
 const aboutJsonLd = [

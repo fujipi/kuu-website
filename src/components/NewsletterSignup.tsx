@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { FORMSPREE_NEWSLETTER, trackEvent } from "@/lib/forms";
+import type { Locale } from "@/lib/i18n";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -11,7 +12,34 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * ニュースレター登録（メールアドレスのみの1フィールド）。
  * Formspree に form_type: newsletter として送信する。
  */
-export default function NewsletterSignup() {
+const TEXT = {
+	ja: {
+		invalid: "メールアドレスの形式が正しくありません",
+		placeholder: "メールアドレス",
+		ariaLabel: "ニュースレター登録用メールアドレス",
+		submitting: "登録中…",
+		submit: "登録",
+		success:
+			"ご登録ありがとうございます。最新記事・ユースケースをお届けします。",
+		failure: "登録に失敗しました。時間をおいて再度お試しください。",
+	},
+	en: {
+		invalid: "Please enter a valid email address",
+		placeholder: "Email address",
+		ariaLabel: "Email address for newsletter",
+		submitting: "Subscribing…",
+		submit: "Subscribe",
+		success: "Thank you for subscribing.",
+		failure: "Subscription failed. Please try again later.",
+	},
+} as const;
+
+export default function NewsletterSignup({
+	locale = "ja",
+}: {
+	locale?: Locale;
+}) {
+	const t = TEXT[locale];
 	const [status, setStatus] = useState<Status>("idle");
 	const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +48,7 @@ export default function NewsletterSignup() {
 		const form = e.currentTarget;
 		const email = String(new FormData(form).get("email") ?? "").trim();
 		if (!EMAIL_RE.test(email)) {
-			setError("メールアドレスの形式が正しくありません");
+			setError(t.invalid);
 			return;
 		}
 		setError(null);
@@ -52,7 +80,7 @@ export default function NewsletterSignup() {
 				role="status"
 				style={{ fontSize: "0.8rem", color: "var(--gray-light)" }}
 			>
-				ご登録ありがとうございます。最新記事・ユースケースをお届けします。
+				{t.success}
 			</p>
 		);
 	}
@@ -71,8 +99,8 @@ export default function NewsletterSignup() {
 					type="email"
 					name="email"
 					required
-					placeholder="メールアドレス"
-					aria-label="ニュースレター登録用メールアドレス"
+					placeholder={t.placeholder}
+					aria-label={t.ariaLabel}
 					style={{
 						flex: "1 1 200px",
 						background: "rgba(255,255,255,0.03)",
@@ -100,7 +128,7 @@ export default function NewsletterSignup() {
 						cursor: "pointer",
 					}}
 				>
-					{status === "submitting" ? "登録中…" : "登録"}
+					{status === "submitting" ? t.submitting : t.submit}
 				</button>
 			</div>
 			{error ? (
@@ -110,7 +138,7 @@ export default function NewsletterSignup() {
 			) : null}
 			{status === "error" ? (
 				<p className="form-error" role="alert" style={{ marginTop: "0.5rem" }}>
-					登録に失敗しました。時間をおいて再度お試しください。
+					{t.failure}
 				</p>
 			) : null}
 		</form>
