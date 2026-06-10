@@ -83,6 +83,8 @@ const NEAR_DUP_ALLOWLIST = new Set(
 		["agent-governance-framework", "agent-governance-checklist"],
 		["ai-risk-management-sme", "ai-risk-assessment-template"],
 		["ai-agent-roi-measurement", "ai-agent-evaluation-kpi"],
+		// enterprise(deep)版とsmb(intermediate)版: 9軸フレームワーク焦点・audience・tech_depthが異なる正当な併存
+		["llm-as-a-judge-agent-evaluation-enterprise", "nine-axis-evaluation-llm-judge-smb"],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 
