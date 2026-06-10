@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_JP, Outfit } from "next/font/google";
 import Analytics from "@/components/Analytics";
 import { DEFAULT_KEYWORDS } from "@/lib/seo";
-import "./globals.css";
+import "../globals.css";
 
 const notoSansJP = Noto_Sans_JP({
 	weight: ["400", "500", "700"],
