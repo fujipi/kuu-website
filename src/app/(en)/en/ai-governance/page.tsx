@@ -44,6 +44,12 @@ const jsonLd = [
 		"@context": "https://schema.org",
 		"@type": "TechArticle",
 		headline: "What is AI Agent Governance? — A Practical Guide",
+		image: {
+			"@type": "ImageObject",
+			url: `${BASE_URL}/og/ai-governance.png`,
+			width: 1200,
+			height: 630,
+		},
 		description:
 			"Designing, evaluating and improving autonomous AI agents as a system: permissions, audit logs, 9-axis evaluation and human oversight.",
 		author: ORG_REF,

@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title,
 		description: t.description || t.shortDefinition,
 		path: `/glossary/${slug}/`,
+		markdownPath: `/glossary/${slug}/index.md`,
 	});
 }
 

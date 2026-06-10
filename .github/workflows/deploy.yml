@@ -70,3 +70,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # デプロイ成功後、直近更新URL（sitemap の lastmod ベース）を IndexNow へ通知。
+  # Bing / Copilot 系のインデックス反映を早める。失敗してもデプロイには影響しない。
+  indexnow:
+    runs-on: ubuntu-latest
+    needs: deploy
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Submit updated URLs to IndexNow
+        run: node scripts/submit-indexnow.mjs

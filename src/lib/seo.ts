@@ -53,6 +53,9 @@ export type PageSeoProps = {
 	noIndex?: boolean;
 	/** ページの言語（OGP locale に反映。既定 ja） */
 	lang?: "ja" | "en";
+	/** Markdown ミラーのパス（scripts/generate-md-mirrors.mjs が生成。
+	 * <link rel="alternate" type="text/markdown"> として出力される） */
+	markdownPath?: string;
 	/** 対訳ページがある場合の hreflang（ja/en 双方のパスを渡す） */
 	languages?: { ja: string; en: string };
 	article?: {
@@ -80,6 +83,8 @@ export function resolveOgImage(pathname: string): string {
 	// アーカイブ系ページ（track / industry）はセクション共通 OG にフォールバック
 	if (p.startsWith("/blog/track/")) return "/og/blog.png";
 	if (p.startsWith("/case/industry/")) return "/og/case.png";
+	// news 詳細は per-slug OG を生成していないためセクション共通にフォールバック
+	if (p.startsWith("/news/")) return "/og/news.png";
 	const blog = p.match(/^\/blog\/([^/]+)$/);
 	if (blog) return `/og/blog/${blog[1]}.png`;
 	const gloss = p.match(/^\/glossary\/([^/]+)$/);
@@ -106,6 +111,7 @@ export function generateMetadata({
 	noIndex = false,
 	lang = "ja",
 	languages,
+	markdownPath,
 	article,
 }: PageSeoProps): Metadata {
 	const url = `${BASE_URL}${path}`;
@@ -160,6 +166,9 @@ export function generateMetadata({
 							"x-default": `${BASE_URL}${languages.ja}`,
 						},
 					}
+				: {}),
+			...(markdownPath
+				? { types: { "text/markdown": `${BASE_URL}${markdownPath}` } }
 				: {}),
 		},
 		openGraph,

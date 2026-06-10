@@ -13,6 +13,7 @@ import TableOfContents from "@/components/TableOfContents";
 import { getAuthorBySlug } from "@/lib/authors";
 import { autoLinkGlossary } from "@/lib/autoLinkGlossary";
 import { BLOG_REDIRECTS } from "@/lib/blog-redirects";
+import { buildFaqJsonLd, extractFaqPairs } from "@/lib/faq";
 import { getAllGlossaryTerms } from "@/lib/glossary";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
@@ -22,6 +23,7 @@ import { getRelatedPosts, getSeriesPosts } from "@/lib/related";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { slugifyTag } from "@/lib/tags";
@@ -47,6 +49,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 				description:
 					"この記事は統合されました。最新の内容は移動先の記事をご覧ください。",
 				path: `/blog/${slug}/`,
+				// 旧slugのper-slug OG画像は生成されないため、セクション共通にフォールバック
+				ogpImage: "/og/blog.png",
 			}),
 			alternates: { canonical: `${BASE_URL}${to}` },
 			robots: { index: false, follow: true },
@@ -61,6 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title: post.title,
 		description: post.description,
 		path: `/blog/${slug}/`,
+		markdownPath: `/blog/${slug}/index.md`,
 		article: {
 			publishedTime: post.date,
 			modifiedTime: post.lastModified,
@@ -152,7 +157,7 @@ export default async function BlogPostPage({ params }: Props) {
 		post.techDepth === "intermediate" ||
 		post.techDepth === "deep";
 
-	const articleJsonLd = [
+	const articleJsonLd: Record<string, unknown>[] = [
 		{
 			"@context": "https://schema.org",
 			"@type": isTechArticle ? "TechArticle" : "Article",
@@ -172,6 +177,12 @@ export default async function BlogPostPage({ params }: Props) {
 				: {}),
 			headline: post.title,
 			description: post.description,
+			image: {
+				"@type": "ImageObject",
+				url: `${BASE_URL}${resolveOgImage(`/blog/${slug}/`)}`,
+				width: 1200,
+				height: 630,
+			},
 			author: {
 				"@type": "Person",
 				name: author.name,
@@ -215,6 +226,12 @@ export default async function BlogPostPage({ params }: Props) {
 			{ name: post.title, path: `/blog/${slug}/` },
 		]),
 	];
+
+	// 質問形見出し＋直後の回答（DAB/段落）が2ペア以上ある記事のみ FAQPage を付与
+	const faqPairs = extractFaqPairs(post.content);
+	if (faqPairs) {
+		articleJsonLd.push(buildFaqJsonLd(faqPairs));
+	}
 
 	return (
 		<>

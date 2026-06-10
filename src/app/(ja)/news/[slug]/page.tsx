@@ -12,6 +12,7 @@ import {
 	BASE_URL,
 	buildBreadcrumb,
 	ORG_REF,
+	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 
@@ -31,6 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title: `${item.title} | News | Kuu株式会社`,
 		description: item.description,
 		path: `/news/${slug}/`,
+		markdownPath: `/news/${slug}/index.md`,
 		article: {
 			publishedTime: item.date,
 			modifiedTime: item.lastModified,
@@ -80,6 +82,12 @@ export default async function NewsDetailPage({ params }: Props) {
 			"@type": "Article",
 			headline: item.title,
 			description: item.description,
+			image: {
+				"@type": "ImageObject",
+				url: `${BASE_URL}${resolveOgImage(`/news/${slug}/`)}`,
+				width: 1200,
+				height: 630,
+			},
 			url,
 			inLanguage: "ja",
 			datePublished: item.date,

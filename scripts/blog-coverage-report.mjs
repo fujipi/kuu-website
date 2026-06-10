@@ -23,10 +23,7 @@ const ROOT = process.cwd();
 // track 分類の単一情報源は src/lib/track-heuristics.json
 // （src/lib/taxonomy.ts と共有。変更はそちらで行う）。
 const trackData = JSON.parse(
-	fs.readFileSync(
-		path.join(ROOT, "src/lib/track-heuristics.json"),
-		"utf-8",
-	),
+	fs.readFileSync(path.join(ROOT, "src/lib/track-heuristics.json"), "utf-8"),
 );
 const TRACKS = trackData.tracks;
 const AUDIENCES = ["smb", "enterprise", "both"];
@@ -133,7 +130,9 @@ for (const t of TRACKS) {
 		if (matrix[t][a] === 0) gaps.push(`${t} × ${a}`);
 	}
 }
-console.log(gaps.length ? gaps.map((g) => `  - ${g}`).join("\n") : "  （なし）");
+console.log(
+	gaps.length ? gaps.map((g) => `  - ${g}`).join("\n") : "  （なし）",
+);
 
 // business（Case候補）一覧
 if (businessPosts.length) {

@@ -84,7 +84,10 @@ const NEAR_DUP_ALLOWLIST = new Set(
 		["ai-risk-management-sme", "ai-risk-assessment-template"],
 		["ai-agent-roi-measurement", "ai-agent-evaluation-kpi"],
 		// enterprise(deep)版とsmb(intermediate)版: 9軸フレームワーク焦点・audience・tech_depthが異なる正当な併存
-		["llm-as-a-judge-agent-evaluation-enterprise", "nine-axis-evaluation-llm-judge-smb"],
+		[
+			"llm-as-a-judge-agent-evaluation-enterprise",
+			"nine-axis-evaluation-llm-judge-smb",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 
@@ -131,8 +134,7 @@ for (const file of files) {
 		slug,
 		title: typeof data.title === "string" ? data.title : "",
 		tags: Array.isArray(data.tags) ? data.tags : [],
-		targetQuery:
-			typeof data.target_query === "string" ? data.target_query : "",
+		targetQuery: typeof data.target_query === "string" ? data.target_query : "",
 	});
 
 	// (1) 必須 frontmatter
@@ -226,6 +228,24 @@ for (const file of files) {
 			file,
 			kind: "no_service_link",
 			message: `本文に /services/ への内部リンクが無い（新規生成では 1 個以上推奨）。`,
+		});
+	}
+
+	// (warning) SERP コピー品質。CLAUDE.md の「SERP（検索結果）コピーの最適化」
+	// 基準（title 全角32字以内 / description 70〜120字）の下限側を警告で出す。
+	// 既存記事に該当があり得るため hard gate にはしない（デプロイは止めない）。
+	if (typeof data.title === "string" && data.title.length > 32) {
+		warnings.push({
+			file,
+			kind: "title_serp_length",
+			message: `title が ${data.title.length} 字（推奨 32 字以内）。Google SERP では約 30〜35 字で切られる。`,
+		});
+	}
+	if (typeof data.description === "string" && data.description.length < 70) {
+		warnings.push({
+			file,
+			kind: "description_serp_short",
+			message: `description が ${data.description.length} 字（推奨 70〜120 字）。短すぎると SERP の説明文を Google が独自生成しやすくなる。`,
 		});
 	}
 }

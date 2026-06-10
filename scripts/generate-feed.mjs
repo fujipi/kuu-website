@@ -3,6 +3,12 @@
  * Build RSS 2.0, Atom 1.0, and JSON Feed from content/blog/*.mdx
  * Writes to public/feed.xml, public/atom.xml, public/feed.json
  * Runs as part of postbuild; no runtime deps beyond gray-matter.
+ *
+ * 全文配信: src/lib/mdToHtml.ts を Node の type stripping で直接 import する
+ * （Node >= 22.18 必須。CI は node 22）。`package.json` に `"type":"module"` を
+ * 追加してはならない（CJS の next-sitemap.config.js が壊れる）。
+ * import に失敗した場合は description のみのフィードにフォールバックし、
+ * フィード生成でデプロイを止めない。
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -12,8 +18,19 @@ const ROOT = process.cwd();
 const BLOG_DIR = path.join(ROOT, "content/blog");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const OUT_DIR_NEXT = path.join(ROOT, "out");
-const OUT_DIR = PUBLIC_DIR; // primary write target (for `next dev` and the next build's copy)
 const SITE = "https://kuucorp.com";
+
+// フィードに載せる記事数（全件入れると肥大化するため最新のみ）
+const FEED_LIMIT = 20;
+
+let mdToHtml = null;
+try {
+	({ mdToHtml } = await import("../src/lib/mdToHtml.ts"));
+} catch (err) {
+	console.warn(
+		`[feed] WARN: mdToHtml の読み込みに失敗（${err.message}）。全文なしで生成します`,
+	);
+}
 
 // postbuild runs after `next build` has copied public/ -> out/, so writing
 // only to public/ leaves out/ one build behind. Mirror to out/ when present.
@@ -36,6 +53,17 @@ const xmlEscape = (s = "") =>
 		.replace(/"/g, "&quot;")
 		.replace(/'/g, "&apos;");
 
+// CDATA 内に "]]>" が含まれるとセクションが壊れるため分割エスケープする
+const cdata = (s = "") => `<![CDATA[${s.replace(/]]>/g, "]]]]><![CDATA[>")}]]>`;
+
+/** 記事本文をフィード用 HTML へ（相対リンクは絶対化） */
+function contentHtml(markdown) {
+	if (!mdToHtml) return null;
+	return mdToHtml(markdown)
+		.replace(/href="\//g, `href="${SITE}/`)
+		.replace(/src="\//g, `src="${SITE}/`);
+}
+
 const posts = fs
 	.readdirSync(BLOG_DIR)
 	.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
@@ -55,7 +83,8 @@ const posts = fs
 			content,
 		};
 	})
-	.sort((a, b) => (a.date < b.date ? 1 : -1));
+	.sort((a, b) => (a.date < b.date ? 1 : -1))
+	.slice(0, FEED_LIMIT);
 
 const latest = posts[0]?.lastModified ?? new Date().toISOString().slice(0, 10);
 
@@ -64,20 +93,26 @@ const rssItems = posts
 	.map((p) => {
 		const url = `${SITE}/blog/${p.slug}/`;
 		const pub = new Date(p.date).toUTCString();
+		const html = contentHtml(p.content);
 		return `
     <item>
       <title>${xmlEscape(p.title)}</title>
       <link>${url}</link>
       <guid isPermaLink="true">${url}</guid>
       <pubDate>${pub}</pubDate>
-      <description><![CDATA[${p.description}]]></description>
+      <description>${cdata(p.description)}</description>${
+				html
+					? `
+      <content:encoded>${cdata(html)}</content:encoded>`
+					: ""
+			}
       ${p.tags.map((t) => `<category>${xmlEscape(t)}</category>`).join("\n      ")}
     </item>`;
 	})
 	.join("");
 
 const rss = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>${xmlEscape(SITE_NAME)} Blog</title>
     <link>${SITE}/blog/</link>
@@ -93,6 +128,7 @@ const rss = `<?xml version="1.0" encoding="UTF-8"?>
 const atomEntries = posts
 	.map((p) => {
 		const url = `${SITE}/blog/${p.slug}/`;
+		const html = contentHtml(p.content);
 		return `
   <entry>
     <title>${xmlEscape(p.title)}</title>
@@ -100,7 +136,12 @@ const atomEntries = posts
     <id>${url}</id>
     <updated>${new Date(p.lastModified).toISOString()}</updated>
     <published>${new Date(p.date).toISOString()}</published>
-    <summary><![CDATA[${p.description}]]></summary>
+    <summary>${cdata(p.description)}</summary>${
+			html
+				? `
+    <content type="html">${cdata(html)}</content>`
+				: ""
+		}
     <author><name>${xmlEscape(p.author)}</name></author>
     ${p.tags.map((t) => `<category term="${xmlEscape(t)}" />`).join("\n    ")}
   </entry>`;
@@ -127,16 +168,20 @@ const jsonFeed = {
 	description: SITE_DESC,
 	language: "ja",
 	icon: `${SITE}/images/favicon-192.png`,
-	items: posts.map((p) => ({
-		id: `${SITE}/blog/${p.slug}/`,
-		url: `${SITE}/blog/${p.slug}/`,
-		title: p.title,
-		summary: p.description,
-		date_published: new Date(p.date).toISOString(),
-		date_modified: new Date(p.lastModified).toISOString(),
-		tags: p.tags,
-		authors: [{ name: p.author }],
-	})),
+	items: posts.map((p) => {
+		const html = contentHtml(p.content);
+		return {
+			id: `${SITE}/blog/${p.slug}/`,
+			url: `${SITE}/blog/${p.slug}/`,
+			title: p.title,
+			summary: p.description,
+			...(html ? { content_html: html } : {}),
+			date_published: new Date(p.date).toISOString(),
+			date_modified: new Date(p.lastModified).toISOString(),
+			tags: p.tags,
+			authors: [{ name: p.author }],
+		};
+	}),
 };
 
 writeBoth("feed.xml", rss);
@@ -145,5 +190,5 @@ writeBoth("feed.json", JSON.stringify(jsonFeed, null, 2));
 
 const target = fs.existsSync(OUT_DIR_NEXT) ? "public/+out/" : "public/";
 console.log(
-	`[feed] generated ${posts.length} items -> ${target}{feed.xml, atom.xml, feed.json}`,
+	`[feed] generated ${posts.length} items (full content: ${mdToHtml ? "yes" : "no"}) -> ${target}{feed.xml, atom.xml, feed.json}`,
 );
