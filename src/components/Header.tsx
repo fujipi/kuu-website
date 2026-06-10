@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type MouseEvent, useCallback, useEffect, useState } from "react";
+import { localeFromPath, switchLocalePath } from "@/lib/i18n";
 import { isDropdown, type NavItem } from "@/lib/navigation";
 
 interface HeaderProps {
@@ -12,6 +13,9 @@ interface HeaderProps {
 
 export default function Header({ navLinks }: HeaderProps) {
 	const pathname = usePathname();
+	const locale = localeFromPath(pathname ?? "/");
+	const homeHref = locale === "en" ? "/en/" : "/";
+	const switchHref = switchLocalePath(pathname ?? "/");
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
@@ -29,7 +33,7 @@ export default function Header({ navLinks }: HeaderProps) {
 		(e: MouseEvent<HTMLAnchorElement>) => {
 			closeAll();
 			// On the home page, scroll back to the hero (top) instead of a no-op nav.
-			if (pathname === "/") {
+			if (pathname === homeHref || (locale === "ja" && pathname === "/")) {
 				e.preventDefault();
 				const reduce = window.matchMedia(
 					"(prefers-reduced-motion: reduce)",
@@ -40,7 +44,7 @@ export default function Header({ navLinks }: HeaderProps) {
 				}
 			}
 		},
-		[closeAll, pathname],
+		[closeAll, pathname, homeHref, locale],
 	);
 
 	const toggleDropdown = useCallback((label: string) => {
@@ -60,7 +64,7 @@ export default function Header({ navLinks }: HeaderProps) {
 
 	return (
 		<header>
-			<Link href="/" className="logo" onClick={onLogoClick}>
+			<Link href={homeHref} className="logo" onClick={onLogoClick}>
 				<Image
 					src="/images/logo.png"
 					alt="Kuu"
@@ -119,6 +123,21 @@ export default function Header({ navLinks }: HeaderProps) {
 							</li>
 						),
 					)}
+					<li>
+						<Link
+							href={switchHref}
+							onClick={closeAll}
+							aria-label={
+								locale === "en" ? "日本語ページへ切り替え" : "Switch to English"
+							}
+							style={{
+								fontSize: "0.7rem",
+								letterSpacing: "0.08em",
+							}}
+						>
+							{locale === "en" ? "日本語" : "EN"}
+						</Link>
+					</li>
 				</ul>
 			</nav>
 		</header>

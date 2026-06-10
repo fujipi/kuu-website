@@ -40,6 +40,9 @@ jobs:
           pnpm exec biome check src/
           pnpm exec tsc --noEmit
 
+      - name: Unit tests
+        run: pnpm test
+
       - name: Validate case content (safety gate)
         run: pnpm validate:case
 
@@ -48,6 +51,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Check internal links (safety gate)
+        run: node scripts/check-internal-links.mjs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

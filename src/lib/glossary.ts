@@ -62,6 +62,32 @@ export function getAllGlossaryTerms(): GlossaryTermMeta[] {
 		.sort((a, b) => a.term.localeCompare(b.term, "ja"));
 }
 
+/**
+ * 関連用語を「明示的な relatedTerms ∪ 逆参照（他の用語が自分を
+ * relatedTerms に挙げているもの）」として解決する。
+ * コンテンツを編集せずに用語間の相互リンクを成立させるための拡張。
+ */
+export function getResolvedRelatedTerms(slug: string): GlossaryTermMeta[] {
+	const all = getAllGlossaryTerms();
+	const self = all.find((t) => t.slug === slug);
+	if (!self) return [];
+	const explicit = new Set(self.relatedTerms);
+	const reverse = all
+		.filter((t) => t.slug !== slug && t.relatedTerms.includes(slug))
+		.map((t) => t.slug);
+	const resolved = new Set([...explicit, ...reverse]);
+	resolved.delete(slug);
+	// 明示分の並びを優先し、逆参照分を後ろに足す
+	const ordered = [
+		...self.relatedTerms,
+		...reverse.filter((r) => !explicit.has(r)),
+	];
+	return ordered
+		.filter((s, i) => ordered.indexOf(s) === i && resolved.has(s))
+		.map((s) => all.find((t) => t.slug === s))
+		.filter((t): t is GlossaryTermMeta => !!t);
+}
+
 export function getGlossaryTermBySlug(slug: string): GlossaryTerm | null {
 	const base = path.join(GLOSSARY_DIR, slug);
 	const filePath = fs.existsSync(`${base}.mdx`)

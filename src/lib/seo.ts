@@ -51,6 +51,10 @@ export type PageSeoProps = {
 	keywords?: string[];
 	ogpImage?: string;
 	noIndex?: boolean;
+	/** ページの言語（OGP locale に反映。既定 ja） */
+	lang?: "ja" | "en";
+	/** 対訳ページがある場合の hreflang（ja/en 双方のパスを渡す） */
+	languages?: { ja: string; en: string };
 	article?: {
 		publishedTime: string;
 		modifiedTime?: string;
@@ -73,6 +77,9 @@ export type PageSeoProps = {
  */
 export function resolveOgImage(pathname: string): string {
 	const p = pathname.replace(/\/+$/, "");
+	// アーカイブ系ページ（track / industry）はセクション共通 OG にフォールバック
+	if (p.startsWith("/blog/track/")) return "/og/blog.png";
+	if (p.startsWith("/case/industry/")) return "/og/case.png";
 	const blog = p.match(/^\/blog\/([^/]+)$/);
 	if (blog) return `/og/blog/${blog[1]}.png`;
 	const gloss = p.match(/^\/glossary\/([^/]+)$/);
@@ -97,10 +104,13 @@ export function generateMetadata({
 	keywords,
 	ogpImage,
 	noIndex = false,
+	lang = "ja",
+	languages,
 	article,
 }: PageSeoProps): Metadata {
 	const url = `${BASE_URL}${path}`;
 	const image = ogpImage ?? resolveOgImage(path) ?? DEFAULT_OGP_IMAGE;
+	const ogLocale = lang === "en" ? "en_US" : "ja_JP";
 
 	const openGraph: Metadata["openGraph"] = article
 		? {
@@ -108,7 +118,7 @@ export function generateMetadata({
 				description,
 				url,
 				siteName: SITE_NAME,
-				locale: "ja_JP",
+				locale: ogLocale,
 				type: "article",
 				publishedTime: article.publishedTime,
 				modifiedTime: article.modifiedTime,
@@ -121,7 +131,7 @@ export function generateMetadata({
 				description,
 				url,
 				siteName: SITE_NAME,
-				locale: "ja_JP",
+				locale: ogLocale,
 				type: "website",
 				images: [{ url: image, width: 1200, height: 630, alt: title }],
 			};
@@ -142,6 +152,15 @@ export function generateMetadata({
 				},
 		alternates: {
 			canonical: url,
+			...(languages
+				? {
+						languages: {
+							ja: `${BASE_URL}${languages.ja}`,
+							en: `${BASE_URL}${languages.en}`,
+							"x-default": `${BASE_URL}${languages.ja}`,
+						},
+					}
+				: {}),
 		},
 		openGraph,
 		twitter: {

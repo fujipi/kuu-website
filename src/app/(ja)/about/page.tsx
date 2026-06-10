@@ -1,0 +1,117 @@
+import type { Metadata } from "next";
+import FadeInObserver from "@/components/FadeInObserver";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import JsonLd from "@/components/JsonLd";
+import Stars from "@/components/Stars";
+import { getMainNav } from "@/lib/navigation";
+import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = generateMetadata({
+	title:
+		"会社情報｜Kuu株式会社｜AX/DX戦略からエージェント実装・ガバナンスまで包括実行",
+	description:
+		"Kuu株式会社の会社情報。代表・藤平賢人が2022年に設立。AIネイティブAX/DX戦略・FDE・AIエージェント実装・ガバナンス運用までを一社で包括実行する東京のテクノロジー企業です。",
+	path: "/about/",
+	languages: { ja: "/about/", en: "/en/about/" },
+});
+
+const aboutJsonLd = [
+	{
+		"@context": "https://schema.org",
+		"@type": "AboutPage",
+		name: "会社情報 | Kuu株式会社",
+		url: `${BASE_URL}/about/`,
+		description: "Kuu株式会社の会社情報。",
+		isPartOf: {
+			"@type": "WebSite",
+			url: BASE_URL,
+			name: "Kuu株式会社",
+		},
+	},
+	{
+		"@context": "https://schema.org",
+		"@type": "Organization",
+		name: "Kuu株式会社",
+		url: BASE_URL,
+		logo: `${BASE_URL}/images/favicon-192.png`,
+		foundingDate: "2022",
+		founder: {
+			"@type": "Person",
+			name: "藤平 賢人",
+			jobTitle: "代表取締役",
+		},
+		numberOfEmployees: {
+			"@type": "QuantitativeValue",
+			minValue: 1,
+			maxValue: 10,
+		},
+		address: {
+			"@type": "PostalAddress",
+			streetAddress: "東神田一丁目13番14号",
+			addressLocality: "千代田区",
+			addressRegion: "東京都",
+			addressCountry: "JP",
+		},
+		contactPoint: {
+			"@type": "ContactPoint",
+			contactType: "customer service",
+			url: `${BASE_URL}/contact/`,
+			availableLanguage: "Japanese",
+		},
+	},
+	buildBreadcrumb([
+		{ name: "ホーム", path: "/" },
+		{ name: "会社情報", path: "/about/" },
+	]),
+];
+
+export default function AboutPage() {
+	return (
+		<>
+			<JsonLd data={aboutJsonLd} />
+			<Stars />
+			<FadeInObserver />
+			<Header navLinks={getMainNav()} />
+
+			<main>
+				<div className="page-content">
+					<h1 className="page-title fade-in">About</h1>
+
+					{/* 会社概要 */}
+					<section style={{ marginBottom: "4rem" }}>
+						<h2 className="section-label fade-in">Company</h2>
+						<div className="about-table fade-in">
+							<div className="about-row">
+								<div className="about-label">会社名</div>
+								<div className="about-value">Kuu株式会社</div>
+							</div>
+							<div className="about-row">
+								<div className="about-label">代表者</div>
+								<div className="about-value">藤平賢人</div>
+							</div>
+							<div className="about-row">
+								<div className="about-label">所在地</div>
+								<div className="about-value">
+									東京都千代田区東神田一丁目13番14号
+								</div>
+							</div>
+							<div className="about-row">
+								<div className="about-label">設立</div>
+								<div className="about-value">2022年</div>
+							</div>
+							<div className="about-row">
+								<div className="about-label">事業内容</div>
+								<div className="about-value">
+									インターネットビジネスの企画・開発・運営
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</main>
+
+			<Footer />
+		</>
+	);
+}

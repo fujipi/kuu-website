@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/generate-og-images.mjs && next-sitemap && node scripts/generate-feed.mjs && node scripts/generate-llms-txt.mjs",
+    "postbuild": "node scripts/generate-og-images.mjs && next-sitemap && node scripts/generate-feed.mjs && node scripts/generate-llms-txt.mjs && pagefind --site out",
     "start": "next start",
     "lint": "biome check src/",
     "format": "biome format --write src/",
+    "test": "vitest run",
+    "check:links": "node scripts/check-internal-links.mjs",
     "coverage:blog": "node scripts/blog-coverage-report.mjs",
     "validate:case": "node scripts/validate-case.mjs",
     "validate:blog": "node scripts/validate-blog.mjs"
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.11",
+    "@playwright/test": "^1.60.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -30,8 +33,11 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "http-server": "^14.1.1",
+    "pagefind": "^1.5.2",
     "satori": "^0.26.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   }
 }

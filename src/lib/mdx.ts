@@ -15,6 +15,10 @@ export interface BlogPost {
 	pillar?: string;
 	series?: string;
 	seriesOrder?: number;
+	track?: string;
+	audience?: string;
+	techDepth?: string;
+	sources?: string[];
 	content: string;
 }
 
@@ -29,6 +33,9 @@ export interface BlogPostMeta {
 	pillar?: string;
 	series?: string;
 	seriesOrder?: number;
+	track?: string;
+	audience?: string;
+	techDepth?: string;
 }
 
 export function getAllPostSlugs(): string[] {
@@ -64,6 +71,10 @@ export function getAllPosts(): BlogPostMeta[] {
 						: typeof data.seriesOrder === "number"
 							? data.seriesOrder
 							: undefined,
+				track: typeof data.track === "string" ? data.track : undefined,
+				audience: typeof data.audience === "string" ? data.audience : undefined,
+				techDepth:
+					typeof data.tech_depth === "string" ? data.tech_depth : undefined,
 			} satisfies BlogPostMeta;
 		})
 		.sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -98,6 +109,13 @@ export function getPostBySlug(slug: string): BlogPost | null {
 				: typeof data.seriesOrder === "number"
 					? data.seriesOrder
 					: undefined,
+		track: typeof data.track === "string" ? data.track : undefined,
+		audience: typeof data.audience === "string" ? data.audience : undefined,
+		techDepth:
+			typeof data.tech_depth === "string" ? data.tech_depth : undefined,
+		sources: Array.isArray(data.sources)
+			? data.sources.filter((s: unknown): s is string => typeof s === "string")
+			: undefined,
 		content,
 	};
 }
