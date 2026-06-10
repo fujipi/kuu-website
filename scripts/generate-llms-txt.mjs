@@ -109,6 +109,7 @@ sections.push(`## Services
 
 sections.push(`## Browse (アーカイブ・検索)
 
+- **Markdown access**: 各記事は URL 末尾に \`index.md\` を付けると Markdown 原文を取得できます（例: ${SITE}/blog/what-is-ai-agent/index.md）
 - サイト内全文検索: ${SITE}/search/
 - 技術トラック別ブログ一覧: ${SITE}/blog/track/architecture/ ほか protocols / security / evaluation / platform-infra / governance-tech / model-capability
 - 業種別ユースケース一覧: ${SITE}/case/industry/healthcare/ ほか業種別

@@ -96,7 +96,6 @@ export default function SearchClient() {
 				onChange={(e) => setQuery(e.target.value)}
 				placeholder="キーワードを入力（例: MCP, エージェントガバナンス, 監査ログ）"
 				aria-label="サイト内検索"
-				autoFocus
 				style={{
 					width: "100%",
 					background: "rgba(255,255,255,0.03)",

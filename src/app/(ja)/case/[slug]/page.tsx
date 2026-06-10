@@ -18,6 +18,7 @@ import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 
@@ -37,6 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title: `${c.title} | Case | Kuu株式会社`,
 		description: c.description,
 		path: `/case/${slug}/`,
+		markdownPath: `/case/${slug}/index.md`,
 	});
 }
 
@@ -93,6 +95,12 @@ export default async function CaseDetailPage({ params }: Props) {
 			"@type": "Article",
 			headline: c.title,
 			description: c.description,
+			image: {
+				"@type": "ImageObject",
+				url: `${BASE_URL}${resolveOgImage(`/case/${slug}/`)}`,
+				width: 1200,
+				height: 630,
+			},
 			url,
 			inLanguage: "ja",
 			datePublished: c.date,

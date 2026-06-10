@@ -38,6 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 			description:
 				"このユースケースは Case ページに移動しました。最新の活用イメージはこちらをご覧ください。",
 			path: `/case-studies/${slug}/`,
+			// 旧slugのper-slug OG画像は生成されないため、セクション共通にフォールバック
+			ogpImage: "/og/case-studies.png",
 		}),
 		alternates: { canonical: `${BASE_URL}${to}` },
 		robots: { index: false, follow: true },

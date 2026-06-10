@@ -85,6 +85,12 @@ export default function EnRootLayout({
 					sizes="192x192"
 				/>
 				<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+				<link
+					rel="alternate"
+					type="text/plain"
+					title="LLM-friendly site index"
+					href="/llms.txt"
+				/>
 			</head>
 			<body>
 				<Analytics />

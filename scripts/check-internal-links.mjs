@@ -39,8 +39,14 @@ function walkHtml(dir) {
 
 /** 内部リンク path が out/ 内で解決できるか */
 function resolves(linkPath) {
-	// クエリ・フラグメントを除去
-	const clean = linkPath.split("#")[0].split("?")[0];
+	// クエリ・フラグメントを除去し、パーセントエンコードを実パスに戻す
+	// （canonical / og:url は日本語タグパスをエンコード済みで出力するため）
+	let clean = linkPath.split("#")[0].split("?")[0];
+	try {
+		clean = decodeURIComponent(clean);
+	} catch {
+		// 不正なエンコードはそのまま検査
+	}
 	if (!clean || clean === "/") {
 		return fs.existsSync(path.join(OUT_DIR, "index.html"));
 	}
@@ -57,16 +63,39 @@ function resolves(linkPath) {
 
 const htmlFiles = walkHtml(OUT_DIR);
 const attrRe = /\s(?:href|src)=["']([^"']+)["']/g;
+// og:image / og:image:url / twitter:image の content も実在検証する
+// （SNS/検索エンジンが取得する画像URLのリンク切れは href/src 検査では拾えない）
+const metaImageRe =
+	/<meta\s+(?:property=["']og:image(?::url)?["']|name=["']twitter:image["'])\s+content=["']([^"']+)["']/g;
+const SITE_ORIGIN = "https://kuucorp.com";
 const broken = new Map(); // link -> Set<sourceFile>
 let checked = 0;
+let metaChecked = 0;
+
+/** 自サイト絶対URLは origin を strip して内部パスとして扱う */
+function toInternalPath(link) {
+	if (link.startsWith(SITE_ORIGIN + "/")) {
+		return link.slice(SITE_ORIGIN.length);
+	}
+	if (link.startsWith("/") && !link.startsWith("//")) return link;
+	return null; // 外部URL・プロトコル相対・data: 等は対象外
+}
 
 for (const file of htmlFiles) {
 	const html = fs.readFileSync(file, "utf8");
 	for (const m of html.matchAll(attrRe)) {
-		const link = m[1];
-		// 内部リンクのみ対象（`//` はプロトコル相対=外部）
-		if (!link.startsWith("/") || link.startsWith("//")) continue;
+		const link = toInternalPath(m[1]);
+		if (!link) continue;
 		checked++;
+		if (!resolves(link)) {
+			if (!broken.has(link)) broken.set(link, new Set());
+			broken.get(link).add(path.relative(OUT_DIR, file));
+		}
+	}
+	for (const m of html.matchAll(metaImageRe)) {
+		const link = toInternalPath(m[1]);
+		if (!link) continue;
+		metaChecked++;
 		if (!resolves(link)) {
 			if (!broken.has(link)) broken.set(link, new Set());
 			broken.get(link).add(path.relative(OUT_DIR, file));
@@ -89,5 +118,5 @@ if (broken.size > 0) {
 }
 
 console.log(
-	`[check-internal-links] OK: ${htmlFiles.length} ページ / ${checked} リンクを検証、リンク切れなし`,
+	`[check-internal-links] OK: ${htmlFiles.length} ページ / ${checked} リンク + og:image等 ${metaChecked} 件を検証、リンク切れなし`,
 );

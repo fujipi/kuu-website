@@ -312,30 +312,53 @@ const STATIC_JOBS = [
 
 /* ---------- Main ---------- */
 async function main() {
+	// フォント取得失敗のみ全体 skip（オフライン環境等を考慮した non-fatal 動作）
+	let fonts;
 	try {
-		const fonts = await getFonts();
-		fs.mkdirSync(OUT_DIR, { recursive: true });
-		fs.mkdirSync(path.join(OUT_DIR, "blog"), { recursive: true });
-		fs.mkdirSync(path.join(OUT_DIR, "glossary"), { recursive: true });
-		fs.mkdirSync(path.join(OUT_DIR, "case-studies"), { recursive: true });
-		fs.mkdirSync(path.join(OUT_DIR, "case"), { recursive: true });
-		fs.mkdirSync(path.join(OUT_DIR, "resources"), { recursive: true });
+		fonts = await getFonts();
+	} catch (err) {
+		console.error("[og] font fetch failed:", err.message);
+		console.error("[og] skipping OG image generation (non-fatal)");
+		return;
+	}
 
-		const jobs = [
-			...STATIC_JOBS.map((j) => ({ ...j, out: path.join(OUT_DIR, j.out) })),
-			...collectBlog(),
-			...collectGlossary(),
-			...collectCaseStudies(),
-			...collectCases(),
-			...collectResources(),
-		];
+	fs.mkdirSync(OUT_DIR, { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "blog"), { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "glossary"), { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "case-studies"), { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "case"), { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "resources"), { recursive: true });
 
-		for (const job of jobs) {
+	// 各 collect* は .mdx/.md のみ列挙する（topic-queue.json 等は対象外）
+	const sections = {
+		static: STATIC_JOBS.map((j) => ({ ...j, out: path.join(OUT_DIR, j.out) })),
+		blog: collectBlog(),
+		glossary: collectGlossary(),
+		"case-studies": collectCaseStudies(),
+		case: collectCases(),
+		resources: collectResources(),
+	};
+	for (const [name, list] of Object.entries(sections)) {
+		console.log(`[og] ${name}: ${list.length} entries`);
+	}
+	const jobs = Object.values(sections).flat();
+
+	// 1ジョブの失敗で残りが silent skip されないよう per-job で捕捉する
+	let generated = 0;
+	const failed = [];
+	for (const job of jobs) {
+		try {
 			const png = await renderPng(job.title, job.eyebrow, fonts);
 			writeAsset(job.out, png);
+			generated++;
+		} catch (err) {
+			failed.push(job.out);
+			console.error(`[og] FAIL: ${job.out} — ${err.message}`);
 		}
+	}
 
-		// Also copy default.png to /images/ogp.png for backward compat
+	// Also copy default.png to /images/ogp.png for backward compat
+	try {
 		const defaultPath = path.join(OUT_DIR, "default.png");
 		const legacyPublic = path.join(ROOT, "public/images/ogp.png");
 		fs.copyFileSync(defaultPath, legacyPublic);
@@ -344,12 +367,13 @@ async function main() {
 			fs.mkdirSync(path.dirname(legacyOut), { recursive: true });
 			fs.copyFileSync(defaultPath, legacyOut);
 		}
-
-		console.log(`[og] generated ${jobs.length} images -> public/og/`);
 	} catch (err) {
-		console.error("[og] failed:", err.message);
-		console.error("[og] skipping OG image generation (non-fatal)");
+		console.error(`[og] FAIL: legacy ogp.png copy — ${err.message}`);
 	}
+
+	console.log(
+		`[og] generated ${generated} / failed ${failed.length} (total ${jobs.length}) -> public/og/`,
+	);
 }
 
 main();

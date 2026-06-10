@@ -19,6 +19,12 @@ describe("resolveOgImage", () => {
 		expect(resolveOgImage("/blog/")).toBe("/og/blog.png");
 	});
 
+	it("falls back archive and news pages to their section image", () => {
+		expect(resolveOgImage("/blog/track/security/")).toBe("/og/blog.png");
+		expect(resolveOgImage("/case/industry/healthcare/")).toBe("/og/case.png");
+		expect(resolveOgImage("/news/fde-service-launch/")).toBe("/og/news.png");
+	});
+
 	it("falls back to default for unknown paths", () => {
 		expect(resolveOgImage("/")).toBe("/og/default.png");
 		expect(resolveOgImage("/privacy-policy/")).toBe("/og/default.png");

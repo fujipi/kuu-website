@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title: `${r.title} | リソース | Kuu株式会社`,
 		description: r.description,
 		path: `/resources/${slug}/`,
+		markdownPath: `/resources/${slug}/index.md`,
 	});
 }
 

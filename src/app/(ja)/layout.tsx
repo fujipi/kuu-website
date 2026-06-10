@@ -96,6 +96,12 @@ export default function RootLayout({
 				<link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
 				<link
 					rel="alternate"
+					type="text/plain"
+					title="LLM-friendly site index"
+					href="/llms.txt"
+				/>
+				<link
+					rel="alternate"
 					type="application/rss+xml"
 					title="Kuu株式会社 Blog RSS"
 					href="/feed.xml"
