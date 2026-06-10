@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CtaBox from "@/components/CtaBox";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -324,6 +325,8 @@ export default async function BlogPostPage({ params }: Props) {
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: static build-time markdown
 						dangerouslySetInnerHTML={{ __html: contentHtml }}
 					/>
+
+					<CtaBox audience={post.audience} track={post.track} />
 
 					{/* 前後ナビゲーション */}
 					<nav

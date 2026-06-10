@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CtaBox from "@/components/CtaBox";
 import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -244,7 +245,11 @@ export default async function TrackArchivePage({ params }: Props) {
 						</div>
 					)}
 
-					<div className="fade-in" style={{ marginTop: "3rem" }}>
+					<div style={{ marginTop: "3rem" }}>
+						<CtaBox track={track} />
+					</div>
+
+					<div className="fade-in">
 						<Link
 							href="/blog/"
 							style={{

@@ -4,6 +4,7 @@ import FadeInObserver from "@/components/FadeInObserver";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
+import ResourceRequestForm from "@/components/ResourceRequestForm";
 import Stars from "@/components/Stars";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getMainNav } from "@/lib/navigation";
@@ -206,23 +207,17 @@ export default async function ResourceDetailPage({ params }: Props) {
 								marginBottom: "1.25rem",
 							}}
 						>
-							本資料はお問い合わせフォームからご請求いただけます。御社のご状況をヒアリングのうえ、最新版をメールでお送りします
-							(数営業日以内)。
+							会社名とメールアドレスのご入力で、このページから直接ご請求いただけます。御社のご状況に合わせた活用のご相談は
+							<Link href="/contact/" style={{ color: "var(--gray-light)" }}>
+								無料相談
+							</Link>
+							へどうぞ。
 						</p>
-						<Link
-							href="/contact/"
-							style={{
-								display: "inline-block",
-								fontSize: "0.85rem",
-								color: "var(--white)",
-								border: "1px solid var(--white)",
-								padding: "0.7rem 1.75rem",
-								fontFamily: "var(--font-heading)",
-								letterSpacing: "0.05em",
-							}}
-						>
-							資料請求・無料相談
-						</Link>
+						<ResourceRequestForm
+							resourceSlug={slug}
+							resourceTitle={r.title}
+							downloadUrl={r.download}
+						/>
 					</section>
 
 					{related.length > 0 && (

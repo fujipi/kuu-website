@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 const columns: { heading: string; links: { href: string; label: string }[] }[] =
 	[
@@ -66,6 +67,20 @@ export default function Footer() {
 						) : null}
 					</div>
 				))}
+			</div>
+			<div className="footer-newsletter">
+				<div className="footer-col-heading">Newsletter</div>
+				<p
+					style={{
+						fontSize: "0.75rem",
+						color: "var(--gray-medium)",
+						lineHeight: "1.8",
+						marginBottom: "0.75rem",
+					}}
+				>
+					AIエージェントの技術記事・ユースケースの新着をメールでお届けします。
+				</p>
+				<NewsletterSignup />
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>
