@@ -1,0 +1,153 @@
+---
+title: "AIエージェントのメモリ設計——短期・長期・エピソード記憶の実装"
+description: "AIエージェントのメモリは短期（コンテキストウィンドウ）・長期（ベクターストア/グラフDB）・エピソード記憶の3層で設計する。各タイプの実装パターン、ベクターインデックス選択（HNSW/IVF）、セッション間の記憶統合フローを解説する。"
+date: "2026-06-11"
+lastModified: "2026-06-11"
+tags: ["AIエージェント", "アーキテクチャ", "メモリ設計", "コンテキストエンジニアリング"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+sources:
+  - "https://redis.io/blog/ai-agent-memory-stateful-systems/"
+  - "https://atlan.com/know/agent-memory-architectures/"
+  - "https://47billion.com/blog/ai-agent-memory-types-implementation-best-practices/"
+pillar: "ai-governance"
+---
+
+LLMはステートレスだ。各リクエストは独立しており、前の会話を覚えていない。これはAIエージェントを設計する上での根本的な制約で、複数ターンの対話、セッションをまたぐ学習、ユーザーの好みや過去の作業履歴の活用には**外部メモリアーキテクチャ**が不可欠になる。メモリ設計を後付けにしたシステムは、スケールしない属人的な実装か、品質の低い回答を生む情報欠落のどちらかに陥りやすい。[Kuuのエージェントガバナンスアプローチ](/ai-governance/)と合わせて本稿を参照してほしい。
+
+## AIエージェントにメモリが必要な理由は何か
+
+> AIエージェントはLLM本来のステートレス性を補うため、短期・長期・エピソードの3層メモリを組み合わせた外部状態管理が必要だ。
+
+コンテキストウィンドウは拡大しているが、100万トークン超のウィンドウでも「会話の全履歴を詰め込む」設計は現実的ではない。コストが直線的に増加し、ウィンドウ中央に置いた情報を見落とす「中央失念問題」が生じる。実用的なメモリ設計は以下の3層で構成する。
+
+| メモリ層 | スコープ | 実装 | 揮発性 |
+|---|---|---|---|
+| 短期（ワーキング） | 現在のセッション | コンテキストウィンドウ / インメモリ | セッション終了で消える |
+| 長期 | セッション横断 | ベクターストア / 構造化DB | 永続 |
+| エピソード | 過去の具体的な経験 | ベクターDB + イベントログ | 永続・時系列 |
+
+これは認知科学のCoALAフレームワーク（Cognitive Architectures for Language Agents）が整理した分類に対応している。[コンテキストエンジニアリングとトークン予算設計](/blog/context-engineering-token-budget-design/)と合わせて参照すると、短期メモリとコンテキスト管理の関係が理解しやすい。
+
+## 短期メモリ——コンテキストウィンドウとワーキングメモリ設計
+
+> 短期メモリはコンテキストウィンドウとセッションスコープのインメモリストアで実装し、セッション終了時に長期記憶へ価値ある情報を圧縮して書き出す。
+
+**コンテキストウィンドウ内の短期メモリ**
+
+LLMのコンテキストウィンドウに直接存在する情報がワーキングメモリの中心だ。システムプロンプト・会話履歴・ツールの出力・取得したドキュメントチャンクがすべてここに入る。設計上の制約は2つある。①セッション終了でリセットされるためクロスセッション学習ができない、②コンテキストが肥大化するとレイテンシーとコストが増加する。
+
+**インメモリストアによるセッション状態管理**
+
+会話履歴をコンテキストに埋め込みきれない場合、インメモリストア（RedisなどのKVストア）でセッション状態を管理し、直近Nターンのみをコンテキストに差し込む設計が有効だ。
+
+```python
+async def get_session_context(session_id: str, last_n: int = 10) -> list:
+    # 直近Nターンのみ取得してコンテキストに注入
+    history = await redis.lrange(f"session:{session_id}:history", -last_n, -1)
+    return [json.loads(msg) for msg in history]
+
+async def save_turn(session_id: str, user_msg: str, agent_msg: str):
+    turn = json.dumps({"user": user_msg, "agent": agent_msg, "ts": time.time()})
+    await redis.rpush(f"session:{session_id}:history", turn)
+    await redis.expire(f"session:{session_id}:history", 86400)  # 24h TTL
+```
+
+マルチステップタスクの進捗状態（どのツールを何回呼んだか、中間計算結果等）もインメモリストアで管理し、サブエージェントへの委譲時にコンテキストとして引き渡す。詳細な委譲設計は[サブエージェント・オーケストレーション設計パターン](/blog/subagent-orchestration-design-patterns/)を参照のこと。
+
+## 長期メモリ——エピソード・セマンティック・手続き記憶の実装
+
+> 長期メモリはエピソード（ベクターDB）・セマンティック（構造化DB）・手続き（ワークフローDB）の3タイプに分け、取得速度と用途に応じてインデックスを選択する。
+
+**3タイプの長期メモリ**
+
+| タイプ | 内容例 | 推奨ストア |
+|---|---|---|
+| エピソード記憶 | 「先週のミーティングでXを決定した」「ユーザーがYアプローチを好む」 | ベクターDB + イベントログ（時系列） |
+| セマンティック記憶 | 製品仕様・ユーザープロフィール・組織の規則 | 構造化DB（PostgreSQL等）+ ベクターDB |
+| 手続き記憶 | 請求処理のステップ・エラー発生時の対応フロー | ワークフローDB・ベクターDB |
+
+**ベクターインデックスの選択**
+
+長期メモリの取得はセマンティック検索（埋め込みの類似度検索）が主流だ。インデックスタイプの選択が取得速度・精度・コストに直結する。
+
+| インデックス | 用途 | 特徴 |
+|---|---|---|
+| HNSW（Hierarchical NSW） | 小〜中規模（〜数百万件）・精度優先 | 95%以上のリコール、メモリ使用量大（IVF比2〜3倍） |
+| IVF（Inverted File） | 大規模（1億件〜）・コスト優先 | 精度とメモリのバランスが良い |
+| FLAT | 小規模・完全一致が必要 | 100%精度、データ量が増えると遅い |
+
+エンタープライズでは大量の過去インタラクションを保持するため、IVFを基本とし、高頻度アクセスのエントリーはFlatインデックスにキャッシュする**ハイブリッドインデックス構成**が有効だ。
+
+## セッション間の記憶統合——圧縮フローとベクターストア書き込み
+
+> セッション間の記憶統合は、会話終了時に短期記憶を圧縮して長期ストアへ書き込み、次セッション開始時に関連記憶を検索注入するパターンだ。
+
+**セッション終了時の記憶圧縮**
+
+セッション終了トリガーで、短期メモリの全履歴をLLMに渡して「記憶する価値がある情報」を抽出させる。
+
+```python
+async def consolidate_session(session_id: str):
+    history = await get_full_session_history(session_id)
+    
+    # LLMで価値ある記憶を抽出
+    extraction_prompt = f"""
+以下の会話から、次のセッションで参照すべき重要な情報を抽出してください：
+- ユーザーの決定事項・好み
+- 完了したタスク・未完了タスク
+- 重要なファクト
+
+会話履歴:
+{history}
+"""
+    memories = await llm.extract(extraction_prompt)
+    
+    # ベクターストアに保存
+    for memory in memories:
+        embedding = await embed(memory.content)
+        await vector_store.upsert(
+            id=f"{session_id}:{uuid4()}",
+            vector=embedding,
+            metadata={"type": memory.type, "session": session_id, "ts": time.time()}
+        )
+```
+
+**次セッション開始時の記憶注入**
+
+```python
+async def build_session_context(user_id: str, current_query: str) -> str:
+    # 現在のクエリに関連する過去の記憶を取得
+    query_embedding = await embed(current_query)
+    relevant_memories = await vector_store.query(
+        vector=query_embedding,
+        filter={"user_id": user_id},
+        top_k=5
+    )
+    
+    # システムプロンプトに記憶を注入
+    memory_context = "\n".join([m.content for m in relevant_memories])
+    return f"## 関連する過去の記憶:\n{memory_context}"
+```
+
+この設計における主要なトレードオフは「取得の粒度」だ。記憶の単位を細かくすると検索精度は上がるが、ベクターストアの件数が増えコストが上がる。要約の単位を粗くするとコストは下がるが、重要な詳細が失われる。ユースケースに合わせて圧縮の粒度を調整する。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB向け**: Mem0・Zepなどのマネージドメモリプラットフォームを利用すると、ベクターストアの構築・管理のオーバーヘッドなしに長期メモリを導入できる。セッション件数が少ない段階では、PostgreSQLのpgvector拡張で短期・長期メモリを一元管理するシンプルな構成から始めるのが現実的だ。[Kuuのエージェント運用支援（AI Ops）](https://kuucorp.com/services/ai-ops/)では中小規模でのメモリ設計導入を支援している。
+
+**エンタープライズ向け**: マルチテナント環境では、テナントごとにベクターストアを分離するか、メタデータフィルタリングでテナント境界を強制する。後者はコスト効率が良いが、フィルタリングの実装漏れがテナント間の記憶漏洩につながるリスクがある。記憶のアクセス制御を[エージェントIAM設計](/blog/agent-iam-scoped-credentials-design/)のポリシーと連動させ、誰がどのエージェントの記憶を読み書きできるかを統制することが大規模运用での前提条件だ。大規模なエンタープライズ基盤の設計は[RDEサービス](/services/rde/)にご相談ください。
+
+## 参考
+
+- [AI Agent Memory: Stateful Systems | Redis](https://redis.io/blog/ai-agent-memory-stateful-systems/)
+- [Agent Memory Architectures: 5 Patterns and Trade-offs | Atlan](https://atlan.com/know/agent-memory-architectures/)
+- [AI Agent Memory Types, Implementation, Best Practices 2026 | 47Billion](https://47billion.com/blog/ai-agent-memory-types-implementation-best-practices/)
+
+## まとめ
+
+AIエージェントのメモリ設計は、短期（コンテキストウィンドウ＋インメモリストア）・長期（エピソード・セマンティック・手続きのベクターストア/構造化DB）・セッション間統合（圧縮・書き込み・検索注入）の3層で構成する。LLMのステートレス性を補う外部状態管理が、複数ターンの対話とクロスセッション学習を実現する基盤だ。ベクターインデックス（HNSW/IVF/FLAT）の選択と記憶圧縮の粒度設計が、精度・コスト・レイテンシーのトレードオフを決定する。
+
+エージェントのメモリアーキテクチャ設計・マルチテナント対応・既存IDMとの統合は、[Kuuのエージェント運用支援](https://kuucorp.com/services/ai-ops/)にご相談ください。
