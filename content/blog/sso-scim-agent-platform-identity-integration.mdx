@@ -1,0 +1,92 @@
+---
+title: "SSO/SCIMでエージェント基盤のID管理を統合する"
+description: "エージェントは非人間IDとしてSCIM 2.0でプロビジョニング・デプロビジョニングを自動化できる。OktaやEntra IDとのSSO統合、IETFドラフトの新リソースタイプ、グループ同期設計を解説する。"
+date: "2026-06-12"
+lastModified: "2026-06-12"
+tags: ["SSO", "SCIM", "エージェント基盤", "エンタープライズ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://securityboulevard.com/2025/11/scim-for-ai-how-the-new-ietf-draft-redefines-identity-management-for-agents-and-agentic-applications/"
+  - "https://www.loginradius.com/blog/engineering/scim-provision-govern-ai-agents"
+  - "https://www.okta.com/newsroom/press-releases/new-okta-innovations-secure-the-ai-driven-enterprise-and-combat-/"
+pillar: "ai-governance"
+---
+
+エージェントを本番環境に展開し始めると、誰も管理していない長命サービスアカウントがインフラに蓄積していく。人間ユーザーは退職時に即座にデプロビジョニングされるが、不要になったエージェントの認証情報は削除されずに残り、インシデントの起点になる。SSOとSCIMをエージェント基盤に適用することで、この「野良エージェントID」問題をライフサイクル管理のレベルで解決できる。
+
+本記事は[エージェントガバナンス](/glossary/agent-governance/)基盤を統制したいプラットフォームエンジニア・情報システムアーキテクト向けに、SSO/SCIMをエージェントIDに適用する設計パターンを整理したものだ。[KuuのAIガバナンスアプローチ](/ai-governance/)と合わせて参照してほしい。
+
+## エージェントはなぜ「IDとして管理」しなければならないか
+
+> エージェントはCRM・API・社内ツールに自律的にアクセスする実行主体であり、人間ユーザーと同等のIDライフサイクル管理が必要な非人間アイデンティティだ。
+
+エージェントは「ツールを使うプログラム」ではなく、組織のリソースに対して認証・認可を伴って操作を行う**実行主体（Principal）**だ。チケットをクローズし、レポートをSlackに投稿し、データウェアハウスに書き込む——これらの操作はすべて、人間ユーザーが行う場合と同様に監査証跡が必要であり、最小権限の原則に従う必要がある。
+
+従来のサービスアカウント管理は手動で行われることが多く、エージェントの数が増えるにつれてスケールしない。OktaはUniversal Directoryにエージェントをファーストクラスのアイデンティティとして登録し、リスク分類・オーナーシップ帰属・セキュリティポリシー適用を人間ユーザーと統一管理する機能を2025年に提供開始した。
+
+## SCIMでエージェントIDをプロビジョニングする
+
+> SCIMはIETFドラフトでAgentとAgentApplicationの2新リソースタイプを定義し、AIエージェントをプロビジョニング・更新・デプロビジョニングの対象として標準化しつつある。
+
+SCIM 2.0（RFC 7643/7644）は本来、人間ユーザーとグループのプロビジョニングを標準化するプロトコルだ。2025年のIETF提案「Agents and Agentic Applications」は、このプロトコルを非人間IDに拡張する。主要な変更点は2つの新リソースタイプだ。
+
+**Agentリソース**はデプロイされた単一エージェントインスタンスを表す。`agentType`（LLM/RPA/orchestrator等）・`owner`（責任者のユーザーID）・`status`（active/suspended/deprovisioned）・`authorizationScopes`（許可スコープリスト）といった属性を持つ。
+
+**AgentApplicationリソース**はエージェントが動作するアプリケーション基盤（例: Claude Cowork、社内オーケストレーター）を表す。個々のエージェントはAgentApplicationの下にグルーピングされる構造だ。
+
+ライフサイクルの流れはこうなる。エージェントのデプロイパイプラインがSCIM APIにPOSTリクエストを送信してAgentリソースを作成する。エージェントの責任領域が変わったらPATCHで`authorizationScopes`を更新する。エージェントが不要になったらDELETEまたは`status: deprovisioned`に更新し、接続されたすべてのシステムへの伝播を1操作で完了させる。
+
+```json
+POST /scim/v2/Agents
+{
+  "schemas": ["urn:ietf:params:scim:schemas:extension:Agent:2.0"],
+  "agentType": "orchestrator",
+  "displayName": "受発注処理エージェント-prod",
+  "owner": { "value": "uid-12345" },
+  "authorizationScopes": ["erp:orders:read", "erp:orders:write"],
+  "status": "active"
+}
+```
+
+デプロビジョニングは最も重要なガバナンス操作だ。ユーザーの場合は退職がトリガーになるが、エージェントの場合はCI/CDパイプラインのリソース削除フックやタスク完了イベントをトリガーに設計する。これを自動化しない限り、廃棄されたエージェントの認証情報がシステムに残存し続ける。
+
+## SSO統合——エージェント基盤とOkta/Entra IDを連携する
+
+> エージェント基盤へのSSO統合はOIDCのClient Credentials FlowまたはJWT Bearer Grantで実現し、エージェントの認証セッションをIdPが一元管理する。
+
+人間ユーザーのSSOはSAML/OIDCのAuthorization Code Flowで行われるが、エージェントはブラウザを持たない。エージェント基盤が適切なSSOパターンは以下の2種類だ。
+
+**Client Credentials Flow（マシン間通信）**: エージェント基盤がOktaまたはEntra IDに`client_id`と`client_secret`（またはclient assertion）を提示してアクセストークンを取得する。MCP サーバーや社内APIへのサービス間認証に使う。シークレットはSecrets Manager（AWS Secrets Manager / Azure Key Vault）に保存し、90日ローテーションを自動化する。
+
+**JWT Bearer Grant（委任トークン）**: 人間ユーザーのセッションがあるコンテキストでエージェントがユーザーを代行する場合、IdPが発行したJWT IDトークンをassertionとして交換し、エージェントが委任アクセストークンを取得する。このフローでは「誰の権限で動いているか」がトークンのクレームに記録される。
+
+Okta Workforce Identity Cloudでの設定はこうなる。`Applications > AI Agents`でエージェントを登録し、`Grant type: Client Credentials`または`JWT Bearer`を選択。`Okta API Scopes`でエージェントに必要な最小スコープを設定する。System LogsにはエージェントのすべてのAPI呼び出しがユーザーの操作ログと同じUI上に記録される。
+
+Entra IDでは`App Registrations`でエージェントをサービスプリンシパルとして登録し、`API permissions`でMicrosoft Graph APIや社内APIのスコープを付与する。Managed Identityを使うと、Azure上で動作するエージェントはシークレット不要でEntra IDからトークンを取得できる（コンテナ環境での推奨パターン）。
+
+## グループ同期・最小権限・可観測性の設計
+
+> SCIMのグループ同期でエージェントを人間チームと同じアクセス境界に配置し、グループメンバーシップ変更がエージェントの権限を自動更新する。
+
+**グループベースRBAC**: OktaやEntra IDのグループとエージェントIDを紐付けることで、チームの権限変更がエージェントに自動伝播する。例えば「受発注チーム」グループに属するエージェントは、そのグループのアクセスポリシーをそのまま継承する。グループからエージェントを除外するだけでアクセスが即時失効する。
+
+**スタンディング権限の排除**: エージェントは常時スコープを持つ長命トークンではなく、タスク実行時に必要なスコープだけを持つ短命トークン（TTL: 数分〜数時間）を取得する設計が望ましい。OktaのJust-in-Time provisioning相当の仕組みをエージェントのタスクライフサイクルに適用する。
+
+**可観測性の統合**: エージェントのAPI呼び出しをIdPのSystem Logsと相関付けることで、「どのエージェントが・誰の委任で・何のAPIに・何回アクセスしたか」を1か所で確認できる。異常なスコープ利用・通常外の時間帯のアクセス・失効トークンによる403急増はアラートのトリガーに設定する。
+
+エンタープライズ規模でのエージェント基盤設計・Okta/Entra ID統合・SCIMプロビジョニング自動化については、[KuuのRDEサービス](https://kuucorp.com/services/rde/)が設計から実装まで支援している。
+
+## 参考
+
+- [SCIM for AI: How the New IETF Draft Redefines Identity Management for Agents and Agentic Applications — Security Boulevard](https://securityboulevard.com/2025/11/scim-for-ai-how-the-new-ietf-draft-redefines-identity-management-for-agents-and-agentic-applications/)
+- [Using SCIM to Provision and Govern AI Agents — LoginRadius Engineering](https://www.loginradius.com/blog/engineering/scim-provision-govern-ai-agents)
+- [New Okta innovations secure the AI-driven enterprise — Okta Newsroom](https://www.okta.com/newsroom/press-releases/new-okta-innovations-secure-the-ai-driven-enterprise-and-combat-/)
+
+## まとめ
+
+エージェント基盤のID管理をSSOとSCIMで統合すると、4つの問題が同時に解決する。①不要エージェントの認証情報残存、②手動サービスアカウント管理のスケール限界、③エージェント操作の監査証跡の欠如、④チーム権限変更がエージェントに伝播しない問題だ。IETFのSCIM拡張ドラフトは2025年時点でまだ提案段階だが、Okta・Entra IDは既にエージェントをファーストクラスIDとして扱う機能を提供している。エージェント数が10を超えたタイミングがSCIM統合を設計に組み込む実践的な閾値だ。
+
+大規模なエージェント基盤のID統合設計に課題を感じている場合は、[KuuのRDEサービス](/services/rde/)にご相談ください。
