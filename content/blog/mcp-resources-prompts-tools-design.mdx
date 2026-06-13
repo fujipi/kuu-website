@@ -1,0 +1,185 @@
+---
+title: "MCPサーバー設計——Resources・Prompts・Toolsの使い分け"
+description: "MCPのResources・Prompts・Toolsは制御主体で使い分ける。Toolsはモデル駆動、Resourcesはアプリ/ユーザー選択のデータ共有、Promptsはユーザー起動テンプレートだ。3プリミティブの設計判断を解説する。"
+date: "2026-06-13"
+lastModified: "2026-06-13"
+tags: ["MCP", "エージェント設計", "プロトコル"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://modelcontextprotocol.io/docs/concepts/resources"
+  - "https://modelcontextprotocol.io/docs/concepts/prompts"
+  - "https://techcommunity.microsoft.com/blog/azuredevcommunityblog/mcp-demystified-tools-vs-resources-vs-prompts-explained-simply/4508057"
+pillar: "ai-governance"
+---
+
+MCPサーバーを実装するとき、「この機能はToolにすべきか、Resourceにすべきか」という問いにぶつかる。公式仕様は3つのプリミティブ（Resources・Prompts・Tools）を定義しているが、それぞれをどう使い分けるかの判断軸は仕様書から読み取りにくい。設計を誤ると、LLMが意図しないタイミングでデータを取得したり、ユーザーが明示的に選べるはずのコンテキストが自動的に差し込まれるといった挙動不整合が生じる。MCPサーバーの実装基礎については[MCPサーバーを実装する](/blog/mcp-server-implementation-tool-design/)を参照のこと。
+
+## MCPはなぜ3つのプリミティブを持つのか？
+
+> MCPが3プリミティブを持つのは、制御主体（誰が発動を決めるか）を明確に分離するためです。Toolsはモデルが、Resourcesはホストアプリまたはユーザーが、Promptsはユーザーが制御します。
+
+MCP仕様は制御主体の違いによって3プリミティブを定義している。
+
+| プリミティブ | 制御主体 | 典型的なUI上の現れ方 | 副作用 |
+|---|---|---|---|
+| Tools | モデル（LLM） | 不可視（LLMが自律的に呼ぶ） | あり（外部アクション） |
+| Resources | ホストアプリ / ユーザー | ファイルツリー・サジェスト | なし（読み取り専用） |
+| Prompts | ユーザー | スラッシュコマンド・UIボタン | なし（テンプレート） |
+
+この分離が重要な理由は、**自動化の粒度とユーザーの同意コントロール**にある。機密性の高いデータをLLMに自動的に読ませるべきでない場合、Toolではなく適切なResourceとして公開することで、ユーザーが明示的に選択するまでデータが流れない設計にできる。
+
+## Toolsはどのような用途に使うか？——モデル駆動のアクション実行
+
+> ToolsはLLMが会話の文脈から自律的に呼び出す機能です。副作用（書き込み・API呼び出し・外部アクション）を伴う処理や、LLMが判断タイミングを決めるべき動的なデータ取得に使います。
+
+### Toolを選ぶ基準
+
+- 処理に副作用がある（ファイル書き込み、メール送信、DBへのINSERTなど）
+- LLMが文脈から「今この操作が必要」と判断すべきアクション
+- 実行タイミングをユーザーが毎回指定するより自動化したい処理
+- リクエストパラメータが会話ごとに動的に変わる
+
+```json
+{
+  "name": "search_database",
+  "description": "社内ナレッジベースを全文検索する",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "検索クエリ" }
+    },
+    "required": ["query"]
+  }
+}
+```
+
+### Toolを選ぶべきでない場合
+
+- 大量の静的ドキュメントをコンテキストに乗せるだけの場合 → Resource
+- ユーザーが「今これを使う」と明示的に選びたい場合 → Prompt
+- 読み取り専用でLLMが自律的に呼ぶ必要がない場合 → Resource
+
+## Resourcesはどのような用途に使うか？——アプリ/ユーザー選択のコンテキスト共有
+
+> ResourcesはURIで一意識別される読み取り専用データです。ホストアプリが文脈に基づいて自動的に含めるか、またはユーザーがUIで明示的に選択したコンテキストをLLMに渡す用途に使います。
+
+### Resourceを選ぶ基準
+
+- 副作用がない読み取り専用コンテキスト（ファイル・DBスキーマ・ドキュメント）
+- ユーザーが「どの情報をLLMに渡すか」をUIで選ぶべき機密性の高いデータ
+- 変更通知（subscribe）が必要なリアルタイムデータ
+- 規制や社内ポリシー上、ユーザーの明示的同意が必要なデータ
+
+```json
+{
+  "uri": "file:///project/src/api/users.ts",
+  "name": "users.ts",
+  "mimeType": "text/typescript",
+  "annotations": {
+    "audience": ["assistant"],
+    "priority": 0.8
+  }
+}
+```
+
+### Resource Templateを使ったパラメータ化
+
+静的なURIではなく、RFC6570のURIテンプレートを使うことで動的なリソースも公開できる。例えば `logs://{date}/{service}` のようにパラメータ化することで、特定の日付・サービスのログを動的に取得可能にする。
+
+```json
+{
+  "uriTemplate": "logs://{date}/{service}",
+  "name": "Application Logs",
+  "description": "指定日・サービスのアプリケーションログ"
+}
+```
+
+## Promptsはどのような用途に使うか？——ユーザー起動の再利用可能テンプレート
+
+> PromptはユーザーがUIで明示的に選ぶ再利用可能な指示テンプレートです。LLMが自律的に選ぶのではなく、スラッシュコマンド（例: `/review-pr`）やUIボタンとして公開され、ユーザーが手動で起動します。
+
+### Promptを選ぶ基準
+
+- チームで共有したい定型タスクのワークフロー（コードレビュー・ドキュメント生成など）
+- 特定のコンテキストを事前設定した状態でLLMを起動したい場合
+- ユーザーに「このフローを実行する」という明示的な起動アクションをとらせたい場合
+
+```json
+{
+  "name": "code_review",
+  "title": "PR コードレビュー",
+  "description": "変更差分を品質・設計・テストの観点でレビューする",
+  "arguments": [
+    {
+      "name": "diff",
+      "description": "レビュー対象の差分",
+      "required": true
+    }
+  ]
+}
+```
+
+Promptは「LLMに判断させるか（Tool）」「ユーザーに選ばせるか（Prompt）」の境界を明確にするための仕組みだ。スラッシュコマンドとして公開されることが多く、ユーザーがいつ起動するかを完全にコントロールできる。
+
+## 3プリミティブをどう組み合わせるか？——設計判断フローと実装パターン
+
+> 判断の出発点は「誰がいつ発動を決めるか」です。LLMが自律的に判断するならTool、アプリ/ユーザーがデータ選択するならResource、ユーザーがワークフローを起動するならPromptを選びます。
+
+### 設計判断フロー
+
+```
+この機能は副作用を伴うか？
+├─ はい → Tool
+└─ いいえ（読み取りのみ）
+    ├─ LLMが自律的に呼ぶべきか？
+    │   ├─ はい → Tool（読み取り専用でもLLMが決めるなら）
+    │   └─ いいえ
+    │       ├─ ユーザーがワークフローを起動するか？
+    │       │   ├─ はい → Prompt
+    │       │   └─ いいえ → Resource
+```
+
+### 実装例：コードレビューシステム
+
+```python
+# Tool: LLMが自律的にリポジトリ情報を取得
+@tool
+def get_git_diff(base_branch: str, head_branch: str) -> str:
+    """指定ブランチ間の差分を取得する"""
+    ...
+
+# Resource: ユーザーがコーディング規約をコンテキストに追加することを選択
+resources = [
+    {"uri": "file:///docs/coding-standards.md", "name": "コーディング規約"}
+]
+
+# Prompt: ユーザーが /review-pr コマンドでレビューフローを起動
+prompts = [
+    {
+        "name": "review-pr",
+        "description": "PR差分のコードレビューを開始する",
+        "arguments": [{"name": "pr_url", "required": True}]
+    }
+]
+```
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**: ツール定義はシンプルに保ち、まずToolのみで機能を実装する。ResourceとPromptはユーザーエクスペリエンスが洗練された段階で追加するのが現実的だ。MCPサーバーの管理運用は[Kuuの運用管理サービス](/services/ai-ops/)で支援できる。
+
+**エンタープライズ**: 機密データや個人情報を扱うコンテキストは、LLMが自律的に取得できるToolではなく、ユーザーの明示的選択が必要なResourceとして公開する。IAMスコープとResourceへのアクセス制御を組み合わせ、データガバナンスを技術的に担保する。マルチチーム・マルチエージェント構成での統制設計は[KuuのRDEサービス](/services/rde/)で対応している。
+
+## 参考
+
+- [Resources - Model Context Protocol公式ドキュメント](https://modelcontextprotocol.io/docs/concepts/resources)
+- [Prompts - Model Context Protocol公式ドキュメント](https://modelcontextprotocol.io/docs/concepts/prompts)
+- [MCP Demystified: Tools vs Resources vs Prompts Explained Simply - Microsoft Tech Community](https://techcommunity.microsoft.com/blog/azuredevcommunityblog/mcp-demystified-tools-vs-resources-vs-prompts-explained-simply/4508057)
+
+## まとめ
+
+MCPの3プリミティブは「制御主体」で使い分ける。Toolsはモデルが自律的に呼ぶアクションと動的データ取得、ResourcesはホストアプリやユーザーがUIで選択するコンテキスト共有、Promptsはユーザーが明示的に起動する再利用可能ワークフローテンプレートだ。この判断軸を設計初期から明確にしないと、データが意図せずLLMに自動的に流れる・機密コンテキストへのアクセス制御が曖昧になるといった問題が後から表面化する。
+
+MCPサーバー設計の実装支援や、社内データとエージェントの安全な接続については[Kuu株式会社の運用管理サービス](/services/ai-ops/)にご相談ください。
