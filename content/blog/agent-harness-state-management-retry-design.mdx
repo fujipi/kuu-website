@@ -1,0 +1,151 @@
+---
+title: "エージェントハーネスの状態管理とリトライ——チェックポイント設計"
+description: "エージェントハーネスの状態管理設計と指数バックオフリトライパターンを解説。チェックポイント設計・Durable Execution・エラー分類の実装要点をバックエンドエンジニア向けに示す。"
+date: "2026-06-14"
+lastModified: "2026-06-14"
+tags: ["エージェントハーネス", "状態管理", "リトライ設計", "アーキテクチャ"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+target_query: "エージェントハーネスの状態管理とリトライはどう設計するか"
+sources:
+  - "https://www.anthropic.com/engineering/building-effective-agents"
+  - "https://www.inngest.com/blog/durable-execution-key-to-harnessing-ai-agents"
+  - "https://fast.io/resources/ai-agent-retry-patterns/"
+  - "https://arxiv.org/pdf/2602.16666"
+pillar: "ai-governance"
+---
+
+5ステップのエージェントワークフローは、各ステップの成功率が99%でも完走率が約95%に落ちる。10ステップなら90%だ。エラーが「どのステップで」「どんな理由で」発生したかを記録し、完走済みのステップを再実行せずに再開できる仕組みなしに、本番のエージェントハーネスは成立しない。
+
+## エージェントハーネスで状態管理が必要な理由
+
+> 5ステップのエージェントは各ステップ99%の成功率でも完走率が95%に落ちます。ハーネスの状態管理とリトライが本番品質を決定します。
+
+エージェントは確率的・構成的・有状態（ステートフル）という3つの性質を持つ。この組み合わせが信頼性設計を従来のWebサービスより難しくする。
+
+- **確率的**: 同一入力でも出力が変わりえる。決定論的なリトライでは問題が解決しないケースがある。
+- **構成的**: 複数のLLM呼び出し・ツール実行・外部APIが連鎖する。障害はどこでも起きうる。
+- **有状態**: コンテキストウィンドウに会話履歴・ツール結果が蓄積する。失敗してゼロから再実行するとコストが大きい。
+
+[エージェントハーネスアーキテクチャ](/blog/agent-harness-architecture/)の設計では、この信頼性問題を「ハーネスのどこで責務を持つか」という観点で解決する。状態管理とリトライは、モデル本体ではなくハーネスが担う領域だ。Anthropicは自社のエージェント設計ガイドラインでも、モデルの出力品質よりもツールインターフェースと環境フィードバックの設計に注力することを推奨している。
+
+## 状態永続化とチェックポイントはどう設計するか
+
+> チェックポイントとはエージェントの各ステップ後に状態を永続化する仕組みで、失敗時に完走済みステップを再実行せず再開できます。
+
+### 状態の種類と保存先
+
+エージェントの状態は3つの層に分かれる。
+
+| 状態の種類 | 内容 | 保存先の例 |
+|---|---|---|
+| 会話コンテキスト | LLMへのメッセージ履歴 | PostgreSQL / Redis |
+| ツール実行結果 | 外部APIレスポンス・検索結果 | Object Storage（S3等） |
+| ワークフロー進捗 | どのステップが完了したか | PostgreSQL / KV Store |
+
+### チェックポイント設計の3原則
+
+1. **ステップ完了後に必ず書き込む**: LLM推論が完了し、ツール結果を受け取った時点でチェックポイントを書き込む。中途半端な状態は保存しない。
+2. **冪等性（Idempotency）を確保する**: 同じステップを2回実行しても副作用が起きないよう、外部API呼び出しには一意のリクエストIDを付与する。
+3. **イベントソーシング方式を検討する**: 状態を上書きするのではなく、イベントログに追記する。デバッグ・監査・再現が容易になる。
+
+```python
+def save_checkpoint(thread_id: str, step_name: str, state: dict) -> None:
+    db.upsert(
+        "agent_checkpoints",
+        {
+            "thread_id": thread_id,
+            "step_name": step_name,
+            "state": json.dumps(state),
+            "updated_at": utcnow(),
+        },
+    )
+
+def load_checkpoint(thread_id: str) -> dict | None:
+    return db.get(
+        "agent_checkpoints",
+        thread_id=thread_id,
+        order_by="updated_at DESC",
+    )
+```
+
+チェックポイントの保持期間には上限を設ける。直近5件のみ保持、または24時間以内のチェックポイントのみ残す、といったポリシーで保存コストを制御する。
+
+## リトライ戦略はどう設計するか
+
+> リトライ対象は一時的エラー（HTTP 429・503等）のみで、1秒ベースの指数バックオフ＋ジッターで最大7回が標準設計です。
+
+### エラーの分類とリトライ可否
+
+すべてのエラーをリトライすると問題が悪化する。エラーを分類し、一時的エラーのみリトライする。
+
+| エラー分類 | HTTPコード例 | リトライ | 理由 |
+|---|---|---|---|
+| 一時的（レート制限・過負荷） | 429, 500, 502, 503, 504 | ✓ | 待機後に解消する |
+| 認証エラー | 401, 403 | ✗ | リトライしても解決しない |
+| バッドリクエスト | 400 | ✗ | リクエスト内容の修正が必要 |
+| コンテキスト超過 | モデル固有 | ✗ | 入力削減の別処理が必要 |
+
+### 指数バックオフ＋ジッター
+
+```python
+import random, time
+
+def retry_with_backoff(fn, max_attempts=7, base_delay=1.0, max_delay=60.0):
+    for attempt in range(max_attempts):
+        try:
+            return fn()
+        except TransientError:
+            if attempt == max_attempts - 1:
+                raise
+            delay = min(base_delay * (2 ** attempt), max_delay)
+            jitter = delay * random.uniform(0, 0.2)  # ±20%のジッター
+            time.sleep(delay + jitter)
+```
+
+**ジッター**を加える理由は「リトライストーム」の防止だ。複数のエージェントインスタンスが同時に失敗し、同じタイミングでリトライすると上流サービスへの負荷が集中する。ランダムな揺らぎを加えることで分散させる。ベース遅延1秒から始め、最大60秒でキャップする設計が一般的だ。
+
+エラー分類は自前で実装するより、SDKが提供する例外クラスを活用する。たとえばAnthropicのPython SDKは `anthropic.RateLimitError` / `anthropic.APIStatusError` を区別して発生させる。
+
+## Durable Executionはどう組み込むか
+
+> Durable Executionはプラットフォームが実行状態を自動永続化し、ステップ単位で失敗をリトライする設計パターンです。
+
+チェックポイントとリトライを自前で実装するとコードの複雑性が増す。Durable Executionフレームワークは、この責務をプラットフォームに移譲する設計だ。
+
+Durable Executionが提供するのは次の3点だ。
+
+1. **自動チェックポイント**: コードの各ステップ完了後に実行状態が自動保存される。開発者が明示的に状態保存を書く必要がない。
+2. **ステップ単位のリトライ**: 特定ステップが失敗した場合、完了済みステップを再実行せず、失敗ステップからのみリトライする。高コストなLLM呼び出しが重複しない。
+3. **Human-in-the-Loop停止**: ワークフローを承認待ちで無期限一時停止させ、承認後に正確に再開できる。リソースを消費せずに待機できる。
+
+代表的な実装はInngest・Temporal・LangGraph Persistence・Azure Durable Taskなどだ。[マルチエージェントのオーケストレーション](/blog/subagent-orchestration-design-patterns/)と組み合わせると、サブエージェント単位での再試行が可能になりシステム全体の回復力が上がる。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB・中小規模チームの場合**: シンプルに始める。SQLiteやPostgreSQLへのチェックポイント保存と指数バックオフライブラリ（tenacity等）を組み合わせるだけで十分なケースが多い。Durable Executionフレームワークの導入は、並列ワークフローが増えて自前管理が限界になってから検討する。
+
+**エンタープライズの場合**: マルチチーム・マルチテナント環境では状態の分離とアクセス制御が必須となる。PersistenceストアはVPC内閉域に置き、スレッドIDとテナントIDの組み合わせでデータを分離する。チェックポイントの保全期間はコンプライアンス要件（監査ログ保持期間）に準じる。障害ドメインを小さく保つため、エージェントインスタンスごとに独立したリトライキューを持つ設計が推奨される。
+
+Kuuのエンタープライズ向け[RDEサービス](/services/rde/)ではエージェントハーネスの状態管理・リトライアーキテクチャの設計から運用支援まで対応している。SMBの運用改善については[AIオペレーションサービス](/services/ai-ops/)にご相談ください。
+
+## 参考
+
+- [Building Effective Agents（Anthropic Engineering）](https://www.anthropic.com/engineering/building-effective-agents)
+- [Durable Execution: The Key to Harnessing AI Agents in Production（Inngest）](https://www.inngest.com/blog/durable-execution-key-to-harnessing-ai-agents)
+- [AI Agent Retry Patterns: Exponential Backoff Guide 2026（fast.io）](https://fast.io/resources/ai-agent-retry-patterns/)
+- [Towards a Science of AI Agent Reliability（arXiv:2602.16666）](https://arxiv.org/pdf/2602.16666)
+
+## まとめ
+
+エージェントハーネスの信頼性は、状態管理・チェックポイント・リトライの3要素で決まる。要点を整理する。
+
+- **状態の3層分離**: 会話コンテキスト・ツール結果・ワークフロー進捗を分けて永続化し、冪等性を確保する
+- **チェックポイントはステップ完了後**: LLM推論とツール実行が完了した時点で書き込み、中途半端な状態を残さない
+- **リトライはエラー分類が先**: HTTP 429・503等の一時的エラーのみ対象とし、認証・バッドリクエストはリトライしない
+- **ジッターで分散**: 指数バックオフにランダムな揺らぎを加えてリトライストームを防ぐ
+- **Durable Executionで責務移譲**: 並列ワークフローが複雑化したら、チェックポイントとリトライをプラットフォームに委ねる
+
+エージェントハーネスの設計・運用改善は[Kuuの AIオペレーションサービス](/services/ai-ops/)にご相談ください。
