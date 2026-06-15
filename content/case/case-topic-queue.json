@@ -64,6 +64,16 @@
       "status": "published"
     }
   ],
+    {
+      "slug": "auto-repair-inspection-agent",
+      "keyword": "自動車整備 車検予約 見積書 整備記録 AIエージェント 自動化",
+      "title_hint": "自動車整備工場の車検予約・見積・整備記録をAIエージェントに——整備士の事務をこう減らす",
+      "persona": "自動車整備工場の工場長・整備管理者",
+      "industry": "自動車整備",
+      "use_case": "車検予約・見積書作成・点検整備記録のデジタル化と自動化",
+      "status": "published"
+    }
+  ],
   "keyword_bank": [
     "卸売 受発注 EDI 代行入力 AIエージェント",
     "保険代理店 見積 申込書 チェック AIエージェント",
