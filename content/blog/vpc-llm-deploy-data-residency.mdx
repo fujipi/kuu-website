@@ -1,0 +1,108 @@
+---
+title: "VPC内LLMデプロイとデータレジデンシー——規制業種向け推論基盤設計"
+description: "AWSベースのVPCエンドポイント・PrivateLinkを用いたLLM推論基盤のデータレジデンシー設計。GDPR・HIPAA・SOC2対応に求められるネットワーク分離・監査ログ・モデルサービング構成をエンタープライズ向けに解説する。"
+date: "2026-06-15"
+lastModified: "2026-06-15"
+tags: ["VPCデプロイ", "データレジデンシー", "LLMインフラ", "プラットフォーム基盤"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://aiveda.io/blog/private-llm-vpc/"
+  - "https://www.truefoundry.com/blog/llm-deployment-in-regulated-industries-hipaa-soc2-and-gdpr-playbook-for-2026"
+  - "https://isimplifyme.com/blog/claude-platform-on-aws-vs-bedrock"
+pillar: "ai-governance"
+---
+
+医療・金融・保険など規制産業でLLMを本番運用しようとすると、最初に直面するのが「データが物理的にどこを流れるか」という問いだ。パブリックAPIにPHI（保護された医療情報）やPII、社内機密を送信した瞬間、HIPAA・GDPR・SOC2の審査は止まる。VPC内へのLLMデプロイはこのブロッカーを解消するが、設計を誤ると「VPCにはあるが監査できない」という別の問題を生む。
+
+## データレジデンシーが規制で求められる理由
+
+> GDPR・HIPAA・SOC2はいずれも「データが物理的にどこを流れるか」を問います。標準的なLLM SaaSではBusiness Associate Agreement（BAA）を締結できないケースが多く、規制産業ではVPC内デプロイが事実上の前提条件になっています。
+
+規制ごとの要件を整理する。
+
+**HIPAA（医療）**: Privacy Rule・Security Rule・Breach Notification Ruleの3要素で構成され、PHIを扱う第三者とはBAAが必須だ。OpenAI・Anthropic等の標準SaaS APIは原則BAAを提供しないため、PHIを直接送信することはHIPAA違反になる。AWS GovCloud上でBAAを締結した形でAmazon Bedrockを使うか、モデルをVPC内にセルフホストするかが事実上の選択肢となる。
+
+**GDPR（EU圏・国際）**: 第6条の適法根拠と第30条の処理記録に加え、EU圏外へのデータ移転には標準契約条項（SCC）の整備が必要だ。LLMへの入力がEU市民の個人データを含む場合、クラウドリージョンを欧州に固定するか、VPC内に自社モデルを配置して移転自体を回避する設計が求められる。
+
+**SOC2 Type II（金融サービス）**: CC6〜CC9のトラストサービス基準を満たすには、アクセス制御・監視・変更管理のエビデンスを継続的に収集・保全する必要がある。AIゲートウェイのログが第三者のインフラを経由すると、エビデンスの完全性保証が困難になる。
+
+## VPC内LLM推論基盤の4層アーキテクチャ
+
+> VPC内のLLM推論基盤は「ネットワーク分離・AIゲートウェイ・モデルサービング・監査ログ」の4層で設計します。外部インターネットとの接点をゼロに抑えながら、エージェントやアプリケーションからLLMへの呼び出し経路を一元制御します。
+
+```
+┌──────────────────────────────────────────────┐
+│                   VPC境界                     │
+│  ┌─────────┐   ┌──────────┐   ┌───────────┐ │
+│  │ App/    │→  │ AIゲート │→  │ モデル    │ │
+│  │ Agent   │   │ ウェイ   │   │ サービング│ │
+│  └─────────┘   └──────────┘   └───────────┘ │
+│                      ↓                        │
+│               ┌──────────────┐               │
+│               │ 監査ログストア│               │
+│               └──────────────┘               │
+└──────────────────────────────────────────────┘
+         ↑ PrivateLink / VPCエンドポイントのみ
+         ↓ 公開インターネットとの直接通信なし
+```
+
+**L1 ネットワーク分離**: VPCのプライベートサブネットにアプリケーション・ゲートウェイ・モデルサービングを配置する。SecurityGroupとNetwork ACLで東西トラフィック（VPC内部）と南北トラフィック（外部）を分離し、外部へのデフォルトルートを持たない設計にする。
+
+**L2 AIゲートウェイ**: アプリケーションから直接モデルAPIを呼び出すのではなく、VPC内に置いた[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)を経由させる。認証トークン管理・レート制限・ルーティングを一元化しつつ、リクエスト／レスポンスのロギングをここで行う。
+
+**L3 モデルサービング**: AWS Bedrockのプライベートエンドポイント（PrivateLink）経由で呼び出すか、GPU付きインスタンス上にコンテナ化されたオープンウェイトモデル（Llama 3・Mistral等）を配置する。KubernetesのPodはプライベートサブネット内にのみスケジュールし、外部への直接通信は持たせない。
+
+**L4 監査ログストア**: リクエスト・レスポンス・アクセサID・タイムスタンプをすべて自社管理のストレージ（Amazon S3＋Object Lock等）に書き出す。HIPAA要件の最低6年保持とS3 Object LockのWORMモードを組み合わせることで改ざん防止を実装できる。
+
+## モデルサービング選択の判断フレーム
+
+> マネージドLLM（Bedrock・Azure OpenAI）とセルフホストモデルの選択は「コンプライアンス要件の厳格さ」と「運用コスト」のトレードオフです。BAAが締結できるマネージドサービスで満たせる要件ならセルフホストのGPU運用負荷は不要です。
+
+| 選択肢 | データレジデンシー保証 | GPU運用負荷 | モデル選択の自由度 |
+|---|---|---|---|
+| AWS Bedrock + PrivateLink | 高（BAA締結可、リージョン固定） | なし | Bedrock対応モデルのみ |
+| Azure OpenAI Service | 高（BAA締結可、EU region対応） | なし | Azure対応モデルのみ |
+| セルフホスト（EKS/GKE上） | 最高（自社VPC完結） | 高（GPU管理・更新） | 全オープンウェイトモデル |
+
+AWS Bedrock経由でClaudeを利用する場合、VPCエンドポイントを設定すればAPIトラフィックはAWS内部ネットワーク（PrivateLink）のみを通り、公開インターネットを経由しない。すべてのAPI呼び出しはCloudTrailに記録され、リクエストメタデータが自社AWSアカウント内に保持される。[マルチテナント分離設計](/blog/multitenant-agent-isolation-design/)と組み合わせることで、部門・ユーザーごとの権限境界も実装できる。
+
+## 監査ログとコンプライアンスエビデンスの設計
+
+> 規制対応の監査ログは「タイムスタンプ・アクセサID・操作内容・対象データ参照」の4要素を含む構造化JSONで収集します。OpenTelemetryでSIEMに転送し、S3 Object LockのWORMモードで改ざん防止します。
+
+HIPAA・SOC2が求める監査ログには最低限、次の属性が必要だ。
+
+```json
+{
+  "timestamp": "2026-06-15T10:23:45Z",
+  "trace_id": "abc123",
+  "user_id": "u-00142",
+  "model_id": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  "input_token_count": 512,
+  "output_token_count": 256,
+  "latency_ms": 1840,
+  "region": "ap-northeast-1",
+  "data_classification": "confidential"
+}
+```
+
+入力テキストそのものをログに含めるかどうかはデータ分類ポリシーによって分岐する。PHIやPIIを含む入力はハッシュ化またはトークナイズしてからログに書き出し、原文はセキュアストレージに別保管するパターンが標準的だ。
+
+ログ収集はOpenTelemetryのOTLPエクスポータで企業SIEMへリアルタイム転送し、コールドストレージ（S3 Glacier）への移動と保持期間管理を自動化する。HIPAAの6年保持要件はS3ライフサイクルポリシーで実装できる。
+
+## 参考
+
+- [Private LLM in VPC Architecture & Security Controls — AIVeda](https://aiveda.io/blog/private-llm-vpc/)
+- [LLM Deployment in Regulated Industries: The HIPAA, SOC2 & GDPR Playbook for 2026 — TrueFoundry](https://www.truefoundry.com/blog/llm-deployment-in-regulated-industries-hipaa-soc2-and-gdpr-playbook-for-2026)
+- [Claude Platform on AWS vs Bedrock — iSimplifyMe](https://isimplifyme.com/blog/claude-platform-on-aws-vs-bedrock)
+
+## まとめ
+
+VPC内LLMデプロイの設計はデータレジデンシー要件から逆算する。HIPAA・GDPR・SOC2が求める「データが物理的にどこを流れるか」という問いに答えるには、ネットワーク分離・AIゲートウェイ・モデルサービング・監査ログの4層を一貫した設計思想で組み上げる必要がある。
+
+AWS Bedrockのようなマネージドサービス＋PrivateLinkは運用負荷を抑えながらデータレジデンシーを実現できる現実的な選択肢だ。よりストリクトな要件にはセルフホストGPUクラスタが必要になるが、モデル管理・セキュリティパッチ・スケーリングの運用コストを見積もった上で判断する。
+
+規制産業向けのLLM推論基盤設計からコンプライアンス体制の整備まで、Kuuの[RDE（Reinvention Deployed Engineering）](/services/rde/)サービスでは大規模エンタープライズのAI実装を一貫して支援しています。詳細は[サービス詳細ページ](/services/rde/)からお問い合わせください。
