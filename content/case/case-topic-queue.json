@@ -62,8 +62,7 @@
       "industry": "全業種・コスト/ROI",
       "use_case": "AI導入コスト試算とROIシミュレーションの補助",
       "status": "published"
-    }
-  ],
+    },
     {
       "slug": "auto-repair-inspection-agent",
       "keyword": "自動車整備 車検予約 見積書 整備記録 AIエージェント 自動化",
@@ -71,6 +70,15 @@
       "persona": "自動車整備工場の工場長・整備管理者",
       "industry": "自動車整備",
       "use_case": "車検予約・見積書作成・点検整備記録のデジタル化と自動化",
+      "status": "published"
+    },
+    {
+      "slug": "staffing-coordinator-agent",
+      "keyword": "人材派遣 マッチング コーディネーター AIエージェント 属人化解消",
+      "title_hint": "人材派遣のマッチングをAIエージェントに——属人化をこう解消する",
+      "persona": "人材派遣会社のコーディネーター責任者",
+      "industry": "人材派遣・有料職業紹介",
+      "use_case": "求人・求職マッチングと事務処理の補助自動化",
       "status": "published"
     }
   ],
