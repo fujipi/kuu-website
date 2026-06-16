@@ -88,6 +88,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"llm-as-a-judge-agent-evaluation-enterprise",
 			"nine-axis-evaluation-llm-judge-smb",
 		],
+		// モデル選択（Haiku/Sonnet/Opus性能比較）とRAG vs ツール使用（アーキテクチャパターン選択）: 主題が異なる正当な併存
+		[
+			"claude-model-tool-use-performance-comparison",
+			"rag-vs-tool-use-agent-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 
