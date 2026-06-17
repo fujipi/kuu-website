@@ -8,6 +8,7 @@ import { getEnNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	FOUNDER_PERSON,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 
@@ -28,6 +29,7 @@ const jsonLd = [
 		url: `${BASE_URL}/en/about/`,
 		inLanguage: "en",
 	},
+	FOUNDER_PERSON,
 	buildBreadcrumb([
 		{ name: "Home", path: "/en/" },
 		{ name: "About", path: "/en/about/" },
