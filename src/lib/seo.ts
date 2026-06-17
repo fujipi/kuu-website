@@ -181,6 +181,107 @@ export function generateMetadata({
 	};
 }
 
+/**
+ * 代表者（藤平 賢人）の正規 Person エンティティ。
+ * UI には一切表示しない不可視の構造化データとして、サイト全体で同一の `@id` を共有し、
+ * 外部の身元プロフィール（`sameAs`）とメディア掲載（`subjectOf`）を「一人の人物」に
+ * 関連付ける（エンティティ統合）。Google ナレッジグラフ／AI(AEO) 向けのメタデータ。
+ * `@id` を /about/#founder に置くことで、氏名を可視表示している /about/・/en/about/ と対応させる。
+ * 各配列要素は個別の <script type="application/ld+json"> として出力されるため `@context` を持たせる。
+ */
+export const FOUNDER_ID = `${BASE_URL}/about/#founder`;
+
+export const FOUNDER_PERSON: Record<string, unknown> = {
+	"@context": "https://schema.org",
+	"@type": "Person",
+	"@id": FOUNDER_ID,
+	name: "藤平 賢人",
+	alternateName: ["藤平賢人", "Kento Fujihira"],
+	jobTitle: "代表取締役",
+	description:
+		"Kuu株式会社 代表取締役。LINE株式会社で LINE Pay の駅券売機チャージや小売領域のDXプロジェクトのプロジェクトマネージャーを務め、2022年に Kuu株式会社を設立。AIエージェントの実装とエージェントガバナンスを専門とする。",
+	url: `${BASE_URL}/about/`,
+	worksFor: {
+		"@type": "Organization",
+		name: SITE_NAME,
+		url: BASE_URL,
+	},
+	knowsAbout: [
+		"AIエージェント",
+		"エージェントガバナンス",
+		"DX戦略",
+		"AX戦略",
+		"FDE",
+		"RDE",
+		"エージェントハーネス",
+		"Claude",
+		"MCP",
+	],
+	// 身元プロフィール（同一人物を指すIDのみを列挙）。
+	// J-GLOBAL は当該レコードが本人であることを確認のうえ掲載している。
+	sameAs: [
+		"https://github.com/fujipi",
+		"https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202303018101153810",
+	],
+	// メディア掲載（本人を扱う第三者コンテンツ）。確認できた事実のみ記載。
+	subjectOf: [
+		{
+			"@type": "NewsArticle",
+			name: "顧客体験をLINEで横断的につなぎ、小売のDXを促進する",
+			url: "https://iotnews.jp/retail/194862/",
+			datePublished: "2021-12-16",
+			publisher: { "@type": "Organization", name: "IoT NEWS" },
+		},
+		{
+			"@type": "NewsArticle",
+			name: "券売機でLINE Payへの現金チャージが可能に──東急とLINE、異なる思惑",
+			url: "https://www.businessinsider.jp/article/216584/",
+			datePublished: "2020-07-15",
+			publisher: { "@type": "Organization", name: "Business Insider Japan" },
+		},
+		{
+			"@type": "NewsArticle",
+			name: "東急、なくせない券売機の「ATM化」で狙う一石二鳥",
+			url: "https://business.nikkei.com/atcl/gen/19/00148/071500007/",
+			datePublished: "2020-07-15",
+			publisher: { "@type": "Organization", name: "日経ビジネス" },
+		},
+		{
+			"@type": "NewsArticle",
+			name: "東急での駅券売機でのLINE Payの現金チャージがスタート、沿線のキャッシュレス化も視野に",
+			url: "https://paymentnavi.com/paymentnews/96656.html",
+			datePublished: "2020-07-16",
+			publisher: { "@type": "Organization", name: "ペイメントナビ" },
+		},
+		{
+			"@type": "NewsArticle",
+			name: "減る券売機に出番あり　東急が電子決済の入金を開始",
+			url: "https://www.tokyo-np.co.jp/article/44886",
+			datePublished: "2020-07-26",
+			publisher: { "@type": "Organization", name: "東京新聞" },
+		},
+		{
+			"@type": "WebPage",
+			name: "駅券売機でQR決済チャージ 広がるか 東急とLINE Payが開始 なぜ銀行口座を使わない？",
+			url: "https://pex.jp/point_news/2064896f6372caf88ce97e8089c26004",
+			datePublished: "2020-07-14",
+			publisher: { "@type": "Organization", name: "乗りものニュース" },
+		},
+		{
+			"@type": "WebPage",
+			name: "デジタルイノベーション2019 関西 IoTスタートアップセミナー「キャッシュレスで生まれるビジネスチャンス」",
+			url: "https://ers.nikkeibp.co.jp/user/contents/2019x0530odi/index.html",
+			datePublished: "2019-05-31",
+			publisher: { "@type": "Organization", name: "日経BP" },
+		},
+		{
+			"@type": "WebPage",
+			name: "LINE SMB Day",
+			url: "https://linesmbday.com/",
+		},
+	],
+};
+
 export const BASE_ORG = {
 	url: BASE_URL,
 	name: SITE_NAME,
@@ -231,12 +332,7 @@ export const BASE_ORG = {
 		"AI-BCP",
 	],
 	foundingDate: "2022",
-	founder: {
-		"@type": "Person",
-		name: "藤平 賢人",
-		jobTitle: "Kuu株式会社 代表取締役",
-		url: `${BASE_URL}/about/`,
-	},
+	founder: { "@id": FOUNDER_ID },
 	sameAs: [`${BASE_URL}/about/`],
 	numberOfEmployees: {
 		minValue: 1,

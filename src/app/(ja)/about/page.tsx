@@ -5,7 +5,13 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getMainNav } from "@/lib/navigation";
-import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	FOUNDER_ID,
+	FOUNDER_PERSON,
+	generateMetadata,
+} from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title:
@@ -36,11 +42,7 @@ const aboutJsonLd = [
 		url: BASE_URL,
 		logo: `${BASE_URL}/images/favicon-192.png`,
 		foundingDate: "2022",
-		founder: {
-			"@type": "Person",
-			name: "藤平 賢人",
-			jobTitle: "代表取締役",
-		},
+		founder: { "@id": FOUNDER_ID },
 		numberOfEmployees: {
 			"@type": "QuantitativeValue",
 			minValue: 1,
@@ -60,6 +62,7 @@ const aboutJsonLd = [
 			availableLanguage: "Japanese",
 		},
 	},
+	FOUNDER_PERSON,
 	buildBreadcrumb([
 		{ name: "ホーム", path: "/" },
 		{ name: "会社情報", path: "/about/" },

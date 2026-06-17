@@ -7,7 +7,14 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getMainNav } from "@/lib/navigation";
-import { BASE_ORG, BASE_URL, generateMetadata, ORG_REF } from "@/lib/seo";
+import {
+	BASE_ORG,
+	BASE_URL,
+	FOUNDER_ID,
+	FOUNDER_PERSON,
+	generateMetadata,
+	ORG_REF,
+} from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "AX/DX戦略・Claude導入支援・エージェントガバナンス｜Kuu株式会社",
@@ -66,22 +73,7 @@ const homeJsonLd = [
 		},
 		sameAs: ["https://github.com/fujipi"],
 		knowsAbout: BASE_ORG.knowsAbout,
-		founder: {
-			"@type": "Person",
-			name: "藤平 賢人",
-			jobTitle: "代表取締役",
-			knowsAbout: [
-				"AIエージェント",
-				"エージェントガバナンス",
-				"DX戦略",
-				"AX戦略",
-				"FDE",
-				"RDE",
-				"エージェントハーネス",
-				"Claude",
-				"MCP",
-			],
-		},
+		founder: { "@id": FOUNDER_ID },
 		foundingDate: "2022",
 		numberOfEmployees: {
 			"@type": "QuantitativeValue",
@@ -89,6 +81,7 @@ const homeJsonLd = [
 			maxValue: 10,
 		},
 	},
+	FOUNDER_PERSON,
 	{
 		"@context": "https://schema.org",
 		"@type": "WebSite",
