@@ -80,6 +80,15 @@
       "industry": "人材派遣・有料職業紹介",
       "use_case": "求人・求職マッチングと事務処理の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "dental-clinic-recall-agent",
+      "keyword": "歯科医院 定期リコール 治療継続 再来院 AIエージェント 自動化",
+      "title_hint": "歯科医院の定期リコールをAIエージェントに——再来院率をこう上げる",
+      "persona": "歯科医院の歯科衛生士リーダー・院長",
+      "industry": "歯科医院",
+      "use_case": "定期リコール・治療継続フォロー・次回予約の自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
