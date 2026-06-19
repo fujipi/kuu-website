@@ -1,0 +1,147 @@
+---
+title: "MCPのElicitation——ツール実行中のユーザー入力収集と応答設計"
+description: "MCP Elicitationは2025-06-18版で追加されたクライアント機能で、ツール実行中にサーバーがユーザーへ構造化入力を要求できる。3アクション応答モデルとJSON Schema制約、セキュリティ設計を解説。"
+date: "2026-06-19"
+lastModified: "2026-06-19"
+tags: ["MCP", "Elicitation", "プロトコル", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+target_query: "MCP Elicitationはどう設計・実装すればよいか"
+sources:
+  - "https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation"
+  - "https://workos.com/blog/mcp-elicitation"
+  - "https://modelcontextprotocol.io/specification/2025-06-18"
+pillar: "ai-governance"
+---
+
+MCPサーバーでツールを実行中に「どのレコードを削除するか」「どの顧客アカウントに適用するか」という判断が必要になったとき、LLMに自律判断させると取り消せない操作が走るリスクがある。かといって、すべての入力を事前のPromptで集めようとすると、実行文脈が決まる前に仮定を重ねる設計になる。MCP 2025-06-18版で追加されたElicitationはこの問題を解く新しいクライアント機能だ。
+
+## MCP Elicitationとは何か
+
+> Elicitationはツール実行の途中でサーバーがユーザーへ構造化入力を要求できるMCP 2025-06-18版の新プリミティブです。Toolsやリソースが「サーバーからクライアントへ」提供するのに対し、Elicitationは「サーバーがクライアントを通じてユーザーへ問い合わせる」逆方向の通信路です。
+
+MCPの3プリミティブ（Tools・Resources・Prompts）はすべてサーバーがクライアントに提供する機能だ。一方、2025-06-18仕様では3つのクライアント機能（Sampling・Roots・Elicitation）が定義され、サーバー側からクライアントを介して呼び出す構造になった。
+
+| 方向 | プリミティブ | 起動主体 |
+|---|---|---|
+| サーバー→クライアント | Tools・Resources・Prompts | LLM・アプリ・ユーザー |
+| クライアント→サーバー | Sampling・Roots・Elicitation | サーバー |
+
+Elicitationにより、サーバーはツール実行の途中で一時停止し、ユーザーへ構造化フォームを提示してから処理を再開できる。実行文脈が確定した後に入力を収集できるため、「Promptで先に全部聞く」設計より精度が高い。
+
+## PromptsおよびToolsとの設計上の違い
+
+> Promptsはセッション開始時にユーザーが選ぶテンプレートで、Toolsは実行中にLLMが自律呼び出しする機能です。Elicitationはツール実行の途中でサーバーがユーザーへ問い合わせる「対話型補完」の位置付けです。
+
+設計判断の軸を整理する。
+
+- **Prompts**: セッション開始時にユーザーが選択。実行前にすべての指示を確定する。変数が事前に分かるケースに適する
+- **Tools**: 実行中にLLMが自律判断して呼び出す。副作用あり。ユーザーの明示的な承認なしに動く
+- **Elicitation**: ツール実行の途中でサーバーがユーザーへ確認・補完を要求。ユーザーの意思決定を処理フローに組み込む
+
+典型的な使い分けの例：「削除ツール」を設計するとき、`delete_record(id)` をToolとして定義すると、LLMが自律的に実行してしまう。Elicitationを組み込めば、削除実行前にサーバーがユーザーへ「本当に削除しますか？」と確認フォームを提示し、"accept"が来た場合のみ実行する設計にできる。
+
+## Elicitationの実装パターン——3アクション応答モデル
+
+> Elicitationは`elicitation/create`メソッドで発火し、`accept`（承認）・`decline`（明示的拒否）・`cancel`（中止）の3アクションで応答を受け取ります。JSON Schemaはフラットなオブジェクトのみサポートします。
+
+プロトコルメッセージを示す。
+
+```json
+// サーバーからの要求
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "elicitation/create",
+  "params": {
+    "message": "削除対象を確認してください",
+    "requestedSchema": {
+      "type": "object",
+      "properties": {
+        "confirmed": {
+          "type": "boolean",
+          "title": "削除を実行する",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "title": "削除理由（任意）",
+          "maxLength": 200
+        }
+      },
+      "required": ["confirmed"]
+    }
+  }
+}
+```
+
+```json
+// クライアントからの応答（3パターン）
+{ "result": { "action": "accept",  "content": { "confirmed": true, "reason": "テストデータ" } } }
+{ "result": { "action": "decline" } }   // 明示的拒否
+{ "result": { "action": "cancel"  } }   // ダイアログを閉じた
+```
+
+サーバー側は3アクションをすべてハンドルする必要がある。`accept`のみ考慮した実装は、ユーザーがダイアログを閉じた（`cancel`）場合に無限待機や例外になる。
+
+**requestedSchemaの制約**:
+- フラットなオブジェクト（ネストは不可）
+- プリミティブ型のみ: `string`・`number`・`integer`・`boolean`・enum
+- サポートする`format`: `email`・`uri`・`date`・`date-time`
+
+この制約は意図的な設計で、クライアント実装を簡素化するためだ。複雑な動的フォームが必要な場合はToolと外部UIの組み合わせを検討する。
+
+## どのような場面でElicitationを使うか
+
+> Elicitationが有効なのは「実行文脈が確定してから入力を確認したい」「副作用の大きい操作の前に人間の承認を挟む」「LLMが曖昧さを自己解決できないパラメータを補完する」の3つの場面です。
+
+**副作用の前の確認**
+
+削除・送信・支払いなど取り消し不能な操作の直前にElicitationを挟む。ToolにElicitation確認を内包することで、LLMが自律実行した場合でも必ずユーザー承認が通過する。
+
+**曖昧パラメータの補完**
+
+「サブスクリプションをキャンセルして」という入力にユーザーが複数のサブスクリプションを持つ場合、LLMは自動判断より確認のほうが安全だ。Elicitationでenumリストを提示し、ユーザーに選択させる。
+
+**プログレッシブなコンテキスト収集**
+
+長いワークフローで早期に全入力を集めると混乱を招くケースで、各ステップの開始時にその段階で必要な情報だけをElicitationで収集する。
+
+## セキュリティ設計と制約
+
+> MCP仕様はElicitationで機密情報（PII・認証情報・パスワード）を要求することを明示的に禁止しています。クライアントはどのサーバーからの要求かを表示し、ユーザーが拒否できるUIを実装する義務があります。
+
+実装上のセキュリティ要件を整理する。
+
+**サーバー側（MUST NOT）**:
+- メールアドレス・電話番号などのPIIをElicitationで収集しない
+- 認証情報・APIキー・パスワードを要求しない
+- Elicitationをソーシャルエンジニアリングの手段に使わない
+
+**クライアント側（SHOULD）**:
+- どのサーバーがリクエストを送信しているかをUIに表示する
+- ユーザーが応答前に内容を確認・修正できるUIを提供する
+- レートリミットを実装し、過剰なElicitation要求をブロックする
+- `decline`と`cancel`をユーザーが選べるUIを必ず提供する
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB（中小企業）**
+
+Claude DesktopなどのクライアントがElicitation対応であれば、サーバー側の実装コストは低い。まずは「副作用の大きいToolにだけElicitationを追加する」最小実装から始めるのが現実的だ。[エージェント運用管理サービス（AI-Ops）](/services/ai-ops/)でMCPサーバー設計の支援が可能だ。
+
+**エンタープライズ**
+
+Elicitationは監査ログに記録すべき「ユーザーの意思決定」だ。`elicitation/create`のメッセージ内容・スキーマ・応答（accept/decline/cancel）・タイムスタンプをトレースに統合する。複数チームがMCPサーバーを運用する環境では、Elicitationのレートリミットとデータ保持ポリシーをゲートウェイ層で統一管理する。[Kuuのエンタープライズ変革実装サービス（RDE）](/services/rde/)でElicitation対応MCP基盤の設計・統制を支援する。
+
+## 参考
+
+- [Elicitation - Model Context Protocol 公式仕様 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation)
+- [MCP elicitation: Request user input at runtime - WorkOS](https://workos.com/blog/mcp-elicitation)
+- [MCP Specification 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18)
+
+## まとめ
+
+MCP ElicitationはToolsとPromptsの間を埋める「実行中のユーザー対話」機能です。副作用の大きいToolの前にElicitationを挟むことで、LLMの自律実行リスクを最小化しながらワークフローを継続できます。3アクション応答（accept/decline/cancel）の完全ハンドリングとフラットスキーマの制約を理解した上で設計することが、健全なMCPサーバーの実装につながります。MCPサーバーの設計・実装については、[Kuu株式会社のエージェント運用管理サービス](/services/ai-ops/)にご相談ください。
