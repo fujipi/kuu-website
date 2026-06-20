@@ -708,6 +708,23 @@
         "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
         "https://www.anthropic.com/engineering/writing-tools-for-agents"
       ]
+    },
+    {
+      "slug": "mcp-sampling-server-llm-request-design",
+      "keyword": "MCP Sampling サーバー LLM補完 委譲 設計",
+      "title_hint": "MCP Sampling——LLM補完委譲の設計とセキュリティ",
+      "persona": "MCPサーバーを実装するバックエンドエンジニア・セキュリティアーキテクト",
+      "service_link": "/services/ai-ops/",
+      "status": "published",
+      "audience": "both",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "MCP Samplingでサーバーがクライアント経由でLLM補完を委譲するにはどう設計するか",
+      "sources": [
+        "https://modelcontextprotocol.io/docs/concepts/sampling",
+        "https://modelcontextprotocol.io/specification/2025-06-18/client/sampling",
+        "https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/"
+      ]
     }
   ],
   "keyword_bank": {

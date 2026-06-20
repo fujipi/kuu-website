@@ -1,0 +1,145 @@
+---
+title: "MCP Sampling——LLM補完委譲の設計とセキュリティ"
+description: "MCP Samplingでサーバーがクライアント経由でLLM補完を要求できる。APIキー不要の委譲設計・modelPreferences・Human-in-the-Loop承認フローと、プロンプトインジェクション対策を仕様から解説します。"
+date: "2026-06-20"
+lastModified: "2026-06-20"
+tags: ["MCP", "プロトコル", "AIエージェント", "セキュリティ"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://modelcontextprotocol.io/docs/concepts/sampling"
+  - "https://modelcontextprotocol.io/specification/2025-06-18/client/sampling"
+  - "https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/"
+pillar: "ai-governance"
+---
+
+MCPサーバーがLLMを呼び出したい場面は多い。受け取ったドキュメントを解析してサマリーを生成する、エラーログから次の対処手順を生成する——こうした処理を実装しようとすると、サーバー側にLLM APIキーを持たせる設計に走りがちです。しかしMCPには**Sampling**という仕組みがあり、サーバーはAPIキーを持たずにクライアント経由でLLM補完を委譲できます。
+
+本記事はMCP公式仕様（2025-06-18版）に基づき、Samplingの設計パターン・`modelPreferences`の使い方・ヒューマンインザループの実装要件・プロンプトインジェクション対策を解説します。[エージェントガバナンス](/glossary/agent-governance/)の観点から、Samplingをどう安全に組み込むかにも触れます。
+
+## MCP Samplingとは何か——フロー逆転の仕組み
+
+> MCP Samplingはサーバーがクライアント経由でLLM補完を要求する機能で、サーバー側にAPIキーが不要です。
+
+通常のMCP呼び出し（クライアント → サーバー → ツール実行 → 結果返却）とは逆に、Samplingではサーバーがクライアントに向けて `sampling/createMessage` リクエストを送ります。
+
+```
+通常フロー:
+  MCP Client → tools/call → MCP Server → 外部処理 → 結果返却
+
+Samplingフロー:
+  MCP Server → sampling/createMessage → MCP Client → LLM → 結果返却 → MCP Server
+```
+
+この設計の利点は3点です。第1に、LLMのAPIキー・モデル選択・課金がクライアント側に集約され、サーバーはキーを持たなくてよい。第2に、モデルの選択権がクライアントに残るため、ベンダーロックインを避けながら異なるLLMプロバイダーを透過的に使える。第3に、ヒューマンインザループの制御点をクライアント側に一元化できる。
+
+Samplingを使うには、クライアントが初期化時に `sampling` ケイパビリティを宣言する必要があります。
+
+```json
+{
+  "capabilities": {
+    "sampling": {}
+  }
+}
+```
+
+この宣言がないクライアントに対して、サーバーはSamplingリクエストを送れません。
+
+## sampling/createMessageの構造とmodelPreferencesの設計
+
+> `sampling/createMessage`はmessages・modelPreferences・systemPrompt・maxTokensで構成し、モデルの最終選択はクライアントが行います。
+
+`sampling/createMessage` リクエストの主要フィールドを示します。
+
+```json
+{
+  "method": "sampling/createMessage",
+  "params": {
+    "messages": [
+      {
+        "role": "user",
+        "content": {
+          "type": "text",
+          "text": "この契約書のリスクポイントを3点挙げてください。"
+        }
+      }
+    ],
+    "modelPreferences": {
+      "hints": [
+        { "name": "claude-sonnet" },
+        { "name": "claude" }
+      ],
+      "intelligencePriority": 0.9,
+      "speedPriority": 0.3,
+      "costPriority": 0.2
+    },
+    "systemPrompt": "あなたは法務レビューアシスタントです。",
+    "maxTokens": 512
+  }
+}
+```
+
+**modelPreferences** は能力・速度・コストの3軸で優先順位（0〜1の正規化値）を指定します。`hints` はモデル名のサブストリングマッチで機能し、クライアントが保持する等価モデルへのマッピングに使われます。サーバーが `"claude-sonnet"` をhintに指定しても、クライアントがGemini環境であれば相当するモデルに置き換えて実行できます。
+
+重要な設計原則として、**モデルの最終選択はクライアントが行う**点があります。サーバーはhintと優先度を「要望」として渡すに過ぎず、クライアントがどのモデルを使うかを強制できません。サーバーが特定モデルへの強い依存を持つ場合は、このSamplingの委譲モデルと相性が悪いため、サーバー側でAPIキーを保持する通常設計を検討します。
+
+## ヒューマンインザループの承認フローをどう実装するか
+
+> 仕様は送信前と返却前の2点で人間承認を必須とし、クライアントがUI・編集・拒否の権限を保持します。
+
+MCP仕様はSamplingのHuman-in-the-Loopについて次のように定めています。
+
+> For trust & safety and security, there SHOULD always be a human in the loop with the ability to deny sampling requests.
+
+クライアントは次の2つのタイミングで人間のレビューを提供するべきとされています。
+
+1. **送信前（Request review）**: サーバーから受け取ったプロンプトをユーザーに提示し、内容を確認・編集・拒否できる機会を与える
+2. **返却前（Response review）**: LLMが生成した結果をサーバーに返す前にユーザーに提示し、承認・編集の機会を与える
+
+実装上のポイントは「暗黙の自動処理を避ける」ことです。バックグラウンドでSamplingを透過的に処理するだけでは仕様の意図に反します。MCP Hostアプリケーションは、どのサーバーがSamplingを利用しているかをUIで可視化し、クライアント側でサーバーごとのレート制限（1セッションあたりのSamplingリクエスト上限）を管理する設計が推奨されます。
+
+Samplingの承認フローは[ヒューマンインザループ設計](/blog/ai-agent-human-in-the-loop-design/)の一般原則と組み合わせることで、エージェントワークフロー全体のガードレールに統合できます。
+
+## プロンプトインジェクション——Sampling固有の攻撃面と対策
+
+> 悪意あるサーバーがSampling経由でLLMに不正命令を送れるため、クライアントはプロンプト検証とレート制限が必須です。
+
+Samplingは通常のToolsやResourcesと異なり、**サーバーがLLMへの入力（プロンプト）を直接構築できる**構造を持ちます。Palo Alto Networks Unit42の研究では、悪意あるMCPサーバーがSamplingを通じてLLMに不正命令を注入するプロンプトインジェクション攻撃が実証されています。
+
+クライアント側で実装すべき対策は3点です。
+
+**① プロンプト内容の検証**
+
+受け取ったメッセージにシステムプロンプト上書きの試み（例: `Ignore previous instructions`）やロールジャンプ構文が含まれていないかを検知するルールを適用します。サーバーから来るコンテキストは「信頼できない入力」として扱い、機微な操作を指示するプロンプトは拒否します。
+
+**② 送信前のUI表示による人間確認**
+
+プロンプト内容をユーザーがレビューできるUIを常に提供します。特に `systemPrompt` フィールドはサーバーが自由に設定できるため、表示してユーザーが確認できるようにします。
+
+**③ レート制限とサーバーごとのスコープ制限**
+
+接続先サーバーごとに1セッションあたりのSamplingリクエスト上限を設定し、短時間に多数のリクエストを送るサーバーはユーザーへのアラートと一時停止で対処します。
+
+Sampling固有のリスクは[プロンプトインジェクションの多層防御アーキテクチャ](/blog/prompt-injection-layered-defense-architecture/)とあわせて評価することを推奨します。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB・中規模チーム向け**
+Claude DesktopなどのMCPホストアプリを使う場合、Samplingの承認UIはホストアプリが提供します。自社でMCPクライアントを実装していないなら、まず利用中のホストがSamplingを有効化しているか・承認フローを持つかを確認します。Kuuの[AI-Opsサービス](/services/ai-ops/)ではMCPサーバー選定とSampling設定の支援も提供しています。
+
+**エンタープライズ向け**
+組織横断でMCPサーバーを展開・管理する場合、社内ポリシーでSamplingの使用可否をサーバー単位で制御する必要があります。LLMゲートウェイを経由してSamplingリクエストをログ記録・監査する構成が推奨されます。大規模展開の設計はKuuの[RDEサービス](/services/rde/)にご相談ください。
+
+## 参考
+
+- [MCP Sampling 公式ドキュメント](https://modelcontextprotocol.io/docs/concepts/sampling)
+- [MCP Sampling 仕様（2025-06-18版）](https://modelcontextprotocol.io/specification/2025-06-18/client/sampling)
+- [New Prompt Injection Attack Vectors Through MCP Sampling — Palo Alto Networks Unit42](https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/)
+
+## まとめ
+
+MCP Samplingは、サーバーがAPIキーを持たずにLLM補完をクライアントへ委譲できる強力な機能です。設計で押さえるべき要点は3点です。①`modelPreferences` のhintと優先度で希望モデルを表現し、最終選択はクライアントに委ねる。②クライアントは送信前・返却前の2点でヒューマン承認フローを実装し、ユーザーが拒否・編集できるUIを持つ。③プロンプトインジェクション対策として、サーバーからのメッセージは信頼できない入力として扱い、内容検証・レート制限を実装する。
+
+MCPエコシステムのセキュリティ設計と[エージェントガバナンス](/glossary/agent-governance/)全体の支援は、Kuuの[AI-Opsサービス](/services/ai-ops/)にお問い合わせください。
