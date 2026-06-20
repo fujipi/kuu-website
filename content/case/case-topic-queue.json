@@ -91,6 +91,16 @@
       "status": "published"
     }
   ],
+    {
+      "slug": "fitness-gym-member-agent",
+      "keyword": "フィットネスジム スポーツクラブ 会員管理 退会防止 AIエージェント 自動化",
+      "title_hint": "フィットネスジムの退会防止をAIエージェントに——会員フォローをこう自動化する",
+      "persona": "フィットネスジムの店長・会員サービス担当",
+      "industry": "フィットネス・スポーツクラブ",
+      "use_case": "会員フォロー・体験後入会促進・退会防止の自動化",
+      "status": "published"
+    }
+  ],
   "keyword_bank": [
     "卸売 受発注 EDI 代行入力 AIエージェント",
     "保険代理店 見積 申込書 チェック AIエージェント",
