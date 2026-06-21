@@ -1,0 +1,137 @@
+---
+title: "エージェントのハルシネーション検知——整合性サンプリングと根拠検証"
+description: "エンタープライズAIエージェントのハルシネーション検知に必要な4技術——トークン確率・整合性サンプリング・根拠検証・LLMジャッジを解説します。3層信頼スコア設計で本番フィルタリングを自動化する実装パターンを示します。"
+date: "2026-06-21"
+lastModified: "2026-06-21"
+tags: ["ハルシネーション検知", "エージェント評価", "根拠検証", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "governance-tech"
+tech_depth: "deep"
+target_query: "AIエージェントのハルシネーションを技術的にどう検知・制御するか"
+sources:
+  - "https://www.getmaxim.ai/articles/how-to-detect-hallucinations-in-your-llm-applications/"
+  - "https://zenn.dev/taku_sid/articles/20250402_hallucination_countermeasures"
+  - "https://www.adaline.ai/blog/complete-guide-llm-ai-agent-evaluation-2026"
+pillar: "ai-governance"
+---
+
+AIエージェントが1日数万件の応答を自動処理する環境では、「もっともらしいが事実と異なる回答」——ハルシネーションが静かに蓄積する。90本のAI搭載モバイルアプリのユーザーレビュー調査では、約1.75%の投稿がハルシネーションへの言及を含んでいた。本番環境で人間がすべての出力を確認することは不可能であり、技術的な自動検知基盤の設計が不可欠です。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のコントロール設計の一部として、ハルシネーション検知の技術実装を解説します。[LLM-as-a-judgeによる品質評価](/blog/llm-as-a-judge-agent-evaluation-enterprise/)・[エージェント可観測性設計](/blog/agent-observability-tracing-instrumentation/)と組み合わせることで、[エージェントガバナンス](/glossary/agent-governance/)の品質保証レイヤーが完成します。
+
+## なぜエンタープライズはハルシネーション検知技術が必要か
+
+> エンタープライズでは1日数万件の自動応答を人間が確認できないため、技術的な自動検知と3層フィルタリングが必須になります。
+
+ハルシネーションのリスクは業務領域によって非対称です。一般的なQ&Aであれば誤情報が一時的な誤解を生む程度ですが、医療（投薬情報の誤り）・法務（判例の捏造）・金融（数値の誤り）では業務上の損害や法的責任に直結します。
+
+エンタープライズの観点では、ハルシネーション対策は3つのレベルに分解できます。
+
+1. **予防（Prevention）**: RAGによる根拠付き生成、プロンプト設計、モデル選択
+2. **検知（Detection）**: 出力後の技術的な信頼度評価・事実検証
+3. **対処（Mitigation）**: 検知結果に応じた応答フィルタリング・エスカレーション
+
+本記事は「2. 検知」の技術実装に焦点を当てます。予防策だけでハルシネーションをゼロにすることは現実的ではないため、検知と対処の設計がエンタープライズには必須です。
+
+## 4つのハルシネーション検知技術の比較
+
+> トークン確率・整合性サンプリング・根拠検証・LLMジャッジの4技術は精度・コスト・モデルアクセス要件が異なります。
+
+| 技術 | 仕組み | モデルアクセス | コスト | 適用場面 |
+|---|---|---|---|---|
+| トークン確率（Gray-box） | 出力トークンのlogitから不確実性を計算 | 内部確率値が必要 | 低（追加推論なし） | モデルAPIで確率を公開する場合 |
+| 整合性サンプリング | 同一入力に複数回推論し意味的ばらつきを計測 | 不要（Black-box） | 中（N×推論コスト） | 外部知識なしで自律検知したい場合 |
+| 根拠検証（Grounding Check） | 出力を原子的クレームに分解し検索結果と照合 | 不要 | 中（RAGシステム連動） | RAGパイプラインがある場合 |
+| LLMジャッジ | 別のLLMが出力の事実性・根拠整合性を採点 | 不要 | 高（追加LLM呼び出し） | 高精度・ドメイン特化評価が必要な場合 |
+
+エンタープライズの本番環境では単一技術に依存せず、コストと精度に応じて複数技術を階層的に組み合わせる**ハイブリッド評価**が推奨されます。
+
+## 整合性サンプリングと根拠検証——コアの技術実装
+
+> 整合性サンプリングは同一入力に複数出力を生成して意味的なばらつきでリスクを計測し、外部知識が不要な自律検知です。
+
+### 整合性サンプリング（Self-Consistency Detection）
+
+SelfCheckGPT等の手法は同一プロンプトに対してN回（典型的には3〜5回）サンプリングを実行し、出力群の意味的一致度を計測します。意味的一致度が低い（出力間で主張が矛盾する）場合、モデルの確信度が低く、ハルシネーションリスクが高いと判断します。
+
+```python
+def consistency_score(outputs: list[str]) -> float:
+    """複数出力間の意味的一致度を[0,1]で返す。低スコア=高ハルシネーションリスク"""
+    pairs = [(outputs[i], outputs[j]) for i in range(len(outputs)) for j in range(i+1, len(outputs))]
+    similarities = [semantic_similarity(a, b) for a, b in pairs]
+    return sum(similarities) / len(similarities)
+```
+
+MetaQAフレームワーク（ACM 2025）はメタモルフィックなプロンプト変換を使い、クローズドソースモデルでもトークン確率なしにハルシネーションを検知できます。先行手法に対してprecision 0.041〜0.113、F1スコア 0.154〜0.368の改善が報告されています。
+
+コスト面では、N=3のサンプリングで推論コストが3倍になります。整合性サンプリングはすべてのリクエストに適用するのではなく、**信頼度が中程度のリクエスト**（Layer 1の軽量チェックを通過したが閾値に近いもの）に絞ることでコストを制御します。
+
+### 根拠検証（Grounding Check / RAGAS Faithfulness）
+
+RAGシステムでは、モデルの出力を**原子的クレーム（単一の事実主張）**に分解し、各クレームが検索済みコンテキストに含まれているかを照合します。RAGAS Faithfulnessは「コンテキストに根拠を持つクレームの割合」として計算されます。
+
+```python
+def ragas_faithfulness(claims: list[str], context: str) -> float:
+    grounded = sum(1 for claim in claims if claim_supported_by_context(claim, context))
+    return grounded / len(claims)
+```
+
+ドメインによる特化設計：
+
+- **医療**: 薬剤名・投与量・禁忌のクレームを専門DBと照合
+- **法務**: 判例引用・条文番号の存在確認
+- **金融**: 数値・比率・日付の計算整合性チェック
+
+適切なグラウンディング設計によりハルシネーションを30〜50%削減できるという報告があります。RAGシステムを持たない環境では、まずRAGの導入から始めることが予防の観点から最も費用対効果が高い施策です。
+
+## 3層信頼スコアによる本番フィルタリング設計
+
+> 信頼スコアを高（0.9以上）・中・低の3層に分け、層ごとに即時応答・免責付き応答・人間レビューを振り分けます。
+
+エンタープライズで実証されている3層フィルタリングの設計パターンは以下の通りです。
+
+### 信頼スコアの構成
+
+複数の検知技術から得られたスコアを加重平均して統合信頼スコアを算出します。
+
+```python
+def integrated_confidence(token_prob, consistency, faithfulness):
+    """各検知技術のスコアを加重平均して統合信頼スコアを返す"""
+    weights = {"token_prob": 0.3, "consistency": 0.4, "faithfulness": 0.3}
+    return (token_prob * weights["token_prob"] +
+            consistency * weights["consistency"] +
+            faithfulness * weights["faithfulness"])
+```
+
+### 3層フィルタリングの振り分けロジック
+
+| 信頼スコア | 応答処理 | 追加アクション |
+|---|---|---|
+| 0.9以上（高） | 即時応答 | 通常のトレースに記録 |
+| 0.7〜0.9（中） | 応答に免責事項を付加 | LLMジャッジによる非同期採点 |
+| 0.7未満（低） | フォールバック応答または人間エスカレーション | 優先キューへ追加・レビュー担当者に通知 |
+
+「0.7未満はすべてブロック」ではなく「フォールバック応答（確認できた範囲での回答、または"確認中"メッセージ）に切り替える」設計が実運用ではUXと品質の両立に有効です。
+
+### 可観測性スタックとの統合
+
+信頼スコアはすべての応答に対してOpenTelemetryスパンの属性として記録します。[エージェント可観測性の計装設計](/blog/agent-observability-tracing-instrumentation/)と連携することで、スコア分布の推移・低信頼スコアが多発するスライス・時系列での変化をダッシュボードで可視化できます。
+
+大規模な検知パイプラインの設計・エンタープライズ展開については、[Kuuの企業向けRDEサービス](https://kuucorp.com/services/rde/)にご相談ください。
+
+## 参考
+
+- [How to Detect Hallucinations in Your LLM Applications — Maxim](https://www.getmaxim.ai/articles/how-to-detect-hallucinations-in-your-llm-applications/)
+- [ハルシネーションを制する者がAIを制する：幻覚対策の最新テクニック集 — Zenn](https://zenn.dev/taku_sid/articles/20250402_hallucination_countermeasures)
+- [The Complete Guide to LLM & AI Agent Evaluation in 2026 — Adaline](https://www.adaline.ai/blog/complete-guide-llm-ai-agent-evaluation-2026)
+
+## まとめ
+
+エンタープライズでのAIエージェントのハルシネーション制御は、以下の3段階で技術的に構築します。
+
+1. **検知技術の選択**: トークン確率（モデルアクセスあり）・整合性サンプリング（外部知識なし）・根拠検証（RAG連動）・LLMジャッジ（高精度）を精度・コスト・環境に応じて組み合わせる
+2. **3層フィルタリング**: 統合信頼スコアに基づき即時応答（0.9以上）・免責付き応答（0.7〜0.9）・人間エスカレーション（0.7未満）に振り分ける
+3. **可観測性統合**: スコアをOTelスパン属性として記録し、低スコアスライスのドリフトをダッシュボードで継続監視する
+
+[エージェントガバナンス](/ai-governance/)の品質保証レイヤーとしてハルシネーション検知を組み込むことで、自動化の信頼性が数値として可視化されます。検知パイプラインの設計から本番展開まで支援が必要な場合は[Kuuの企業向けRDEサービス](https://kuucorp.com/services/rde/)にご相談ください。
