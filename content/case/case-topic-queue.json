@@ -89,8 +89,7 @@
       "industry": "歯科医院",
       "use_case": "定期リコール・治療継続フォロー・次回予約の自動化",
       "status": "published"
-    }
-  ],
+    },
     {
       "slug": "fitness-gym-member-agent",
       "keyword": "フィットネスジム スポーツクラブ 会員管理 退会防止 AIエージェント 自動化",
@@ -98,6 +97,15 @@
       "persona": "フィットネスジムの店長・会員サービス担当",
       "industry": "フィットネス・スポーツクラブ",
       "use_case": "会員フォロー・体験後入会促進・退会防止の自動化",
+      "status": "published"
+    },
+    {
+      "slug": "beauty-salon-customer-followup-agent",
+      "keyword": "美容室 ヘアサロン 顧客カルテ 失客防止 再来店 AIエージェント 自動化",
+      "title_hint": "美容室の失客防止をAIエージェントに——カルテ管理と再来店フォローをこう自動化する",
+      "persona": "美容室・ヘアサロンのスタイリストリーダー・オーナー",
+      "industry": "美容・ヘアサロン",
+      "use_case": "顧客カルテ管理・失客防止フォローの自動化",
       "status": "published"
     }
   ],
