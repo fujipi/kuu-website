@@ -1,0 +1,91 @@
+---
+title: "エージェント評価のCI/CD統合——品質ゲートとパイプライン設計"
+description: "AIエージェントの評価をCI/CDパイプラインに組み込む方法を解説。PRごとにgraderが自動採点しスコア0.85以上を品質ゲートとする設計から、GitHub Actionsへの統合パターンまで示す。"
+date: "2026-06-22"
+lastModified: "2026-06-22"
+tags: ["エージェント評価", "CI/CD", "品質ゲート", "LLMOps"]
+author: "kuu-engineering"
+audience: "both"
+track: "evaluation"
+tech_depth: "deep"
+target_query: "AIエージェントの評価をCI/CDパイプラインに組み込むにはどうすればよいか"
+sources:
+  - "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+  - "https://latitude.so/blog/ultimate-ci-cd-llm-evaluation-guide"
+  - "https://www.anthropic.com/research/building-effective-agents"
+pillar: "ai-governance"
+---
+
+プロンプトを1行修正したとき、その変更がエージェントの挙動を壊していないか——本番にデプロイしてから気づくのは遅すぎる。AIエージェントの評価をCI/CDパイプラインに組み込むことで、PRが開かれた時点でスコアを自動検証し、閾値を下回ればビルドを止める仕組みが実現できる。
+
+## CI/CDに評価を統合すべき理由はなにか
+
+> PRを開くたびにevalを実行し、スコアが閾値を下回ればビルドを止める——これがエージェント品質ゲートの基本設計だ。
+
+エージェントの品質劣化は3種類の変更から始まる。**プロンプト変更**（システムプロンプトの調整、インストラクションの追加）、**モデル差し替え**（バージョンアップ、コスト削減目的のdowngrade）、そして**ツール仕様変更**（外部APIのスキーマ更新、MCPサーバーの改修）だ。
+
+通常のソフトウェアテストと違い、エージェントは非決定論的な出力を返すためexactマッチで合否を判断できない。代わりにgraderがスコアを付け、平均値が閾値を超えたときにPRをパスさせる統計的な品質ゲートが必要になる。標準的な設定はPRごとに50〜200件のテストケースを実行し、平均スコアが**0.85以上**でマージを許可する構成だ。
+
+[エージェントガバナンス](/glossary/agent-governance/)の観点からは、CI/CDへの評価統合はリリース前の最後の防衛ラインに位置する。オフラインの[ゴールデンデータセット回帰テスト](/blog/agent-regression-test-golden-dataset/)と、オンラインの[本番トラフィックサンプリング](/blog/online-evaluation-production-traffic-sampling/)を繋ぐ中間層として機能する。
+
+## 評価パイプラインの4層設計とはなにか
+
+> 評価パイプラインはgrader選択・テストデータ・スコア閾値・結果通知の4層で構成し、リスクレベルに応じてチューニングする。
+
+Anthropicが「Demystifying evals for AI agents」で整理した**3類型のgrader**がパイプラインの中核になる。
+
+### graderの3類型と選択基準
+
+**コードベースgrader**は最も高速で再現性が高い。JSON構造の検証、特定フィールドの存在チェック、正規表現による出力パターン確認を担う。ただし有効なバリエーションを拒否する「脆いテスト」になりやすいため、フォーマット検証とスキーマ準拠の確認に絞るのが設計の原則だ。
+
+**モデルベースgrader**（[LLM-as-a-judge](/blog/llm-as-a-judge-agent-evaluation-enterprise/)）は柔軟性が高く、「回答の正確性」「手順の妥当性」「ハルシネーションの有無」といった定性的な品質を採点できる。非決定論的でコストがかかるため、重要なテストケースに限定する設計が合理的だ。
+
+**人間grader**はゴールドスタンダードだが費用と時間がかかる。CI/CDシェルに組み込むのではなく、モデルベースgraderの月次キャリブレーションと、スコアが閾値付近にclusteringしたケースのサンプルレビューに使う。
+
+### テストデータセットの規模
+
+Anthropicの推奨は「最初は20〜50件のシンプルなタスクから開始し、実際の障害ケースを追加して拡充する」とある。CI/CDで回す実用的な規模は**50〜200件**だ。コードベースgraderで先に絞り込み、残ったケースだけLLM採点するパイプライン設計が推論コストとレイテンシのバランスを取れる。
+
+## GitHub Actionsへの実装パターン
+
+> PRオープンでevalを実行し、平均スコアが0.85未満なら自動でPRをブロックする——GitHub Actionsへの統合の基本形だ。
+
+GitHub Actionsへの統合は次のフローで設計する。
+
+1. **PRオープン/コミット**でワークフローがトリガーされる
+2. **評価スクリプト**がテストデータセットの各入力に対してエージェントを実行する
+3. **grader**が各出力を採点しスコアを集計する
+4. **閾値チェック**：平均スコアが設定値以上ならPASS、未満ならFAILでPRをブロックする
+5. **結果コメント**：スコアサマリーとスコア変化の差分をPRコメントに自動投稿する
+
+実績のあるGitHub Actions連携ツールとして、**braintrustdata/eval-action**（PR単位のスコア差分を自動コメント）、**Evidently GitHub Action**（2025年中頃リリース、Python実装に対応）、**LangSmith**（`langsmith test`コマンドでCI統合、LangChain/LangGraph環境向け）が使える。すでに使っているLLM observabilityプラットフォームに揃えると移行コストを最小化できる。
+
+### 品質ゲートの閾値設定
+
+閾値はリスクレベルで変えるのが合理的だ。
+
+| リスク | 用途例 | 推奨閾値 |
+|--------|--------|---------|
+| 低 | テキスト要約、社内FAQボット | 0.80以上 / 自動マージ可 |
+| 中 | カスタマーサポート対応 | 0.85以上 / 1名レビュー要 |
+| 高 | 法務・財務・医療判断支援 | 0.90以上 / 2名独立レビュー要 |
+
+閾値の月次キャリブレーションも設計に含めること。ゴールデンデータセットを更新したとき、モデルのバージョンが変わったとき、スコアが閾値付近にclusteringし始めたときがキャリブレーションの目安だ。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMBチームへ**：評価パイプラインは大きく始める必要はない。まずGitHub Actionsのワークフローにコードベースgraderのみの最小構成を追加し、誤検知を観察しながらLLMジャッジを1〜2件ずつ追加する段階的なアプローチが現実的だ。[Kuuの運用管理サービス](/services/ai-ops/)では評価パイプラインの初期構築を支援している。
+
+**エンタープライズチームへ**：複数チームが同一の[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)を使う環境では、評価ジョブのトークンコストをAI FinOpsの枠組みで管理する必要がある（参考：[AI FinOps入門](/blog/ai-finops-token-cost-instrumentation/)）。スコアの時系列データを[エージェント可観測性基盤](/blog/agent-observability-tracing-instrumentation/)に送り、モデル差し替えや大規模プロンプト変更のインパクトを全チーム横断で追跡する設計を推奨する。大規模なCI/CD評価基盤の構築は[RDEサービス](/services/rde/)で対応可能だ。
+
+## 参考
+
+- [Demystifying evals for AI agents — Anthropic](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
+- [Ultimate Guide to CI/CD for LLM Evaluation — Latitude](https://latitude.so/blog/ultimate-ci-cd-llm-evaluation-guide)
+- [Building Effective AI Agents — Anthropic](https://www.anthropic.com/research/building-effective-agents)
+
+## まとめ
+
+エージェント評価をCI/CDに統合することで、プロンプト変更・モデル差し替え・ツール仕様変更の3つのリスクをPRの時点で捕捉できる。graderの3類型（コードベース・モデルベース・人間）を組み合わせた4層設計と、リスクレベル別の閾値設定がパイプラインの中核だ。
+
+評価統合を始めるなら、今日からGitHub Actionsに最小のコードベースgraderを追加することが起点になる。評価基盤の全体設計や既存CI/CDとの接続については、[Kuu株式会社の運用管理サービス](/services/ai-ops/)にご相談ください。
