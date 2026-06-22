@@ -107,6 +107,15 @@
       "industry": "美容・ヘアサロン",
       "use_case": "顧客カルテ管理・失客防止フォローの自動化",
       "status": "published"
+    },
+    {
+      "slug": "renovation-estimate-followup-agent",
+      "keyword": "リフォーム 工務店 見積書作成 顧客フォロー AIエージェント 属人化解消",
+      "title_hint": "リフォーム見積書作成をAIエージェントに——属人化をこう解消する",
+      "persona": "工務店の営業責任者・代表",
+      "industry": "リフォーム・工務店",
+      "use_case": "見積書作成と顧客フォローの補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
