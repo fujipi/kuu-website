@@ -1,0 +1,120 @@
+---
+title: "MCP Streamable HTTP移行設計——セッション管理・後方互換・水平スケール"
+description: "MCP 2025-06-18仕様でHTTP+SSEは廃止予定となり、単一エンドポイントのStreamable HTTPが標準に。セッション管理・水平スケール・後方互換設計の実装要点を解説します。"
+date: "2026-06-23"
+lastModified: "2026-06-23"
+tags: ["MCP", "プロトコル", "Streamable HTTP", "エンタープライズ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+target_query: "MCPサーバーのStreamable HTTPトランスポートはどう移行・実装するか"
+sources:
+  - "https://modelcontextprotocol.io/specification/2025-06-18/basic/transports"
+  - "https://blog.modelcontextprotocol.io/posts/2025-12-19-mcp-transport-future/"
+  - "https://blog.fka.dev/blog/2025-06-06-why-mcp-deprecated-sse-and-go-with-streamable-http/"
+---
+
+エンタープライズ環境でMCPサーバーを本番運用している組織が直面する共通の壁がある。ロードバランサーでスティッキーセッションが必要になり、オートスケールが機能しない。AtlassianのRovoは2026年6月30日をもってHTTP+SSE廃止を宣言し、Keboolaはすでに2026年4月1日に廃止を実施済みだ。MCP 2025-06-18仕様が導入したStreamable HTTPは、こうした課題に対するプロトコル層の回答だ。
+
+## Streamable HTTPとは何か
+
+> Streamable HTTPは、単一の`/mcp`エンドポイントでPOST・GETを受け付け、応答を`application/json`とSSEストリームの間で動的に切り替えられるMCPの標準トランスポートです。MCP 2025-06-18仕様でHTTP+SSEを公式に置き換えました。
+
+旧HTTP+SSEトランスポート（2024-11-05仕様）は2つのエンドポイントを必要とした。GETでSSEに接続し、サーバーが`endpoint`イベントを返してから初めてPOSTでリクエストを送る手順だ。Streamable HTTPはこれを単一のMCPエンドポイント（例: `https://example.com/mcp`）に統合した。
+
+クライアントがJSON-RPCメッセージを送る際の基本フローは次の通りだ。
+
+1. クライアントは`Accept: application/json, text/event-stream`を付けてHTTP POSTを送る
+2. サーバーが**シンプルなリクエスト/レスポンス**の場合: `Content-Type: application/json`で1つのJSON-RPCレスポンスを返す
+3. サーバーが**ストリーミング**（通知・進捗を含む）の場合: `Content-Type: text/event-stream`でSSEを開始し、途中でServer-to-Client通知を送りながら最終レスポンスを返す
+
+クライアントはGETでMCPエンドポイントにSSE接続を開いて、サーバー起点のリクエストや通知を受信することもできる。この設計により、LLM呼び出しを伴う長時間エージェント操作でも単一エンドポイントで制御できる。
+
+## セッション管理の設計
+
+> Streamable HTTPのセッション管理は`Mcp-Session-Id`ヘッダーで実現します。サーバーが初期化レスポンスでセッションIDを付与し、以降の全リクエストにクライアントがヘッダーとして添付します。セッションIDはUUIDかJWTで暗号学的に一意にする必要があります。
+
+### セッションIDの仕様要件
+
+仕様が規定する主な要件は以下の通りだ。
+
+- セッションIDは`InitializeResult`を含むHTTPレスポンスの`Mcp-Session-Id`ヘッダーに付与する（サーバーは任意）
+- セッションIDを受信したクライアントは、以降の**全HTTPリクエスト**に`Mcp-Session-Id`ヘッダーを含める（MUST）
+- セッションIDは**グローバルに一意かつ暗号学的に安全**であること（UUID・JWT・暗号ハッシュ等）
+- セッションIDはASCII可視文字（0x21〜0x7E）のみ使用可
+
+セッション失効時、サーバーは当該セッションIDを含むリクエストに`HTTP 404`を返す。クライアントは404受信後にセッションIDなしで新規`InitializeRequest`を送り直して再確立しなければならない（MUST）。クライアントがセッションを終了する場合は、`Mcp-Session-Id`ヘッダーを付けてMCPエンドポイントへHTTP DELETEを送る。
+
+### ステートレス運用と水平スケール
+
+セッションIDを割り当てないステートレスサーバーは、任意のリクエストを任意のインスタンスが処理できる。AWS ALBやCloudflare Load Balancerなどの標準L7ロードバランサーがスティッキーセッション設定なしでそのまま使えるため、オートスケールグループとの組み合わせが素直に機能する。
+
+MCP公式ブログ（2025年12月）の「Future of MCP Transports」では、2026年Q1のSpec Enhancement Proposalsで`Mcp-Session-Id`をプロトコル層から除去しフル・ステートレス化する方向性が示されている。エンタープライズの水平スケール環境を前提にする場合、今からステートレスMCPサーバーを設計しておくと将来の移行コストが下がる。
+
+## 接続の再開性（Resumability）はどう実装するか
+
+> MCP仕様はSSEイベントIDと`Last-Event-ID`ヘッダーによる再開メカニズムを定義します。サーバーがストリームごとに一意のイベントIDを付与し、クライアントが再接続時に`Last-Event-ID`で再開位置を指定します。接続断はリクエストキャンセルと同義ではありません。
+
+再開機能を実装する場合の設計要点は3点だ。
+
+1. サーバーはSSEイベントに`id`フィールドを付与する（セッション内でストリームを跨いでグローバルにユニーク）
+2. クライアントが切断後に再接続する際、HTTP GETに`Last-Event-ID`ヘッダーを付けてMCPエンドポイントに送る
+3. サーバーは`Last-Event-ID`以降のイベントを再送しストリームを再開する（他ストリームのメッセージは再送してはならない: MUST NOT）
+
+仕様は「切断をリクエストのキャンセルと解釈すべきでない（SHOULD NOT）」と明示する。キャンセルが必要な場合は`CancelledNotification`を明示的に送る。本番環境でLLM呼び出しを含む長時間エージェント操作を扱う場合、このセマンティクスを正確に実装しないとリトライストームが発生する。
+
+## セキュリティ要件と本番実装チェックリスト
+
+> Streamable HTTP実装はOriginヘッダー検証・認証・ローカルホスト限定バインドの3点が必須または強く推奨されます。Originヘッダー検証の省略はDNSリバインディング攻撃に直結します。
+
+| 要件 | 仕様レベル | 内容 |
+|---|---|---|
+| `Origin`ヘッダー検証 | **MUST** | 全接続でOriginを検証しDNSリバインディングを防ぐ |
+| ローカルバインド（ローカル実行時）| **SHOULD** | `0.0.0.0`でなく`127.0.0.1`のみにバインドする |
+| 認証実装 | **SHOULD** | OAuth 2.1ベースの認可フローを実装する |
+| `MCP-Protocol-Version`ヘッダー | **MUST**（初期化後） | 全リクエストに`MCP-Protocol-Version: 2025-06-18`を付与する |
+
+`MCP-Protocol-Version`ヘッダーが無効または未サポートの場合、サーバーは`400 Bad Request`を返す（MUST）。ヘッダーを受信しない場合のデフォルトは`2025-03-26`として後方互換を保つ。OAuth 2.1の詳細な実装については[MCPサーバーのOAuth 2.1認可フロー](/blog/mcp-security-oauth-scope-design/)も参照のこと。
+
+## 後方互換と移行パスの設計
+
+> 旧HTTP+SSEクライアントをサポートするサーバーは旧エンドポイント群と新MCPエンドポイントを並行提供します。クライアント側は新仕様でのPOST試行→失敗時にSSEフォールバックする「自動判定パターン」で新旧を透過的に吸収できます。
+
+### サーバー側の並行稼働戦略
+
+旧トランスポートクライアントと共存する場合の推奨方針は次の通りだ。
+
+1. 旧HTTP+SSEのSSEエンドポイント（GET）とPOSTエンドポイントを**既存のまま維持**する
+2. 新しい`/mcp`エンドポイントをパラレルに追加し、新仕様クライアントに対応する
+3. `MCP-Protocol-Version`ヘッダーで新旧を判別し、対応するコードパスに振り分ける
+
+### クライアント側の自動判定パターン
+
+新旧サーバーを透過的に扱う実装の流れ：
+
+1. サーバーURLへ`InitializeRequest`をPOSTする
+2. **成功（2xx）→** Streamable HTTPとして通信継続
+3. **HTTP 4xx（405/404等）→** GETに切替えて旧HTTP+SSEのSSEストリームを試みる。`endpoint`イベントが返ってくれば旧トランスポートで処理する
+
+Atlassian Rovo（2026年6月30日廃止）やKeboola（2026年4月1日廃止済み）など大規模MCPクライアントが廃止期限を宣言し始めている。エンタープライズ向けMCPサーバーを提供している場合は、2026年内に移行を完了させる計画が必要だ。
+
+Kuuでは[RDEサービス](/services/rde/)を通じて、MCP Streamable HTTP移行のアーキテクチャ設計と本番実装をエンタープライズ向けに提供している。ステートレス化・OAuth 2.1認可フロー統合・CI/CDパイプラインへの組み込みを含む設計支援が可能だ。
+
+## 参考
+
+- [Transports — Model Context Protocol Specification 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+- [Exploring the Future of MCP Transports — Model Context Protocol Blog](https://blog.modelcontextprotocol.io/posts/2025-12-19-mcp-transport-future/)
+- [Why MCP Deprecated SSE and Went with Streamable HTTP — fka.dev](https://blog.fka.dev/blog/2025-06-06-why-mcp-deprecated-sse-and-go-with-streamable-http/)
+
+## まとめ
+
+MCP 2025-06-18仕様のStreamable HTTPは、旧HTTP+SSEの「2エンドポイント問題」とスティッキーセッションによるスケーリング制約を解消するプロトコル設計だ。エンタープライズ実装の要点をまとめる。
+
+- **単一エンドポイント化**: `/mcp`のPOST/GET両対応に統一。応答はJSON単体かSSEストリームかをサーバーが動的に選択する
+- **セッション管理**: UUID/JWTベースの`Mcp-Session-Id`を実装するか、ステートレスモードで水平スケール優先にするかを設計段階で決定する
+- **再開性**: `Last-Event-ID`ベースのSSEイベントID管理を実装し、接続断時のメッセージロストとリトライストームを防ぐ
+- **セキュリティ**: Originヘッダー検証（MUST）とOAuth 2.1認可を組み合わせ、`MCP-Protocol-Version`ヘッダーの処理を実装する
+- **移行期限**: 2026年内の大手MCPクライアント廃止宣言に備え、旧HTTP+SSEとの並行稼働期間を計画に組み込む
+
+MCP Streamable HTTP移行の設計・実装は[Kuuの RDEサービス](/services/rde/)にご相談ください。
