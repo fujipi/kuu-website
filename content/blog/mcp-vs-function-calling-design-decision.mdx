@@ -1,0 +1,129 @@
+---
+title: "MCPとFunction callingの使い分け——ツール設計の選択基準"
+description: "MCPはツール共有・プロバイダー非依存が必要な場合に選び、Function callingは単一プロバイダー内での迅速なツール実装に最適です。2026年の実践的な使い分け基準を整理します。"
+date: "2026-06-24"
+lastModified: "2026-06-24"
+tags: ["MCP", "Function calling", "ツール設計", "プロトコル"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "intermediate"
+target_query: "MCPとFunction callingはどう使い分けるか"
+sources:
+  - "https://www.descope.com/blog/post/mcp-vs-function-calling"
+  - "https://mer.vin/2026/05/mcp-vs-a2a-vs-function-calling-a-practical-layered-guide-for-production-ai-agents/"
+  - "https://modelcontextprotocol.io/specification/2025-06-18/basic/transports"
+---
+
+AIエージェントにツールを持たせる方法として、LLM APIリクエストにツール定義を埋め込む**Function calling**と、独立したサーバーへJSON-RPCで問い合わせる**MCP（[Model Context Protocol](/glossary/mcp/)）**の2つが実用段階に達した。どちらも「LLMがツールを呼び出す」という目的は同じだが、アーキテクチャの哲学が根本的に異なる。誤って使い分けると、開発速度・保守性・セキュリティに直接影響する。
+
+## Function callingとMCPは何が違うか
+
+> Function callingはAPIリクエスト内にツール定義を埋め込む密結合設計、MCPはクライアント-サーバー分離でツールを複数アプリケーションに共有する標準プロトコルです。
+
+### Function callingのアーキテクチャ
+
+Function callingは、LLM APIリクエストの `tools` パラメータにツール定義をインラインで渡す。モデルが呼び出しを判断すると、アプリケーションがそれを実行してレスポンスを返す。実装は数十行のコードで完結し、インフラの追加は不要だ。
+
+```json
+{
+  "tools": [{
+    "name": "get_weather",
+    "description": "Returns current weather for a city",
+    "input_schema": {
+      "type": "object",
+      "properties": { "city": { "type": "string" } }
+    }
+  }]
+}
+```
+
+すべてのツールロジックはアプリケーションと同一プロセスで動く。APIキーも同一コンテキストに置かれる。[ツール定義の詳細はFunction calling実装ガイド](/blog/function-calling-structured-output-tool-design/)を参照。
+
+### MCPのアーキテクチャ
+
+MCPでは、ツールを提供する「MCPサーバー」を独立プロセスとして起動し、クライアントがJSON-RPC over stdio/Streamable HTTPで通信する。ツール定義はサーバー側に置かれ、複数のクライアントが同一サーバーのツールを共有できる。
+
+```
+Claude Desktop ─┐
+カスタムAgent  ──┼──→ MCPサーバー ──→ データベース / 社内API
+Slack Bot     ─┘
+```
+
+ツールのコードは独立してデプロイ・スケールでき、認証情報はサーバー側で隔離される。アクセス制御もサーバー単位で設定できるため、複数チームがツールを共有する場合に監査ログの集約が容易になる。
+
+### 設計上の本質的な違い
+
+Function callingが「LLMとアプリを密につなぐ実行層」なのに対し、MCPは「ツールをエコシステム全体で再利用可能にする標準インターフェース」だ。これはどちらが優れているかではなく、**解く問題が異なる**という意味だ。
+
+## どちらを選ぶか——5つの判断基準
+
+> Function callingは2〜3ツールを素早く実装するPoC段階に最適、MCPは複数クライアント・複数エージェントでツールを共有する本番設計に選ぶべきアーキテクチャです。
+
+| 観点 | Function calling | MCP |
+|------|---------|-----|
+| 実装コスト | 低（数十行） | 高（サーバー分離が必要） |
+| ツール共有 | 不可（アプリ内のみ） | 可（複数クライアント共有） |
+| プロバイダー依存 | あり（API schema仕様が異なる） | なし（プロトコル標準化済み） |
+| 認証情報の隔離 | なし（同一プロセス） | あり（サーバー側で分離） |
+| スケーリング | アプリと同一 | ツールサーバーを独立スケール可能 |
+| レイテンシ | 低（インプロセス） | やや高（ネットワークホップ+1） |
+
+### Function callingが適するケース
+
+- **プロトタイプ・PoC段階**でツールの有用性を素早く検証したい
+- ツールが**1アプリケーション専用**で、他のクライアントから呼ばれる予定がない
+- **レイテンシ優先**のパス（MCPはネットワークホップが1回増える）
+- 単一LLMプロバイダーのエコシステム内に閉じた開発
+
+### MCPが適するケース
+
+- **複数クライアントから同じツール**を呼び出す、または将来的にそうなる見込みがある
+- **プロバイダー非依存**のツールを作りたい（OpenAIとAnthropicを切り替え可能に）
+- セキュリティ隔離が必要——ツールの認証情報をアプリケーションから分離したい
+- ツールを**独立したCI/CDパイプライン**でデプロイ・更新したい
+- ツールの開発チームとエージェント開発チームが異なる
+
+**実用的な判断ルール**: そのツールを使うクライアントが今後2つ以上になる見込みがあれば、最初からMCPで設計する。1クライアントのみで拡張予定がないなら、Function callingで十分だ。
+
+## 組み合わせ設計と移行タイミング
+
+> 本番エージェントの多くはMCPとFunction callingを混在させており、外部システム連携はMCPサーバー化し、スキーマ検証など短命な処理はFunction callingで実装するのが実態に即した設計です。
+
+MCPとFunction callingは競合するものではなく、役割が異なる。1つのエージェントが1リクエスト内で「MCPサーバーへのツール呼び出し」と「Function callingによるスキーマ検証」を組み合わせることは一般的な設計だ。エージェント間のタスク委譲が必要な場面では[A2Aプロトコル](/blog/a2a-protocol-agent-interop-design/)を加えた3層構成になる。
+
+**典型的な混在パターン:**
+- 社内DBアクセス・ファイル操作・外部API連携 → **MCPサーバー化**（共有・再利用・隔離が必要）
+- 入力スキーマ検証・構造化出力の整形 → **Function calling**（短命・アプリ固有）
+- エージェント間タスク委譲 → **A2Aプロトコル**
+
+### Function callingからMCPへの移行判断
+
+Function callingで始めたツールをMCPサーバーへ移行すべきタイミング：
+
+1. 同じツールを別のエージェントやアプリから使いたくなった
+2. ツールのAPIキーをアプリケーションから分離する必要が出た
+3. ツールのコードをアプリとは別チームが管理するようになった
+4. LLMプロバイダーを変更・追加する可能性が生じた
+
+逆に「1クライアントのみで継続」「レイテンシが支配的な要件」「PoC段階」であれば、移行を急ぐ必要はない。Function callingのシンプルさを保つことも設計判断だ。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: まずFunction callingでPoC → ツールが本番コア機能になった時点でMCP化するのが現実的なパスだ。最初からMCPで設計すると立ち上がりが遅い。[エージェントガバナンス運用管理サービス](/services/ai-ops/)でFunction calling→MCP移行の設計支援を提供しています。
+
+**エンタープライズの場合**: 複数チームが同じエージェント基盤を使う前提で、共有ツールは最初からMCPサーバーとして設計する。認証情報の隔離・スコープ付きアクセス制御・独立CI/CDが必要な大規模構成は[RDEサービス](/services/rde/)の大規模エージェント基盤設計を参照。
+
+## 参考
+
+- [MCP vs. Function Calling: How They Differ and Which to Use - Descope](https://www.descope.com/blog/post/mcp-vs-function-calling)
+- [MCP vs A2A vs Function Calling: A Practical Layered Guide - Mervin Praison](https://mer.vin/2026/05/mcp-vs-a2a-vs-function-calling-a-practical-layered-guide-for-production-ai-agents/)
+- [Transports - Model Context Protocol 仕様 2025-06-18](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+
+## まとめ
+
+MCPとFunction callingは「どちらが優れているか」ではなく、「どちらの役割か」という設計判断だ。Function callingはLLMとアプリ内ツールをつなぐ迅速な実行層として、MCPはツールをエコシステム全体で再利用可能にする標準インターフェースとして、それぞれの役割を持つ。
+
+判断の出発点は「そのツールを使うクライアントが将来2つ以上になるか」という問いだ。PoC段階はFunction callingで素早く動かし、ツールが複数クライアントに共有されるタイミングでMCPへ移行する。エージェントガバナンスの観点では、本番環境でのツール隔離と独立デプロイがMCPを選ぶ重要な理由になる。
+
+エージェントのツール設計からMCPサーバー構築・ガバナンス体制整備まで、Kuuでは一貫して支援しています。[エージェント運用管理の詳細はこちら](/services/ai-ops/)。

@@ -93,9 +93,13 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-model-tool-use-performance-comparison",
 			"rag-vs-tool-use-agent-design",
 		],
+		// Function calling実装詳細（JSON Schema/strict mode/tool response）と使い分け設計判断（MCP vs Function calling選択基準）: 焦点が異なる正当な併存
+		[
+			"function-calling-structured-output-tool-design",
+			"mcp-vs-function-calling-design-decision",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
-
 const files = fs
 	.readdirSync(BLOG_DIR)
 	.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"));
