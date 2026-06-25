@@ -91,31 +91,27 @@ const config = {
 	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {
+		// AIガバナンス企業として被引用を最大化する方針。検索時クローラー・
+		// 学習クローラーの双方を明示的に許可する（`*` で既に全許可だが、
+		// 2025-2026 の新しい検索ボットを明示してウェルカム姿勢を示す）。
 		policies: [
-			{
-				userAgent: "*",
-				allow: "/",
-			},
-			{
-				userAgent: "GPTBot",
-				allow: "/",
-			},
-			{
-				userAgent: "ClaudeBot",
-				allow: "/",
-			},
-			{
-				userAgent: "PerplexityBot",
-				allow: "/",
-			},
-			{
-				userAgent: "Google-Extended",
-				allow: "/",
-			},
-			{
-				userAgent: "Amazonbot",
-				allow: "/",
-			},
+			{ userAgent: "*", allow: "/" },
+			// 検索・回答エンジン（AI検索での被引用に必須）
+			{ userAgent: "OAI-SearchBot", allow: "/" },
+			{ userAgent: "ChatGPT-User", allow: "/" },
+			{ userAgent: "PerplexityBot", allow: "/" },
+			{ userAgent: "Perplexity-User", allow: "/" },
+			{ userAgent: "ClaudeBot", allow: "/" },
+			{ userAgent: "Claude-User", allow: "/" },
+			{ userAgent: "Claude-SearchBot", allow: "/" },
+			{ userAgent: "Bingbot", allow: "/" },
+			{ userAgent: "Applebot", allow: "/" },
+			// 学習・汎用クローラー
+			{ userAgent: "GPTBot", allow: "/" },
+			{ userAgent: "Google-Extended", allow: "/" },
+			{ userAgent: "Applebot-Extended", allow: "/" },
+			{ userAgent: "Amazonbot", allow: "/" },
+			{ userAgent: "CCBot", allow: "/" },
 		],
 	},
 	transform: async (_config, urlPath) => {

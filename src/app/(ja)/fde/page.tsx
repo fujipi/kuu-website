@@ -7,9 +7,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
+import { buildPillarItemListJsonLd, getPillarBySlug } from "@/lib/pillars";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -65,15 +67,7 @@ const jsonLd = [
 		description:
 			"FDEの定義、日本での必要性、SI・コンサルとの違い、進め方、人材調達まで完全解説。",
 		author: ORG_REF,
-		publisher: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-			logo: {
-				"@type": "ImageObject",
-				url: `${BASE_URL}/images/favicon-192.png`,
-			},
-		},
+		publisher: ORG_PUBLISHER,
 		datePublished: "2026-05-14",
 		dateModified: "2026-05-14",
 		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
@@ -154,9 +148,15 @@ export default function FdePillarPage() {
 		.map((s) => allPosts.find((p) => p.slug === s))
 		.filter((p): p is NonNullable<typeof p> => !!p);
 
+	// ピラー→クラスター記事の ItemList 構造化データ（可視リストと一致させる）
+	const pillar = getPillarBySlug("fde");
+	const clusterJsonLd = pillar
+		? [buildPillarItemListJsonLd(pillar, cluster)]
+		: [];
+
 	return (
 		<>
-			<JsonLd data={jsonLd} />
+			<JsonLd data={[...jsonLd, ...clusterJsonLd]} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={getMainNav()} />

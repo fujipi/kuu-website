@@ -3,12 +3,42 @@ import type { Metadata } from "next";
 export const BASE_URL = "https://kuucorp.com";
 export const SITE_NAME = "Kuu株式会社";
 const DEFAULT_OGP_IMAGE = "/images/ogp.png";
+/** ロゴ（ImageObject 用 URL）。publisher.logo などで共有。 */
+const LOGO_URL = `${BASE_URL}/images/favicon-192.png`;
 
-/** Reusable schema.org Organization reference for `provider` / `author` fields. */
+/**
+ * サイト全体で共有する正準エンティティの @id。
+ * 各ページに散在する Organization / WebSite ノードを単一の実体に統合し、
+ * Google ナレッジグラフ・AI(AEO) が「Kuu株式会社」を一貫した主体として認識できるようにする
+ * （代表者 Person で実証済みのエンティティ統合パターンを企業にも適用）。
+ */
+export const ORG_ID = `${BASE_URL}/#organization`;
+export const WEBSITE_ID = `${BASE_URL}/#website`;
+
+/**
+ * Organization への軽量参照（`provider` / `author` / `worksFor` 用）。
+ * `@id` で正準ノード（BASE_ORG / トップページの Organization）に解決される。
+ */
 export const ORG_REF = {
 	"@type": "Organization",
+	"@id": ORG_ID,
 	name: SITE_NAME,
 	url: BASE_URL,
+};
+
+/**
+ * 記事の `publisher` 用 Organization 参照。Article 系のリッチリザルト要件を満たすため
+ * logo（ImageObject）を保持しつつ、`@id` で正準ノードへ統合する。
+ */
+export const ORG_PUBLISHER = {
+	"@type": "Organization",
+	"@id": ORG_ID,
+	name: SITE_NAME,
+	url: BASE_URL,
+	logo: {
+		"@type": "ImageObject",
+		url: LOGO_URL,
+	},
 };
 
 /** Build a schema.org BreadcrumbList from an ordered list of crumbs. */
@@ -201,11 +231,7 @@ export const FOUNDER_PERSON: Record<string, unknown> = {
 	description:
 		"Kuu株式会社 代表取締役。LINE株式会社で LINE Pay の駅券売機チャージや小売領域のDXプロジェクトのプロジェクトマネージャーを務め、2022年に Kuu株式会社を設立。AIエージェントの実装とエージェントガバナンスを専門とする。",
 	url: `${BASE_URL}/about/`,
-	worksFor: {
-		"@type": "Organization",
-		name: SITE_NAME,
-		url: BASE_URL,
-	},
+	worksFor: { "@id": ORG_ID },
 	knowsAbout: [
 		"AIエージェント",
 		"エージェントガバナンス",
@@ -283,10 +309,11 @@ export const FOUNDER_PERSON: Record<string, unknown> = {
 };
 
 export const BASE_ORG = {
+	"@id": ORG_ID,
 	url: BASE_URL,
 	name: SITE_NAME,
 	legalName: SITE_NAME,
-	logo: `${BASE_URL}/images/favicon-192.png`,
+	logo: LOGO_URL,
 	slogan: "しくみが浸透し、あらゆる人の自由をつくる",
 	address: {
 		streetAddress: "東神田一丁目13番14号",

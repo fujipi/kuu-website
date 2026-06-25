@@ -18,11 +18,14 @@ import { getAllGlossaryTerms } from "@/lib/glossary";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
+import { getPillarForPost } from "@/lib/pillars";
 import { readingTimeMinutes } from "@/lib/readingTime";
 import { getRelatedPosts, getSeriesPosts } from "@/lib/related";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
+	ORG_REF,
 	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -157,6 +160,9 @@ export default async function BlogPostPage({ params }: Props) {
 		post.techDepth === "intermediate" ||
 		post.techDepth === "deep";
 
+	// 記事が属するピラー（テーマ）。上向きリンク＋ isPartOf 構造化データに使う
+	const pillar = getPillarForPost(post);
+
 	const articleJsonLd: Record<string, unknown>[] = [
 		{
 			"@context": "https://schema.org",
@@ -189,21 +195,9 @@ export default async function BlogPostPage({ params }: Props) {
 				jobTitle: author.role,
 				url: `https://kuucorp.com/authors/${author.slug}/`,
 				knowsAbout: author.expertise,
-				worksFor: {
-					"@type": "Organization",
-					name: "Kuu株式会社",
-					url: "https://kuucorp.com",
-				},
+				worksFor: ORG_REF,
 			},
-			publisher: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: "https://kuucorp.com",
-				logo: {
-					"@type": "ImageObject",
-					url: "https://kuucorp.com/images/favicon-192.png",
-				},
-			},
+			publisher: ORG_PUBLISHER,
 			datePublished: post.date,
 			dateModified: post.lastModified,
 			mainEntityOfPage: {
@@ -219,6 +213,15 @@ export default async function BlogPostPage({ params }: Props) {
 				"@type": "SpeakableSpecification",
 				cssSelector: [".answer-block"],
 			},
+			...(pillar
+				? {
+						isPartOf: {
+							"@type": "WebPage",
+							"@id": `${BASE_URL}${pillar.url}`,
+							name: pillar.label,
+						},
+					}
+				: {}),
 		},
 		buildBreadcrumb([
 			{ name: "ホーム", path: "/" },
@@ -346,6 +349,25 @@ export default async function BlogPostPage({ params }: Props) {
 							</div>
 						)}
 					</div>
+
+					{pillar ? (
+						<div
+							className="fade-in"
+							style={{ maxWidth: "720px", marginBottom: "2rem" }}
+						>
+							<Link
+								href={pillar.url}
+								style={{
+									fontSize: "0.78rem",
+									color: "var(--gray-medium)",
+									borderBottom: "1px solid var(--gray-dark)",
+									paddingBottom: "0.2rem",
+								}}
+							>
+								テーマ全体像：{pillar.label} →
+							</Link>
+						</div>
+					) : null}
 
 					<TableOfContents items={toc} />
 

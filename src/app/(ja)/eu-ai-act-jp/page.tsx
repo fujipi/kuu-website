@@ -7,9 +7,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
+import { buildPillarItemListJsonLd, getPillarBySlug } from "@/lib/pillars";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -64,15 +66,7 @@ const jsonLd = [
 		description:
 			"EU AI Actの日本企業への影響と必要対応を実務者向けに解説するピラーガイド。",
 		author: ORG_REF,
-		publisher: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-			logo: {
-				"@type": "ImageObject",
-				url: `${BASE_URL}/images/favicon-192.png`,
-			},
-		},
+		publisher: ORG_PUBLISHER,
 		datePublished: "2026-04-17",
 		dateModified: "2026-04-17",
 		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
@@ -112,9 +106,15 @@ export default function EuAiActPillarPage() {
 		.map((s) => allPosts.find((p) => p.slug === s))
 		.filter((p): p is NonNullable<typeof p> => !!p);
 
+	// ピラー→クラスター記事の ItemList 構造化データ（可視リストと一致させる）
+	const pillar = getPillarBySlug("eu-ai-act-jp");
+	const clusterJsonLd = pillar
+		? [buildPillarItemListJsonLd(pillar, cluster)]
+		: [];
+
 	return (
 		<>
-			<JsonLd data={jsonLd} />
+			<JsonLd data={[...jsonLd, ...clusterJsonLd]} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={getMainNav()} />
