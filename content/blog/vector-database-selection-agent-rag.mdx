@@ -1,0 +1,76 @@
+---
+title: "RAGエージェント向けベクトルDB選定——pgvector・Weaviate・Qdrant・Pineconeの使い分け"
+description: "AIエージェントRAG基盤のベクトルDB選定を解説。pgvectorは50M以下でコスト優位、Weaviateはハイブリッド検索特化、Qdrantは高速フィルタ、Pineconeは100M+自動スケールが強みです。"
+date: "2026-06-25"
+lastModified: "2026-06-25"
+tags: ["ベクトルデータベース", "RAG", "AIエージェント", "プラットフォーム基盤"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://encore.dev/articles/pgvector-vs-pinecone"
+  - "https://www.groovyweb.co/blog/vector-database-comparison-2026"
+  - "https://encore.dev/articles/best-vector-databases"
+  - "https://www.callmissed.com/en/blog/vector-database-comparison-2026"
+pillar: "ai-governance"
+---
+
+AIエージェントが外部知識を参照するRAG（Retrieval-Augmented Generation）構成では、ベクトルデータベースが検索精度とレイテンシを左右する。「とりあえずPinecone」で始めたまま運用コストが月数十万円規模に達したプロジェクトや、pgvectorを選んでスケールの壁に当たったケースは実際に起きている。選定は要件定義の段階で決まり、後から変えるコストは高い。
+
+## ベクトルDBはエージェントアーキテクチャでどう機能するか
+
+> RAGレイヤーのベクトルDBは検索精度とデータ整合性が長期品質を決定し、クエリレイテンシは副次的な要素です。
+
+エージェントがベクトルDBを使う経路は主に2つある。①ユーザークエリをembeddingに変換し、類似ドキュメントを取得して文脈に含める**同期RAGツール**、②バックグラウンドで知識ベースを更新し次のクエリに備える**非同期インジェクションパイプライン**だ。
+
+エージェントの総応答時間はLLM生成（数百ms〜数秒）が支配的で、ベクトル検索の5〜50msは相対的に小さい。そのため選定基準は「ベクトル検索の速さ」よりも**データ整合性・ハイブリッド検索対応・運用コスト・スケール上限**に置くべきだ。
+
+2026年時点では、ハイブリッド検索（密ベクトル＋BM25キーワード）の採用が本番RAGの標準になっている。製品SKU・固有名詞・コードを含むドキュメントでは、ベクトルのみでは再現率が著しく落ちるためだ。
+
+## pgvectorを選ぶべき条件は何か
+
+> pgvectorはPostgreSQL拡張で整合性とSQL結合が強み。50Mまでは専用DBより最大75%低コストです。
+
+pgvectorの最大の強みはPostgreSQLとの**トランザクション整合性**だ。ドキュメントとembeddingを同一トランザクションで更新できるため、「embeddingは更新されたがソースが古い」という不整合状態が発生しない。マルチテナントSaaSでは`tenant_id`の行レベルセキュリティとベクトル検索を単一SQLクエリで組み合わせられる。
+
+本番でのHNSW標準パラメータは`m=16, ef_construction=200`。この設定で1Mベクトルのクエリは95%以上の再現率を維持しながら5〜20msで返る。更新頻度が高い場合はHNSW、バッチ推論ならIVFFlatが適している。
+
+限界は明確だ。5,000万ベクトルを超えるとチューニング負荷が増大し、HNSW構築時間も10Mベクトルで2〜5時間に達する。Timescaleの実測では、50Mベクトル規模でEC2上のpgvectorが月約835ドル相当なのに対しPineconeは月3,241〜3,889ドルで、75〜79%のコスト差がある。
+
+## Weaviate・Qdrant・Pineconeはどう使い分けるか
+
+> Weaviateはハイブリッド検索特化、Qdrantは高速フィルタ、Pineconeは100M+ゼロオペレーション向きです。
+
+**Weaviate**はBM25＋ベクトルのハイブリッド検索をネイティブに実装しており、外部Elasticsearchなしでレキシカル・セマンティック双方の精度が得られる。GraphQLベースのフィルタリングとnamespace分離を組み合わせると、社内知識ベースや複数顧客向けRAGサービスに適した構成になる。
+
+**Qdrant**はRust実装によりコールドスタートが速く、ペイロードインデックスによるメタデータフィルタリングのパフォーマンスペナルティが最小だ。`category="legal" AND similarity > 0.8`のような複合条件をエージェントのツール呼び出し内で実行する頻度が高い構成では、Qdrantが有利になる。AsyncioベースのエージェントフレームワークとのUpsert API統合も容易だ。
+
+**Pinecone**はFreshDiskANNベースの独自インデックスが100M〜10Bベクトルの規模でも自動スケールするフルマネージドサービスだ。キャパシティプランニング不要でnamespace単位の従量課金で運用できる。ただしSQL結合のような複雑なメタデータクエリや、ドキュメントとembeddingのトランザクション整合性は保証されない。
+
+## インデックスとハイブリッド検索の設計で何が変わるか
+
+> 2026年の本番RAGではハイブリッド検索が標準となり、HNSWパラメータとBM25アルファの調整が検索精度を決定します。
+
+ハイブリッド検索のスコアリングは`alpha`パラメータで密ベクトルとBM25の重みを制御する。プロダクトカタログや法令文書では`alpha=0.4〜0.5`、セマンティックな質問応答では`alpha=0.7〜0.8`が出発点の目安だ。
+
+メタデータフィルタリングの実装差は見逃されやすい落とし穴になる。pgvectorはSQLの`WHERE`句に直接書けるが、Pineconeはポストフィルタリング（ベクトル検索後にフィルタ適用）のため、厳しい条件では返却件数がtop_kを大幅に下回る。Pinecone Serverlessのプレフィルタリングがこの問題を部分的に解消したが、SQLの柔軟性には及ばない。
+
+コストの目安として1M〜10Mベクトル規模では、pgvectorが月5万〜50万円、Pineconeが7万〜80万円、Weaviateが8万〜100万円となる。既存PostgreSQLインスタンスがある場合、pgvectorの追加コストはほぼゼロだ。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**では、既存PostgreSQLがあるなら**pgvectorから始める**のが合理的だ。`CREATE EXTENSION vector;`一行でインストールでき、既存のORM・マイグレーション・バックアップ運用をそのまま流用できる。ベクトル数が数百万件を超えない段階では、専用ベクトルDBへの移行コストより運用一元化のメリットが大きい。[Kuuの運用管理支援](/services/ai-ops/)ではRAG基盤の選定から本番運用設計まで支援している。
+
+**エンタープライズ**では、チームをまたがるRAGサービスの展開を想定するなら**Qdrant（VPCセルフホスト）またはWeaviate**を軸にした構成が現実的だ。KubernetesでVPC内にデプロイすればデータレジデンシー要件を満たしながら水平スケールが可能になる。100Mベクトルを超えゼロオペレーションを優先する場合はPinecone、既存Elasticsearchスタックを拡張する場合はWeaviateが補完的に機能する。大規模RAG基盤の設計・実装は[エンタープライズ向けAI実装支援 RDE](/services/rde/)でも対応している。
+
+## 参考
+
+- [pgvector vs Pinecone: Which Vector Database to Choose in 2026](https://encore.dev/articles/pgvector-vs-pinecone)
+- [Pinecone vs pgvector vs Chroma vs Weaviate (2026): Best Vector DB by Use Case](https://www.groovyweb.co/blog/vector-database-comparison-2026)
+- [Best Vector Databases in 2026: Complete Comparison Guide](https://encore.dev/articles/best-vector-databases)
+- [Vector Databases 2026: Pinecone vs Qdrant vs Weaviate vs pgvector](https://www.callmissed.com/en/blog/vector-database-comparison-2026)
+
+## まとめ
+
+ベクトルDB選定は要件とスケールで最適解が変わる。**既存PostgreSQLがあればpgvector、ハイブリッド検索が中心ならWeaviate、フィルタリング重視ならQdrant、100M超でゼロオペレーションならPinecone**が判断の起点になる。RAG基盤の選定・設計でご相談は[Kuuの運用管理支援](/services/ai-ops/)または[エンタープライズ向けRDE](/services/rde/)へ。
