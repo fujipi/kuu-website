@@ -1,7 +1,7 @@
 import { type BlogPostMeta, getAllPosts } from "@/lib/mdx";
 
 export function slugifyTag(tag: string): string {
-	return tag.toLowerCase().replace(/\s+/g, "-");
+	return tag.toLowerCase().replace(/[\s/]+/g, "-");
 }
 
 export function getAllTags(): { tag: string; slug: string; count: number }[] {

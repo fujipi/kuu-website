@@ -7,6 +7,11 @@ describe("slugifyTag", () => {
 		expect(slugifyTag("MCP")).toBe("mcp");
 	});
 
+	it("hyphenates slashes so tag paths stay a single URL segment", () => {
+		expect(slugifyTag("CI/CD")).toBe("ci-cd");
+		expect(slugifyTag("AI/ML")).toBe("ai-ml");
+	});
+
 	it("keeps Japanese tags as-is", () => {
 		expect(slugifyTag("エージェントガバナンス")).toBe("エージェントガバナンス");
 	});
@@ -21,6 +26,12 @@ describe("getAllTags (real content)", () => {
 		}
 		for (const t of tags) {
 			expect(t.slug).toBe(slugifyTag(t.tag));
+		}
+	});
+
+	it("never produces a slash in a slug (would break static tag routes)", () => {
+		for (const t of getAllTags()) {
+			expect(t.slug).not.toContain("/");
 		}
 	});
 });
