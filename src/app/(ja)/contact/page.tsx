@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getMainNav } from "@/lib/navigation";
-import { BASE_URL, buildBreadcrumb, generateMetadata } from "@/lib/seo";
+import { BASE_URL, buildBreadcrumb, generateMetadata, ORG_ID } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
 	title: "お問い合わせ | Kuu株式会社 - AI導入のご相談",
@@ -33,6 +33,7 @@ const contactJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Organization",
+		"@id": ORG_ID,
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		contactPoint: [

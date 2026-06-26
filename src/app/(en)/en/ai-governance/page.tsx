@@ -9,6 +9,7 @@ import { getEnNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -53,15 +54,7 @@ const jsonLd = [
 		description:
 			"Designing, evaluating and improving autonomous AI agents as a system: permissions, audit logs, 9-axis evaluation and human oversight.",
 		author: ORG_REF,
-		publisher: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-			logo: {
-				"@type": "ImageObject",
-				url: `${BASE_URL}/images/favicon-192.png`,
-			},
-		},
+		publisher: ORG_PUBLISHER,
 		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
 		url: PAGE_URL,
 		inLanguage: "en",

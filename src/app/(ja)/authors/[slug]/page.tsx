@@ -8,7 +8,11 @@ import Stars from "@/components/Stars";
 import { getAllAuthors, getAuthorBySlug } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
-import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	buildBreadcrumb,
+	ORG_REF,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 
 interface Props {
 	params: Promise<{ slug: string }>;
@@ -56,11 +60,7 @@ export default async function AuthorPage({ params }: Props) {
 				url,
 				knowsAbout: author.expertise,
 				sameAs: author.sameAs,
-				worksFor: {
-					"@type": "Organization",
-					name: "Kuu株式会社",
-					url: "https://kuucorp.com",
-				},
+				worksFor: ORG_REF,
 			},
 			hasPart: {
 				"@type": "ItemList",

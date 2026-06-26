@@ -11,6 +11,7 @@ import {
 	FOUNDER_ID,
 	FOUNDER_PERSON,
 	generateMetadata,
+	ORG_ID,
 } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
@@ -38,6 +39,7 @@ const aboutJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Organization",
+		"@id": ORG_ID,
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		logo: `${BASE_URL}/images/favicon-192.png`,

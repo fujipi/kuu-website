@@ -7,9 +7,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
+import { buildPillarItemListJsonLd, getPillarBySlug } from "@/lib/pillars";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -65,15 +67,7 @@ const jsonLd = [
 		description:
 			"AIエージェントガバナンスの定義・9軸評価・EU AI Act / ISO 42001 対応・体制構築5ステップを実務者向けに解説。",
 		author: ORG_REF,
-		publisher: {
-			"@type": "Organization",
-			name: "Kuu株式会社",
-			url: BASE_URL,
-			logo: {
-				"@type": "ImageObject",
-				url: `${BASE_URL}/images/favicon-192.png`,
-			},
-		},
+		publisher: ORG_PUBLISHER,
 		datePublished: "2026-04-17",
 		dateModified: "2026-04-17",
 		mainEntityOfPage: { "@type": "WebPage", "@id": PAGE_URL },
@@ -160,9 +154,15 @@ export default function AiGovernancePillarPage() {
 		)
 		.slice(0, 10);
 
+	// ピラー→クラスター記事の ItemList 構造化データ（可視リストと一致させる）
+	const pillar = getPillarBySlug("ai-governance");
+	const clusterJsonLd = pillar
+		? [buildPillarItemListJsonLd(pillar, [...cluster, ...pillarPosts])]
+		: [];
+
 	return (
 		<>
-			<JsonLd data={jsonLd} />
+			<JsonLd data={[...jsonLd, ...clusterJsonLd]} />
 			<Stars />
 			<FadeInObserver />
 			<Header navLinks={getMainNav()} />

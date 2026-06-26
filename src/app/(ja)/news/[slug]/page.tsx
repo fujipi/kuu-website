@@ -11,6 +11,7 @@ import { getAllNews, getAllNewsSlugs, getNewsBySlug } from "@/lib/news";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	resolveOgImage,
 	generateMetadata as seoMetadata,
@@ -95,15 +96,7 @@ export default async function NewsDetailPage({ params }: Props) {
 			keywords: item.tags.join(", "),
 			articleSection: item.category,
 			author: ORG_REF,
-			publisher: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: BASE_URL,
-				logo: {
-					"@type": "ImageObject",
-					url: `${BASE_URL}/images/favicon-192.png`,
-				},
-			},
+			publisher: ORG_PUBLISHER,
 			mainEntityOfPage: { "@type": "WebPage", "@id": url },
 		},
 		buildBreadcrumb([

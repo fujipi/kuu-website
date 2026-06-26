@@ -16,6 +16,7 @@ import {
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
 	ORG_REF,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -80,7 +81,7 @@ export default async function ResourceDetailPage({ params }: Props) {
 			numberOfPages: r.pages || undefined,
 			keywords: r.tags.join(", "),
 			author: ORG_REF,
-			publisher: ORG_REF,
+			publisher: ORG_PUBLISHER,
 			offers: {
 				"@type": "Offer",
 				price: "0",

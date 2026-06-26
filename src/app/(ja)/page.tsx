@@ -13,7 +13,9 @@ import {
 	FOUNDER_ID,
 	FOUNDER_PERSON,
 	generateMetadata,
+	ORG_ID,
 	ORG_REF,
+	WEBSITE_ID,
 } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
@@ -51,6 +53,7 @@ const homeJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "Organization",
+		"@id": ORG_ID,
 		name: "Kuu株式会社",
 		legalName: "Kuu株式会社",
 		url: BASE_URL,
@@ -85,9 +88,11 @@ const homeJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "WebSite",
+		"@id": WEBSITE_ID,
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		inLanguage: "ja",
+		publisher: { "@id": ORG_ID },
 		potentialAction: {
 			"@type": "SearchAction",
 			target: {
@@ -150,6 +155,7 @@ const homeJsonLd = [
 	{
 		"@context": "https://schema.org",
 		"@type": "ProfessionalService",
+		"@id": ORG_ID,
 		name: "Kuu株式会社",
 		url: BASE_URL,
 		description:

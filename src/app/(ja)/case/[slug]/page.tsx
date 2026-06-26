@@ -18,6 +18,8 @@ import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_URL,
 	buildBreadcrumb,
+	ORG_PUBLISHER,
+	ORG_REF,
 	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
@@ -106,17 +108,14 @@ export default async function CaseDetailPage({ params }: Props) {
 			datePublished: c.date,
 			dateModified: c.lastModified || c.date,
 			keywords: c.tags.join(", "),
-			author: { "@type": "Organization", name: "Kuu株式会社", url: BASE_URL },
-			publisher: {
-				"@type": "Organization",
-				name: "Kuu株式会社",
-				url: BASE_URL,
-				logo: {
-					"@type": "ImageObject",
-					url: `${BASE_URL}/images/favicon-192.png`,
-				},
-			},
+			author: ORG_REF,
+			publisher: ORG_PUBLISHER,
 			mainEntityOfPage: { "@type": "WebPage", "@id": url },
+			isPartOf: {
+				"@type": "CollectionPage",
+				"@id": `${BASE_URL}/case/`,
+				name: "Case｜AIエージェント活用ユースケース",
+			},
 		},
 		buildBreadcrumb([
 			{ name: "ホーム", path: "/" },
