@@ -116,6 +116,15 @@
       "industry": "リフォーム・工務店",
       "use_case": "見積書作成と顧客フォローの補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "condominium-management-agent",
+      "keyword": "マンション管理会社 居住者対応 修繕手配 管理組合 AIエージェント 属人化解消",
+      "title_hint": "マンション管理の居住者対応・修繕手配をAIエージェントに——フロント業務の属人化をこう解消する",
+      "persona": "マンション管理会社のフロント担当（管理棟数15〜20棟担当）",
+      "industry": "不動産管理（マンション管理）",
+      "use_case": "居住者問い合わせ・修繕手配・管理組合サポートの一次対応自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
