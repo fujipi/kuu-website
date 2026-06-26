@@ -1,0 +1,146 @@
+---
+title: "LLMエージェント評価フレームワーク選定——RAGAS・DeepEval・Braintrust比較"
+description: "RAG評価に強いRAGAS、CI/CD統合のDeepEval、本番監視まで含むBraintrustの設計思想を比較し、エージェント種別・チーム規模ごとの選定基準と2ツール構成パターンを解説します。"
+date: "2026-06-26"
+lastModified: "2026-06-26"
+tags: ["エージェント評価", "DeepEval", "RAGAS", "評価フレームワーク"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "evaluation"
+tech_depth: "deep"
+target_query: "AIエージェント評価フレームワークはどう選べばよいか"
+sources:
+  - "https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide"
+  - "https://deepeval.com/blog/deepeval-vs-ragas"
+  - "https://www.braintrust.dev/articles/deepeval-alternatives-2026"
+pillar: "ai-governance"
+---
+
+本番エージェントを評価しようとすると、すぐに選択肢の多さに直面します。RAGAS、DeepEval、Braintrust、LangSmith、Arize Phoenix——OSS・SaaS・クラウドネイティブとアーキテクチャも料金形態も異なります。「どれでも同じ」という判断は、チームが計測できない指標を積み上げ続けるという静かなリスクを生み出します。
+
+本記事は[エージェントガバナンス](/ai-governance/)の文脈で、2026年に実際の選択肢となっている3フレームワークを設計思想から比較し、エンタープライズが採用すべき構成パターンを示します。
+
+## エージェント評価でフレームワーク選定が失敗するパターン
+
+> 評価フレームワーク選定の失敗はRAG専用メトリクスを自律エージェントへ流用するアーキテクチャ誤認から始まります。
+
+エンタープライズで評価基盤を導入したものの機能しないチームには共通パターンがあります。
+
+**パターン1：評価レイヤーの混同**
+
+「エンドツーエンドのタスク成功率」と「ツール呼び出しの正確さ」は別の計測レイヤーです。前者はLLMジャッジで評価するアウトカム指標、後者は期待値との差分を決定論的に検出する構造チェックです。両者を同一プロンプトで処理すると評価ノイズが増え、失敗の原因特定が困難になります。
+
+**パターン2：RAGと自律エージェントに同じ評価スタックを使う**
+
+RAGパイプライン（検索→生成）の品質はAnswer Relevancy・Faithfulness・Context Precisionで評価できます。しかし自律エージェント（計画→ツール呼び出し→サブエージェント委譲）はこれだけでは不十分で、軌跡評価（trajectory evaluation）——計画の合理性・ステップ効率・委譲の適切さ——が追加で必要になります。
+
+**パターン3：CI/CDゲートと本番監視を同一ツールに求める**
+
+CI段階の評価（デプロイ前に品質スコアがしきい値を超えるか）と本番モニタリング（リリース後の実トラフィックからドリフトを検出する）は要件が異なります。前者はPythonテストフレームワークとの統合が優先、後者はデータセット管理・人間アノテーション・ダッシュボードが優先です。
+
+## 3大フレームワークの設計思想——RAGASとDeepEvalとBraintrust
+
+> RAGASはRAG特化OSS、DeepEvalはCIゲートを担うPythonライブラリ、Braintrustは本番監視まで含む商用SaaSという3層の設計思想があります。
+
+### RAGAS
+
+RAGASはRAG（Retrieval-Augmented Generation）パイプラインの品質を計測するために開発されたOSSフレームワークです。グラウンドトゥルースラベルを必要とせず、LLMを判定器として使うことで「参照ドキュメントに基づいているか（Faithfulness）」「質問への回答が適切か（Answer Relevancy）」「文脈の精度（Context Precision/Recall）」を定量化します。
+
+RAGASの特徴：
+- **スコープ**: RAGパイプライン専用。エージェントの軌跡評価・ツール呼び出し検証には対応しない
+- **LLM非依存**: OpenAI、Anthropic、Geminiのいずれかをジャッジモデルとして設定可能
+- **無償利用**: OSSのため評価インフラとして別システムと組み合わせて使う用途に向く
+- **採用判断**: システムがRAGのみで、ツール呼び出し・サブエージェントを持たない場合に最適
+
+### DeepEval
+
+DeepEvalはConfident AIが開発するOSSで、50以上のメトリクスをPytestベースのCIパイプラインに直接組み込める設計です。エンジニアが従来のソフトウェアテストと同じ感覚でLLM評価スイートを書けることを目標としています。
+
+DeepEvalが評価する主要メトリクス（エージェント向け）：
+- **ToolCorrectnessMetric**: 実際に呼び出されたツールと期待ツールセットを決定論的に比較する。ツール選択の精度を検出する
+- **TaskCompletionMetric**: エージェントのアクショントレース全体を読んで、最終的なユーザーゴールを達成できたかをLLMジャッジが評価する
+- **AgentTrajectoryEvaluationMetric**: 計画・ツール使用・サブエージェント委譲の連鎖を軌跡レベルで採点する
+
+Confidentが示す3段階の評価アーキテクチャ（エンドツーエンド→軌跡→コンポーネント）をすべてDeepEvalのAPIでカバーできるため、エンジニアリングチームがCI/CDのデプロイゲートとして使うケースに向いています。
+
+### Braintrust
+
+Braintrustは評価の「実行」だけでなく、データセット管理・人間アノテーション・本番トレーシング・CIベースのリリースゲートを単一プラットフォームに統合しています。DeepEvalやRAGASが「コードレベルのテストフレームワーク」だとすれば、Braintrustは「評価ライフサイクル全体を管理するプロダクト」です。
+
+Braintrustが解決するユースケース：
+- **クロスファンクショナルな品質管理**: エンジニアだけでなく、プロダクトマネージャーやドメインエキスパートが評価結果を確認・コメントできるUI
+- **本番トレースとの連結**: 本番推論ログをBraintrustに送り、異常なスコアをリアルタイムアラートで検出する
+- **リリースゲートの強制**: デプロイパイプラインと連携し、品質スコアが定義済みしきい値を超えなければ本番反映をブロックする
+
+商用SaaSであるため利用コストが発生しますが、評価インフラを社内で構築・運用するエンジニアリングコストと比較する判断が必要です。
+
+## ユースケース別の選定基準——エージェント種別と組織規模
+
+> ツール呼び出しエージェントはDeepEval、RAGはRAGAS、本番スコア管理はBraintrustが適合します。
+
+### エージェント種別ごとの推奨フレームワーク
+
+| エージェント種別 | 主要評価軸 | 推奨フレームワーク |
+|---|---|---|
+| RAGパイプライン | Faithfulness / Context Precision | RAGAS |
+| ツール呼び出しエージェント | ToolCorrectness / TaskCompletion | DeepEval |
+| 計画・委譲エージェント | Trajectory / Plan Adherence | DeepEval |
+| マルチエージェント | コンポーネント別＋エンドツーエンド | DeepEval + Braintrust |
+
+### 組織規模による選定要因
+
+**チーム規模が小さい場合（エンジニア3〜10名）**: DeepEvalのOSSスタックだけでCI/CDゲートを実装し、本番モニタリングは軽量なトレーシングツール（MLflow TracingまたはLangSmith）との組み合わせでコストを抑えます。
+
+**エンタープライズ（複数チーム・複数エージェント）**: 後述する2ツール構成（DeepEval + Braintrust）を採用します。ガバナンス観点では、複数チームが独自の評価基準を持つと組織横断の品質報告が機能しません。Braintrustの集中データセット管理と共通スコアリングAPIが採点基準の統一に有効です。
+
+[AIエージェントの可観測性とトレース設計](/blog/agent-observability-tracing-instrumentation/)と評価基盤を連結すると、スパンデータから評価インプットを自動収集でき、手動でのテストケース作成コストを削減できます。
+
+## エンタープライズ向け2ツール構成の実装パターン
+
+> エンタープライズ評価基盤はDeepEvalによるCIゲートとBraintrustによる本番監視の2ツール構成が標準です。
+
+Confident AIおよびBraintrustの双方が2026年に推奨する構成が「CI/CDゲート用フレームワーク + 本番評価プラットフォーム」の2ツール分離です。デファクト構成：**DeepEval（CI/CDゲート） + Braintrust（本番運用）**
+
+```
+[開発フロー]
+コード変更
+  → DeepEval が pytest で評価スイート実行
+  → ToolCorrectness / TaskCompletion がしきい値未満 → マージブロック
+  → 通過 → ステージングデプロイ
+
+[本番フロー]
+本番リクエスト
+  → エージェント実行 + トレース収集
+  → Braintrust にスパンデータ送信
+  → スコア劣化アラート → Slack/PagerDuty 通知
+  → 人間アノテーション → ゴールデンデータセット更新 → DeepEval 回帰テスト更新
+```
+
+この構成の核心は**フィードバックループ**です。Braintrustで収集した本番の異常ケースを人間がラベリングし、それをDeepEvalのゴールデンデータセットに追加することで、CIゲートが本番の実際の失敗パターンを継続的に反映します。[AIエージェントの評価CIパイプライン](/blog/agent-evaluation-cicd-pipeline-automation/)と組み合わせると、PR時の自動評価からリリースゲートまでを一貫して実装できます。
+
+### エンタープライズ評価統制のチェックリスト
+
+- [ ] 評価メトリクスを「決定論的チェック（ToolCorrectness）」と「LLMジャッジ（TaskCompletion）」に分離して設計しているか
+- [ ] CI/CDパイプラインに評価スイートが統合され、品質スコアがデプロイゲートになっているか
+- [ ] 本番トレースが評価プラットフォームに自動収集され、スコア劣化アラートが設定されているか
+- [ ] 複数チームで共通のルーブリックとデータセットを管理する仕組みがあるか
+- [ ] 評価コストがAI FinOpsの一部として計測・配賦されているか
+
+[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)と組み合わせると、評価ジャッジ用のLLM呼び出しもゲートウェイ経由でルーティング・コスト計測できます。エンタープライズ評価基盤の設計から実装まで支援が必要な場合は、Kuuの[RDEサービス](https://kuucorp.com/services/rde/)にご相談ください。
+
+## 参考
+
+- [LLM Agent Evaluation Metrics in 2026: Tool Calling, Task Completion, Reasoning, and Trace-Based Evals | Confident AI](https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide)
+- [DeepEval vs RAGAS: Which LLM Evaluation Framework to Pick in 2026 | genai.qa](https://deepeval.com/blog/deepeval-vs-ragas)
+- [DeepEval alternatives 2026: Best tools for LLM evals, RAG, and agent testing | Braintrust](https://www.braintrust.dev/articles/deepeval-alternatives-2026)
+
+## まとめ
+
+AIエージェントの評価フレームワーク選定は、「何を計測するか」の設計から始まります。RAGASはRAGパイプライン専用、DeepEvalはCI/CDゲート、Braintrustは本番評価ライフサイクル全体という設計思想の違いを把握しないまま選択すると、計測できない指標を蓄積し続けます。
+
+エンタープライズが採用すべき構成の原則は2つです。
+
+1. **CI/CDゲートと本番監視を分けて設計する**: デプロイ前の品質チェックはDeepEval（pytest統合）、本番スコア監視はBraintrust（ダッシュボード・人間アノテーション）という役割分担が標準です
+2. **決定論的チェックとLLMジャッジを組み合わせる**: ToolCorrectnessは期待値との差分をコードで検出し、TaskCompletionはLLMがアウトカムを評価する。両者を混在させず役割を明確にします
+
+評価基盤の構築・チーム横断での評価統制設計にご関心がある場合は、Kuuの[RDEサービス](https://kuucorp.com/services/rde/)へお問い合わせください。
