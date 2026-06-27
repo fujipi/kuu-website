@@ -1,0 +1,122 @@
+---
+title: "Claude APIワークスペース設計——チーム分離・コスト管理・鍵なし認証"
+description: "Claude API WorkspacesでAPIキーをチーム・環境別に分離し、Workload Identity Federationで静的キーを不要にする。2026年6月GA対応の設計パターンと実装例を解説します。"
+date: "2026-06-27"
+lastModified: "2026-06-27"
+tags: ["Claude API", "ワークスペース管理", "Workload Identity Federation", "プラットフォーム設計"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/manage-claude/workspaces"
+  - "https://platform.claude.com/docs/en/manage-claude/workload-identity-federation"
+  - "https://imisofts.com/blog/anthropic-workload-identity-federation-no-api-keys-news-june-19-2026/"
+  - "https://aembit.io/blog/anthropic-workload-identity-federation-what-it-gets-right-and-what-it-still-doesnt-solve/"
+---
+
+APIキーを1本だけ発行してチーム全員で使い回す——LLM活用の初期フェーズでよく見られる構成だが、開発者が退職したとき、予算オーバーが発生したとき、インシデントが起きたとき、誰が何をどこに送ったのか追跡できない。Claude API Workspacesは、この「1キー問題」を組織レベルで解決するための分離単位だ。2026年6月にはWorkload Identity Federationが一般公開され、静的なAPIキー自体を廃止する選択肢も加わった。
+
+## Claude API Workspaceとは何か？
+
+> Claude API Workspacesはチーム・環境ごとにAPIキー・コスト・レート制限を分離する組織単位で、最大100個まで作成できます。
+
+WorkspaceはAnthropicのAPIアクセスを分離する論理区画だ。1つのOrganizationに対してデフォルトのWorkspaceが存在し、追加でWorkspaceを最大100個（アーカイブ済み除く）まで作成できる。
+
+**Workspaceが分離するリソース**:
+- **APIキー**: 各ワークスペースに発行されたキーはそのワークスペース内のリソースのみアクセス可能
+- **Files API** で作成したファイル
+- **Message Batches** の非同期ジョブ
+- **Skills** （スキルAPI管理対象）
+- **プロンプトキャッシュ**: 2026年2月5日以降はワークスペース単位で分離（組織横断での漏洩なし）
+
+一方、**Workspaceで管理できないリソース**（Organization管理）もある。MCPトンネルや組織メンバー管理はAdmin APIを使う。
+
+Workspaceには5つのロールがある: `workspace_user`（Workbench利用のみ）・`workspace_limited_developer`（API鍵発行可・トレース閲覧不可）・`workspace_developer`・`workspace_admin`・`workspace_billing`（組織のbillingロール継承で自動付与、手動付与不可）。Organization adminは全Workspaceに対して自動的にWorkspace Admin権限を持つ。
+
+## Workspaceの分離設計はどう設計すればよいか？
+
+> 環境分離・チーム分離・プロジェクト分離の3パターンが主軸で、支出通知と月次上限を各Workspaceに設定することでコスト超過を防げます。
+
+**パターン1: 環境分離**（最もシンプル）
+
+| Workspace | 目的 | レート制限 |
+|---|---|---|
+| Development | 実験・テスト | 低め（コスト保護） |
+| Staging | 本番同等テスト | 中程度 |
+| Production | 本番トラフィック | 組織上限に準じる |
+
+CI/CDパイプラインは環境ごとに対応するWorkspaceのAPIキーを使い、本番キーが開発環境に漏れる事故を防ぐ。
+
+**パターン2: チーム分離**
+
+エンジニアリングチーム・データサイエンスチーム・カスタマーサポートツールを別Workspaceで運用すると、請求レポートで「どのチームが月いくら使ったか」を即座に把握できる。
+
+```bash
+# Admin APIでWorkspaceを作成する（Admin APIキーが必要）
+curl --request POST "https://api.anthropic.com/v1/organizations/workspaces" \
+  --header "anthropic-version: 2023-06-01" \
+  --header "x-api-key: $ANTHROPIC_ADMIN_KEY" \
+  --data '{"name": "Engineering - Production"}'
+```
+
+Workspace IDは `wrkspc_` プレフィックスで始まる。Usage & Cost APIに `workspace_ids[]` パラメータでIDを渡すと、Workspace単位のトークン消費・コストが日次/月次で取得できる。これを[AI FinOpsの計装](/blog/ai-finops-token-cost-instrumentation/)と組み合わせると部門配賦が自動化できる。
+
+**支出上限と通知**の設定は Workspace ごとに独立して可能だ。上限はOrganization全体の上限を超えることはできないが、「開発環境は月$500まで」「本番環境は月$5,000まで」のように個別に管理できる。
+
+## Workload Identity Federationで静的APIキーを廃止できるか？
+
+> Workload Identity Federationはワークロードが持つOIDCトークン（AWS・GCP・Azure・GitHub Actions等）でAnthropicに認証し、短命アクセストークンを取得する仕組みで、2026年6月17日に一般公開されました。
+
+静的APIキーの問題は、**ローテーション忘れ**・**CIへのシークレット埋め込み**・**退職者キーの失効漏れ**といったオペレーションコストにある。Workload Identity Federation（WIF）はOIDCに対応した既存のIDをそのまま使い、Anthropicへのアクセスに静的キーを必要としない。
+
+**認証フロー**:
+1. ワークロードが既存のアイデンティティプロバイダからJWTを取得（例: AWS AssumeRoleの結果）
+2. そのJWTをAnthropicのトークンエンドポイントに提示
+3. AnthropicがClause Consoleに設定したトラストルールを照合し、検証OK なら短命アクセストークンを返却
+4. そのトークンでClaude APIを呼び出す
+
+**対応プロバイダ**（OIDCコンプライアントであれば追加も可能）:
+- AWS IAMロール
+- Google CloudサービスアカウントおよびKubernetesサービスアカウント
+- Azure Managed Identity
+- GitHub Actions（`ACTIONS_ID_TOKEN_REQUEST_URL`経由）
+- Okta
+
+```python
+import anthropic
+
+# WIF対応クライアント初期化（キーではなくWIF設定で認証）
+client = anthropic.Anthropic(
+    workload_identity_federation={
+        "provider_url": "https://token.actions.githubusercontent.com",
+        "audience": "anthropic",
+        "service_account_email": "ci@my-org.iam.gserviceaccount.com"
+    }
+)
+```
+
+WIFは各ワークロードが独自のサービスアカウントを持てるため、[AIエージェントの権限管理](/blog/ai-agent-permission-management-design/)における最小権限の原則とも整合する。
+
+現時点でWIFが管理するのはAPIへのアクセス認証のみであり、Workspaceやロール管理自体は引き続きAdmin APIとConsoleで行う。静的キーとWIFは並行稼働できるため、移行は段階的に実施できる。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**:
+Workspaceは3環境（dev/staging/prod）から始めるのが最適だ。チームが5人以下であれば全員にWorkspace Developerロールを付与してもよい。支出通知は月末に請求額が見えてから対応では遅いため、月次上限の80%でSlack通知を設定する。WIFは最初は後回しでよいが、GitHub Actionsでのデプロイ自動化が始まったタイミングで移行すると管理コストが下がる。[Kuu AIオペレーション管理サービス](/services/ai-ops/)では初期Workspace設計から支出管理の自動化まで支援している。
+
+**エンタープライズ**:
+Workspaceは部門・事業・地域・環境の4軸で設計し、Admin APIを使って命名規則とプロビジョニングをIaC（Terraform等）で管理する。Organization adminが全Workspaceに自動アクセスを持つことを踏まえ、Organization adminは最小人数に絞る。WIFは全CI/CDパイプラインへの適用を必須化し、サービスアカウント単位でClause Consoleにトラストルールを登録する。プラットフォーム設計の全体統制には[Kuu RDEサービス](/services/rde/)を活用してほしい。
+
+## 参考
+
+- [Workspaces — Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/workspaces)
+- [Workload Identity Federation — Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/workload-identity-federation)
+- [Anthropic Makes Static API Keys Optional With Workload Identity Federation — imisofts](https://imisofts.com/blog/anthropic-workload-identity-federation-no-api-keys-news-june-19-2026/)
+- [What Workload Identity Federation Gets Right — Aembit](https://aembit.io/blog/anthropic-workload-identity-federation-what-it-gets-right-and-what-it-still-doesnt-solve/)
+
+## まとめ
+
+Claude APIのWorkspaceは、APIキー乱発・コスト不可視・権限過剰という3つの「1キー問題」を解消する分離単位だ。環境分離・チーム分離・プロジェクト分離の組み合わせで組織の実態に合わせて設計し、Workload Identity Federationで静的キーをなくすことで、長期的な運用負荷を大幅に削減できる。
+
+プラットフォーム設計から運用定着まで、Kuuの[AIオペレーション管理サービス](/services/ai-ops/)にご相談ください。
