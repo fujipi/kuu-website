@@ -725,6 +725,24 @@
         "https://modelcontextprotocol.io/specification/2025-06-18/client/sampling",
         "https://unit42.paloaltonetworks.com/model-context-protocol-attack-vectors/"
       ]
+    },
+    {
+      "slug": "mcp-primitives-selection-guide",
+      "keyword": "MCP リソース プロンプト ツール 使い分け",
+      "title_hint": "MCPプリミティブをどう選ぶか——3つの制御モデルと判断フロー",
+      "persona": "社内ツールをMCPで接続したい中小企業のIT担当者",
+      "service_link": "/services/ai-ops/",
+      "status": "published",
+      "audience": "smb",
+      "track": "protocols",
+      "tech_depth": "intermediate",
+      "target_query": "MCPのTools・Resources・Promptsはどう使い分けるか",
+      "sources": [
+        "https://modelcontextprotocol.io/docs/concepts/tools",
+        "https://modelcontextprotocol.io/docs/concepts/resources",
+        "https://modelcontextprotocol.io/docs/concepts/prompts",
+        "https://modelcontextprotocol.io/specification/2025-06-18/server/prompts"
+      ]
     }
   ],
   "keyword_bank": {

@@ -1,0 +1,138 @@
+---
+title: "MCPプリミティブをどう選ぶか——3つの制御モデルと判断フロー"
+description: "MCPのTools・Resources・Promptsは「誰が起動を制御するか」で役割が分かれます。副作用ありならTools、静的データならResources、定型フローならPromptsという判断基準を解説します。"
+date: "2026-06-27"
+lastModified: "2026-06-27"
+tags: ["MCP", "プリミティブ", "AIエージェント", "設計"]
+author: "kuu-engineering"
+audience: "smb"
+track: "protocols"
+tech_depth: "intermediate"
+target_query: "MCPのTools・Resources・Promptsはどう使い分けるか"
+sources:
+  - "https://modelcontextprotocol.io/docs/concepts/tools"
+  - "https://modelcontextprotocol.io/docs/concepts/resources"
+  - "https://modelcontextprotocol.io/docs/concepts/prompts"
+  - "https://modelcontextprotocol.io/specification/2025-06-18/server/prompts"
+pillar: "ai-governance"
+---
+
+社内のデータや業務ツールをAIエージェントに接続しようとすると、必ずぶつかるのが「MCPの3プリミティブをどう使い分けるか」という問いです。[MCP（Model Context Protocol）](/glossary/mcp/)はAnthropicが主導し現在はLinux Foundation傘下のAgentic AI Foundationが管理するオープンプロトコルで、2025年以降のAIエージェント連携の標準となっています。しかし公開されているMCPサーバーの大半がToolsしか実装しておらず、ResourcesやPromptsは「使ったことがない」というケースが多く見られます。
+
+正しい選択基準を知らないまま設計すると、本来Resourcesで返すべき静的データをToolsに詰め込み、不要なLLM呼び出しが増えてトークン消費が膨らみます。本記事では中小企業のIT担当者がMCP統合を判断する際に使える、3プリミティブの選択フレームワークを解説します。
+
+## MCPの3プリミティブとは何か
+
+> MCPはTools・Resources・Promptsの3プリミティブで構成され、「誰が起動を制御するか」が3者の最大の違いです。Toolsはモデル自律、Resourcesはアプリ制御、Promptsはユーザー制御という役割分担です。
+
+MCPサーバーが公開できる要素は3種類に限定されます。それぞれの制御主体と用途を整理します。
+
+| プリミティブ | 制御主体 | 読み書き | 主な用途 |
+|---|---|---|---|
+| **Tools** | LLM（モデル自律） | 読み書き両対応 | 外部API呼び出し・DB操作・副作用ある実行 |
+| **Resources** | クライアントアプリ | 読み取り専用 | ファイル・ドキュメント・スキーマのコンテキスト提供 |
+| **Prompts** | ユーザー（明示選択） | N/A | 業務別の定型テンプレート・スラッシュコマンド |
+
+「誰が起動を制御するか」の違いを無視してすべてをToolsで実装すると、LLMが毎回ツールを呼び出して参照データを取得するという非効率が生まれます。判断の軸を持つだけで設計品質は大きく変わります。
+
+## Toolsはどんな場合に使うか
+
+> ToolsはLLMが自律的に呼び出す「実行型プリミティブ」です。外部システムへの書き込みや副作用を伴う操作、またはリアルタイムデータの取得に使います。JSON Schemaで入力を定義し、モデルが文脈判断して自動で呼び出します。
+
+**Toolsを選ぶ基準**: 副作用（データ更新・メール送信・外部API呼び出し）があるか、最新情報を外部から取得する処理が必要か。
+
+```json
+{
+  "name": "create_support_ticket",
+  "description": "顧客サポートチケットを作成する。問い合わせ内容と優先度を指定する。",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string" },
+      "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+    },
+    "required": ["title"]
+  }
+}
+```
+
+Toolsには重要なセキュリティ要件があります。MCP仕様は「副作用のあるツール呼び出しには、人間が承認できるUIを必ず用意すること」と明記しています。自動実行に任せる範囲と人間の確認を必要とする範囲を設計段階で切り分けることが、[エージェントガバナンス](/glossary/agent-governance/)の基本です。
+
+SMBでのTools典型用途: 在庫DBへの発注登録、見積書の生成・送付、カレンダーへの予定追加、外部サービスからの最新価格取得。
+
+## Resourcesはどんな場合に使うか
+
+> ResourcesはURIで識別する「データ型プリミティブ」です。社内規定・商品カタログ・DBスキーマのような静的〜準静的な参照データを読み取り専用でコンテキストとして提供します。
+
+**Resourcesを選ぶ基準**: 副作用がなく、LLMに「読ませたい」データか。ファイルパスやURLのように一意に識別できるか。
+
+```json
+{
+  "uri": "file:///company/handbooks/hr-policy.pdf",
+  "name": "就業規則2026年度版",
+  "mimeType": "application/pdf",
+  "description": "2026年度版の就業規則・人事規定"
+}
+```
+
+ResourcesはクライアントアプリがLLMに「この情報を渡す」と決めたタイミングで提供します。LLMが自律的に呼び出すToolsとの最大の違いは、**コンテキストに組み込むタイミングをアプリが制御する**点です。
+
+また`subscribe`機能を活用すると、リソースの変更通知を受け取れます。商品マスタや価格テーブルのように定期更新されるデータは、変更イベントをサブスクライブしてLLMへのコンテキストを最新化できます。
+
+SMBでのResources典型用途: 製品仕様書・FAQ集・就業規則・価格表・顧客マスタのスキーマ定義。
+
+## Promptsはどんな場合に使うか
+
+> Promptsはユーザーが明示的に選ぶ「意図型プリミティブ」です。繰り返し発生する定型タスクを引数付きテンプレートとしてパッケージ化し、スラッシュコマンドで呼び出せます。
+
+**Promptsを選ぶ基準**: 繰り返し発生する定型タスクか、特定の手順・観点が決まっているワークフローか。
+
+```json
+{
+  "name": "review_contract",
+  "title": "契約書レビュー",
+  "description": "契約書の重要条項を抽出しリスクを評価する",
+  "arguments": [
+    { "name": "document_uri", "description": "レビュー対象の契約書URI", "required": true },
+    { "name": "focus", "description": "特に注目する観点（例: 解約条件・賠償条項）", "required": false }
+  ]
+}
+```
+
+Claude DesktopなどのMCPクライアントでは`/review_contract`のようなスラッシュコマンドとしてユーザーが直接呼び出します。Promptsは**複数Resourcesのロードと特定指示を組み合わせたワークフロー全体をパッケージ化**できる点が強みです。現在MCPサーバーの大半はPromptsを実装していませんが、業務の標準化を進めたいSMBにとって最も効果的なプリミティブのひとつです。
+
+SMBでのPrompts典型用途: 月次報告書作成フロー、契約書レビュー手順、顧客問い合わせ分類テンプレート。
+
+## 3プリミティブの選択フロー
+
+> 「副作用があるか」→Tools、「URIで識別できる読み取り専用データか」→Resources、「繰り返す定型ワークフローか」→Promptsという3段階で判断すると、大半のケースで迷いなく選択できます。
+
+**判断フロー**:
+
+1. **副作用（書き込み・送信・外部API呼び出し）を伴うか？** → **Tools**
+2. **No → 読み取り専用のデータ・ファイル・ドキュメントか？** → **Resources**
+3. **No → 繰り返し使う定型タスク・ワークフローか？** → **Prompts**
+
+代表的なユースケースへの対応表です。
+
+| ユースケース | 選択 | 理由 |
+|---|---|---|
+| 在庫DBに発注を登録する | Tools | 書き込みを伴う副作用あり |
+| 最新の商品価格を外部APIで調べる | Tools | リアルタイム照会が必要 |
+| 製品仕様書を参照させる | Resources | 読み取り専用・URI識別可能 |
+| 社内FAQ集をコンテキストに渡す | Resources | 静的データ・read-only |
+| 月次報告書の作成フロー | Prompts | 定型タスク・繰り返し発生 |
+| 契約書レビューの標準手順 | Prompts | 業務ワークフローのパッケージ化 |
+
+## 参考
+
+- [MCP Tools（公式ドキュメント）](https://modelcontextprotocol.io/docs/concepts/tools)
+- [MCP Resources（公式ドキュメント）](https://modelcontextprotocol.io/docs/concepts/resources)
+- [MCP Prompts（公式ドキュメント）](https://modelcontextprotocol.io/docs/concepts/prompts)
+- [MCP Prompts仕様 2025-06-18版](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts)
+
+## まとめ
+
+MCPの3プリミティブは「誰が起動を制御するか」という設計思想で役割が明確に分かれています。副作用のある操作はTools、読み取り専用の参照データはResources、定型業務フローはPromptsと選択することで、LLMへの不要な呼び出しを減らしトークン効率を改善できます。
+
+社内ツールをMCPで接続する際はこの3段階判断フレームワークから着手し、まずTools一択になっていないか見直してみてください。MCPサーバー選定や導入設計のご相談は [Kuuの運用管理サービス（AI Ops）](/services/ai-ops/) からお問い合わせください。
