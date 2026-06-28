@@ -1,0 +1,116 @@
+---
+title: "AIエージェント並列実行の設計——Fan-Out/Fan-InとMap-Reduceパターン"
+description: "AIエージェントの逐次実行ボトルネックを並列化で解消するFan-Out/Fan-InとMap-Reduceパターンを解説。1.8〜3.7倍の速度改善を実現するDAG設計とトークン予算境界・フォールバック実装を含む。"
+date: "2026-06-28"
+lastModified: "2026-06-28"
+tags: ["AIエージェント", "アーキテクチャ", "並列実行", "オーケストレーション"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+sources:
+  - "https://www.anthropic.com/research/building-effective-agents"
+  - "https://zylos.ai/research/2026-04-26-parallel-concurrency-agent-execution/"
+pillar: "ai-governance"
+---
+
+本番のAIエージェントが「遅い」と感じるとき、原因のほとんどはモデルの推論速度ではなく、**ツール呼び出しを逐次に並べたアーキテクチャ設計**にある。5回のツール呼び出しを直列に実行すると待機時間は5回分積算されるが、並列化すれば最も遅い1回分に圧縮できる。本記事は[AIエージェントガバナンス](/ai-governance/)の観点から、Fan-Out/Fan-InとMap-Reduceという2つの並列実行パターンの設計要点を解説する。
+
+## 逐次実行はなぜボトルネックになるのか
+
+> 2026年の本番エージェントで最大の遅延要因はモデル推論ではなく、独立したツール呼び出しを直列に並べた設計そのものである。
+
+Anthropicが公開した[Building Effective AI Agents](https://www.anthropic.com/research/building-effective-agents)は、エージェントの主要ワークフローとして逐次チェーン・並列化・オーケストレーター＋ワーカーを挙げている。逐次チェーンはシンプルだが、依存関係のないタスクを直列に実行するとコストと待機時間が線形に増加する。
+
+Web検索・データベース参照・外部API呼び出しなど、多くのツール呼び出しは互いに依存していない。これらを並列化すると、応答時間は「合計」から「最も遅い1つ」に圧縮される。[サブエージェント・オーケストレーションの設計](/blog/subagent-orchestration-design-patterns/)で解説したプランナー／エグゼキューター分離と並列実行を組み合わせると、さらに設計の自由度が上がる。
+
+## Fan-Out/Fan-Inパターンの設計
+
+> Fan-Outで独立サブタスクを複数ワーカーに分散し、Fan-Inで集約する並列化パターンで、36〜50%の待機時間削減が報告されている。
+
+### フェーズ1：Fan-Out（分散）
+
+オーケストレーターが独立したサブタスクを特定し、複数のワーカーエージェント（またはツール呼び出し）に同時に委譲する。設計の判断点は「何を並列化するか」の粒度だ。粒度が細かすぎるとオーバーヘッドが増加し、大きすぎると並列化の効果が薄れる。
+
+Fan-Out前に確認すべき3点：
+
+- **独立性の検証**：各サブタスクが他のサブタスクの結果に依存していないこと
+- **ファンアウト数の上限設定**：`min(トークン予算 / タスク当たりコスト, レート上限 / 平均リクエスト数)` で上限を計算し、レート制限カスケードを防ぐ
+- **タイムアウトの統一**：最も遅いワーカーに全体が引っ張られないよう、各ブランチに明示的なタイムアウトを設ける
+
+### フェーズ2：Fan-In（集約）
+
+全サブタスクの結果が揃った時点で集約処理を行う。この段階で必須の処理：
+
+- **スキーマ検証**：型不一致・必須フィールド欠落のチェック
+- **矛盾する出力の解消**：複数のワーカーが異なる値を返した場合のマージロジック
+- **部分失敗のハンドリング**：失敗したブランチへのフォールバック方針（フェイルファスト / ベストエフォート / 自動リトライ）を事前に定義する
+
+Fan-Inを単純な文字列結合で済ませると、後続処理で予期しない型エラーが発生する。**構造化スキーマ**での集約が基本だ。
+
+## Map-ReduceパターンとDAGスケジューリング
+
+> Map-ReduceはMapフェーズで並列変換しReduceフェーズで集計するパターンで、DAGスケジューリングとの組み合わせで最大3.7倍の速度改善が計測されている。
+
+### Map-Reduceの適用場面
+
+Fan-Out/Fan-Inが「同種サブタスクの分散」に向くのに対し、Map-Reduceは**大量データへの並列変換と集計**に適している。
+
+典型的なユースケース：
+
+- 100件のドキュメントを並列でサマリー生成し、統合レポートを作成する
+- 複数のAPIソースからデータを並列取得し、単一の比較表に集約する
+- 複数エージェントに同一の問いを投げる（Voting）、過半数の合意を返す
+
+Anthropicの多エージェント研究システムでは、リードエージェントが3〜5つのサブエージェントを並列起動し、各サブエージェントがさらに3本以上のツールを並列実行する二層の並列化を採用している。
+
+### DAGスケジューリング
+
+依存関係のあるタスク群を**有向非巡回グラフ（DAG）**としてモデル化し、トポロジカルソートで実行順序を決定する方式だ。フェーズ全体の完了を待つのではなく、**依存関係が解決された時点でノードを即座に実行**できるため、フェーズ内の遅いタスクが後続全体の足を引っ張らない。
+
+```python
+# DAGスケジューラの概念実装（asyncioベース）
+async def run_dag(dag: dict[str, list[str]], runners: dict[str, Callable]) -> dict:
+    completed: dict[str, Any] = {}
+    locks: dict[str, asyncio.Event] = {n: asyncio.Event() for n in dag}
+
+    async def run_node(node: str) -> None:
+        for dep in dag.get(node, []):
+            await locks[dep].wait()   # 依存ノードの完了を待機
+        completed[node] = await runners[node](completed)
+        locks[node].set()             # 後続ノードへ完了を通知
+
+    await asyncio.gather(*[run_node(n) for n in dag])
+    return completed
+```
+
+LangGraphではFan-Outを`Send`エッジとして実装し、Fan-Inを`StateSchema`のreducer関数で定義する。重要なのはフレームワークの選択より、**依存関係の明示的なモデリング**だ。
+
+## 設計の落とし穴と対策
+
+> 並列実行の3大落とし穴は無制限ファンアウト・障害伝播・トレースID欠落で、いずれも設計段階で防げる。
+
+### 無制限ファンアウトとレート制限カスケード
+
+並列度を上限なく増やすと、APIレート制限を一気に超えて全ブランチが失敗する。ファンアウト数を上述の計算式で制御し、**バックプレッシャー機構**（キュー満杯時に新規タスクをブロック）を組み込む。PASTE手法による投機的実行との組み合わせで、平均タスク完了時間の48.5%削減が報告されている。
+
+### 並列トレースの可観測性
+
+並列実行では複数のスパンが同時進行するため、[エージェントの可観測性設計](/blog/agent-observability-tracing-instrumentation/)で解説した親子スパン構造が不可欠だ。Fan-Out時に`trace_id`と`parent_span_id`を各ワーカーに引き継ぎ、Fan-In後に集約スパンで全ブランチのタイミングを俯瞰できるようにする。トレースIDを省略すると、並列実行のどのブランチで遅延が生じたかを特定する手段がなくなる。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**：まず2〜4並列の小規模Fan-Outから始め、効果を測ってから段階的に拡張する。Anthropicが推奨するように、フレームワークへの依存より`asyncio.gather`や`Promise.all`による薄い実装が長期的な技術負債を抑えやすい。設計段階からの伴走は[Kuuの運用管理サービス（AI-Ops）](/services/ai-ops/)に相談してほしい。
+
+**エンタープライズの場合**：大規模な並列実行ではLLMゲートウェイによるレート管理と部門別コスト配賦が必須だ。[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)と組み合わせ、各チームのファンアウト上限をゲートウェイ側で制御する構成が現実的だ。大規模環境の実装支援は[RDEサービス](/services/rde/)で提供している。
+
+## 参考
+
+- [Building Effective AI Agents — Anthropic](https://www.anthropic.com/research/building-effective-agents)
+- [Parallel Concurrency in Production AI Agents: DAG Scheduling, Fan-Out/Fan-In — Zylos Research](https://zylos.ai/research/2026-04-26-parallel-concurrency-agent-execution/)
+
+## まとめ
+
+Fan-Out/Fan-Inは独立サブタスクの並列分散と集約を担い、Map-Reduceは大量データへの並列変換と集計に向く。DAGスケジューリングとの組み合わせでプロダクション環境での1.8〜3.7倍の速度改善が計測されている。設計の要点は**ファンアウト数の上限管理・部分失敗のフォールバック定義・トレースIDの引き継ぎ**の3点だ。
+
+並列実行設計の導入を検討している場合は、[Kuuの運用管理サービス](/services/ai-ops/)までお問い合わせいただきたい。
