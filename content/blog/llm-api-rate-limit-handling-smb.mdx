@@ -1,0 +1,109 @@
+---
+title: "LLM APIレート制限の対処設計——中小企業向け実装パターン"
+description: "AnthropicのAPIにはTier別のTPM/RPM上限があり、超過するとHTTP 429が返る。中小企業が本番環境でLLMレート制限に対処するための指数バックオフ・優先キュー・バッチの3実装パターンを解説する。"
+date: "2026-06-28"
+lastModified: "2026-06-28"
+tags: ["LLMレート制限", "APIレート制限", "エラーハンドリング", "プラットフォーム設計"]
+author: "kuu-editorial"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+target_query: "LLM API（Anthropic Claude）のレート制限にどう対処するか"
+sources:
+  - "https://www.respan.ai/articles/anthropic-api-rate-limits"
+  - "https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek"
+---
+
+AIエージェントを本番で動かし始めて最初につまずく壁の一つが、LLM APIのレート制限だ。開発環境では問題なく動いていたのに、ユーザー数が増えた瞬間に「HTTP 429 Too Many Requests」が返り、処理が止まる。再試行ロジックを適切に設計しないと、リトライのリトライが発生してさらに制限を悪化させる悪循環に陥る。
+
+レート制限への対処は3層で考える。①429が返ったときの正しい再試行設計、②リクエストの優先度制御、③そもそも制限に近づきにくい構造の設計。この3手法を実装すれば、中小企業の本番AIサービスでも安定稼働を実現できる。
+
+## AnthropicのAPIレート制限の構造とはどのようなものか
+
+> AnthropicのAPIはTier 1〜4のRPM・ITPM・OTPMで制限され、超過するとHTTP 429が返る。
+
+Anthropic APIのレート制限は3次元で管理される。
+
+- **RPM（Requests Per Minute）**: 毎分送信できるリクエスト数
+- **ITPM（Input Tokens Per Minute）**: 毎分受け付ける入力トークン数
+- **OTPM（Output Tokens Per Minute）**: 毎分生成できる出力トークン数
+
+制限はTier 1〜4の4段階で異なる。Tier 1は$5のクレジット購入から利用でき月上限$100。Tier 2は$40のクレジット実績で解放され月上限$500。Tier 3は$200、Tier 4は$400の実績が必要だ。Tier 4ではClaude Opus 4.xで毎分4,000リクエスト・10M入力トークンが上限となる。
+
+上限を超えると、HTTPステータス 429（`rate_limit_error`）とともに `retry-after` ヘッダー付きのレスポンスが返る。`retry-after` には待機すべき秒数が入っており、この値を無視して即時リトライするとさらに制限を消費してしまう。
+
+429とは別に、Anthropic側が過負荷状態のときは529（`overloaded_error`）が返る。529はプロバイダー側の問題のため、対処法は異なる。
+
+## HTTP 429エラーが返ったときどう対処すればよいか
+
+> HTTP 429はretry-afterの秒数を守って再試行し、即時リトライは禁止。指数バックオフ＋ジッターが標準実装だ。
+
+429レスポンスを受け取ったら、まず `retry-after` ヘッダーの値（秒数）だけ待ってから再試行する。ヘッダーが含まれない場合は指数バックオフを使う——最初は1〜2秒待ち、再失敗するたびに待機時間を2倍にする（1秒 → 2秒 → 4秒 → 8秒）。複数のリクエストが同時に失敗してサーバーへ一斉リトライするのを防ぐために、ランダムなジッター（±20〜50%のゆらぎ）も加える。
+
+```python
+import time
+import random
+
+def call_with_retry(fn, max_retries=5):
+    wait = 1.0
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except anthropic.RateLimitError as e:
+            retry_after = float(e.response.headers.get("retry-after", wait))
+            jitter = random.uniform(0.8, 1.2)
+            time.sleep(retry_after * jitter)
+            wait = min(wait * 2, 60)
+    raise RuntimeError("Max retries exceeded")
+```
+
+上限試行回数（5回など）に達したら例外としてエラーを上位に伝播し、ユーザーに「しばらく後にもう一度お試しください」と通知するのが適切だ。
+
+529エラーは529専用のハンドラで処理する。これはAnthropicの負荷問題のため、AWS BedrockやGCP Vertex AI経由のClaude APIへのフォールバックを検討する。529で通常の429フローに混ぜると、ロジックが複雑化するため分離するのが望ましい。
+
+## 優先キューでリクエストを整流するにはどうすればよいか
+
+> 優先キューはリクエストを重要度別に並び替え、リアルタイム処理をバッチ処理より先に送信する整流設計だ。
+
+単純な429リトライだけでは、ユーザーの問い合わせ対応（リアルタイム必須）と月次レポート生成（夜間でもよい）が同じ優先度でAPIを奪い合う問題が残る。これを解決するのが優先キューだ。
+
+```
+優先度 HIGH: ユーザーへの即時応答（チャットボット、リアルタイム分類）
+優先度 MID:  内部自動処理（タスク実行、データ変換）
+優先度 LOW:  バックグラウンドジョブ（レポート生成、一括分析）
+```
+
+実装は、RateLimiterクラスでTPM残量をトラッキングし、送信可能量が回復した順に優先度の高いキューから消化する構造にする。Celeryのpriority queue（0〜9段階）やAWS SQSのFIFO + message group IDを組み合わせるとシンプルに実現できる。
+
+優先キューがあれば、ピーク時にLOWタスクを自動的に後回しにしてHIGHタスクを守ることができ、ユーザー体験を損なわずに全体のレート制限を乗り越えられる。
+
+## レート制限に達しにくい本番設計にするにはどうすればよいか
+
+> レート制限に余裕を持たせる核心はリクエスト整流にある。キャッシュでITPMを実質拡大し、バッチで非緊急ジョブを切り出す。
+
+対処療法だけでなく、そもそも制限に近づきにくい設計にすることが長期的に安定する。
+
+### プロンプトキャッシュでITPMを実質拡大する
+
+Anthropicのプロンプトキャッシュを使うと、キャッシュヒット分のトークンはITPM制限にカウントされない。100,000トークンのシステムプロンプトをキャッシュに乗せると、次のリクエスト以降はそのトークン分をITPMから消費せずに済む。キャッシュ活用が進むほど、実質的な処理容量は3〜5倍に広がる。キャッシュブレークポイントの設計については[プロンプトキャッシュ設計の解説](/blog/prompt-caching-agent-design-context-reuse/)を参照してほしい。
+
+### バッチAPIで非緊急ジョブを切り出す
+
+即時応答が不要な処理はMessage Batches APIで投入する。バッチAPIはTPM/RPMの通常制限とは別の枠で動作するため、バッチを走らせてもリアルタイム側の制限を圧迫しない。通常料金の50%でトークンを使えるため、コスト削減にも直結する。
+
+### Tierのアップグレードを早期に検討する
+
+Tier 1（月上限$100）から始めてサービスが成長すると、制限に頻繁に当たるようになる。Tier 2（$40の実績で解放、月上限$500）へのアップグレードは使用量ダッシュボードから確認できる。TPM/RPM使用率が常時80%を超えているなら、次のTierへの移行を判断するタイミングだ。
+
+[Kuuのエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)では、AI本番基盤の安定稼働支援としてレート制限設計のレビューも実施している。
+
+## 参考
+
+- [Anthropic API Rate Limits + 429/529 Handling Guide — Respan](https://www.respan.ai/articles/anthropic-api-rate-limits)
+- [LLM API Rate Limits 2026: RPM and TPM by Tier — Requesty](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek)
+
+## まとめ
+
+LLM APIのレート制限に正しく対処するには、①`retry-after`ヘッダーを守った指数バックオフ、②優先キューによる整流設計、③プロンプトキャッシュとバッチAPIによる実質的な容量拡大の3手法が有効だ。対処療法と構造設計の両方を組み合わせることで、ユーザー体験を損なわず安定した本番AIサービスを実現できる。
+
+[Kuuのエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)では、AIエージェントの本番基盤設計から運用支援まで対応している。現状の課題はまず無料相談でお聞かせほしい。
