@@ -125,6 +125,15 @@
       "industry": "不動産管理（マンション管理）",
       "use_case": "居住者問い合わせ・修繕手配・管理組合サポートの一次対応自動化",
       "status": "published"
+    },
+    {
+      "slug": "home-care-visit-record-agent",
+      "keyword": "訪問介護 シフト 訪問記録 実績記録票 サービス提供責任者 AIエージェント 自動化",
+      "title_hint": "訪問介護のシフト・訪問記録・実績報告をAIエージェントに——サ責の多重業務をこう減らす",
+      "persona": "訪問介護事業所のサービス提供責任者",
+      "industry": "訪問介護・在宅介護",
+      "use_case": "ヘルパーシフト・訪問記録・サービス提供実績記録票の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
