@@ -42,8 +42,8 @@ test.describe("ブログ記事", () => {
 });
 
 test.describe("全文検索", () => {
-	test("Pagefind で日本語クエリがヒットする", async ({ page }) => {
-		await page.goto("/search/");
+	test("Blog 一覧の検索窓で日本語クエリがヒットする", async ({ page }) => {
+		await page.goto("/blog/");
 		const input = page.getByRole("searchbox");
 		await expect(input).toBeVisible();
 		await input.fill("エージェント");
@@ -52,6 +52,12 @@ test.describe("全文検索", () => {
 		await expect(
 			page.locator('main a[href^="/blog/"], main a[href^="/case/"]').first(),
 		).toBeVisible();
+	});
+
+	test("旧 /search/ は /blog/ にリダイレクトされる", async ({ page }) => {
+		await page.goto("/search/");
+		await page.waitForURL(/\/blog\/?$/, { timeout: 10_000 });
+		await expect(page.getByRole("searchbox")).toBeVisible();
 	});
 });
 

@@ -33,7 +33,7 @@ export default function SearchClient() {
 	const [results, setResults] = useState<PagefindResultData[]>([]);
 	const [searching, setSearching] = useState(false);
 
-	// /search/?q=... での直接アクセス（SearchAction 経由など）に対応
+	// /blog/?q=... ・ /case/?q=... での直接アクセス（SearchAction 経由など）に対応
 	useEffect(() => {
 		const q = new URLSearchParams(window.location.search).get("q");
 		if (q) setQuery(q);

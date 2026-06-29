@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SearchClient from "@/components/SearchClient";
 import { buildPageUrl } from "@/lib/blog-pagination";
 import type { BlogPostMeta } from "@/lib/mdx";
 
@@ -62,6 +63,8 @@ export default function BlogListView({
 
 			{showHeader ? (
 				<>
+					<SearchClient />
+
 					<div
 						className="fade-in"
 						style={{
@@ -92,9 +95,6 @@ export default function BlogListView({
 							style={{ color: "var(--gray-medium)" }}
 						>
 							Pillar
-						</Link>
-						<Link href="/search/" style={{ color: "var(--gray-medium)" }}>
-							Search
 						</Link>
 					</div>
 
