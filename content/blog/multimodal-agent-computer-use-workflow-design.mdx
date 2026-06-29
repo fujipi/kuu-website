@@ -1,0 +1,106 @@
+---
+title: "computer useとマルチモーダルエージェントの設計判断"
+description: "Claudeのcomputer useはスクリーンショット→アクション→結果のループでAPIを持たないレガシーシステムを自動化します。エンタープライズが本番導入前に判断すべき設計パターンと運用基準を解説。"
+date: "2026-06-29"
+lastModified: "2026-06-29"
+tags: ["computer use", "マルチモーダルエージェント", "エージェント設計", "model-capability"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "マルチモーダルAIエージェントのcomputer useはエンタープライズでどう設計・運用するか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool"
+  - "https://www.anthropic.com/news/claude-opus-4-7"
+  - "https://www.digitalapplied.com/blog/computer-use-agents-2026-claude-openai-gemini-matrix"
+pillar: "ai-governance"
+---
+
+APIを持たないレガシーシステムや社内ポータルを、AIが直接「ログインして操作する」シナリオが現実になっている。Claude computer useはスクリーンショット取得・マウス制御・キーボード入力のフィードバックループでデスクトップを制御する。本番運用に乗せるには「いつcomputer useを使い、いつAPI連携に戻すか」「解像度とモデルをどう組み合わせるか」「どのステップに承認を挟むか」という設計判断が先に来る。本稿ではこれら3つの軸をエンタープライズ視点で整理する。
+
+## マルチモーダルエージェントの画面理解はどこまで来たか
+
+> computer useの高解像度ビジョン（2,576px）により、密なERPグリッドでも座標精度が実用水準に達した。
+
+マルチモーダルエージェントとは、テキストだけでなく画像・スクリーンショットなどを入力として受け取り推論するエージェントの総称だ。Claude computer useの核心は「スクリーンショット（画像入力）→アクション生成（テキスト出力）→実行→再スクリーンショット」というフィードバックループであり、このループが機能するかどうかはモデルの画面理解精度に直結する。
+
+Claude Opus 4.8では高解像度ビジョンが統合され、長辺2,576ピクセルの画像を処理できる。従来モデルの3倍超のピクセル数を処理でき、財務システムやERPの密なデータグリッドでも座標を正確に特定できるようになった。WebArenaベンチマーク（実際のWebサイトを使った多段ブラウザナビゲーション評価）でも単一エージェント系でstate-of-the-artを達成している。
+
+ベータヘッダーの選択はモデル能力に直結する。`"computer-use-2025-11-24"` をリクエストヘッダーに指定するとClaude Opus 4.8/4.7/4.6、Claude Sonnet 4.6で高解像度ビジョンとプロンプトインジェクション防御クラシファイアの両方が有効になる。旧ヘッダー `"computer-use-2025-01-24"` では旧世代モデルのみ対応する。エンタープライズ本番では常に最新ヘッダーを明示的に指定する。
+
+## computer useのフィードバックループはどう実装するか
+
+> computer useはMessages APIの標準ツールとして動作し、Claudeが返すアクション（クリック座標・キーシーケンス）をランタイムが実行して次スクリーンショットを返します。
+
+computer useはAnthropicのMessages APIを通じて公開されるツール定義であり、独立したサービスではない。実装の構造は「ツール定義の宣言 → Claudeによるアクション型の返却 → ランタイム（自社VM/コンテナ）による実行 → 結果スクリーンショットのフィードバック」の4ステップが繰り返される。
+
+**ツール定義の最小構成**
+
+```json
+{
+  "type": "computer_20251124",
+  "name": "computer",
+  "display_width_px": 1024,
+  "display_height_px": 768,
+  "display_number": 1
+}
+```
+
+Claudeが返すアクション型には `screenshot`（現在画面取得）・`left_click`・`type`・`key`・`scroll`・`drag` などがある。ランタイム側はこれらのアクションを受け取り、VMで実行して更新後のスクリーンショットをAPIに戻す実装が必要だ。Anthropicは[リファレンス実装（Docker＋Webインターフェース付き）](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo)を公開しており、起点として利用できる。
+
+1アクションごとにAPI呼び出しが発生するため、10ステップのタスクで最大30秒の待ち時間を見込む必要がある。バッチ処理・非同期キューとの相性は良く、リアルタイム応答（1秒以内）が求められるシナリオには適さない。
+
+## エンタープライズでcomputer useを採用すべき判断基準はどこか
+
+> computer useの採用基準は「APIが存在しない」「RPA保守コストが年ランニングを超えた」「操作手順が月単位で変わる」のいずれかを満たす場合です。
+
+エンタープライズには「computer useを選ぶ場面」と「従来のAPI連携・RPAを維持する場面」を区別する判断基準が必要だ。
+
+**computer useが有効なユースケース**
+
+- APIを持たないレガシーERP・社内ポータル・2005年前後の業務Webシステム
+- 固定セレクタが頻繁に壊れるRPAの保守コストが年間ライセンス費を上回っている
+- 操作手順が月単位で変更されるため従来の自動化スクリプトが追いつかない
+- QAテスト自動化（UI変更に強いスクリーンショットベースの検証）
+
+**避けるべき場面**
+
+- 既存のREST/GraphQL APIで完結できるフロー（コスト・レイテンシ・精度すべてで不利）
+- 1秒以内のリアルタイム応答が必須なシナリオ
+- 最終承認なしの高リスクトランザクション（後述の承認フロー設計を参照）
+
+Zero Data Retention（ZDR）対応によりエンタープライズのデータ保護要件も充足できる。組織にZDR契約がある場合、スクリーンショットを含む送信データはAPIレスポンス返却後に保存されない。[Kuuの大企業向けRDEサービス](/services/rde/)では既存IT資産とcomputer useの統合可否を技術評価する段階から支援している。
+
+## レイテンシ・コスト・承認フローをどう設計するか
+
+> 1タスクあたりのAPI呼び出し回数×モデル単価×解像度の積がコストを決めるため、用途別にモデルと解像度を分けると30〜50%削減できます。
+
+本番運用のコスト設計は「解像度×モデルティア×エラー時リトライ回数」の3変数が支配的だ。
+
+**モデル選択と用途の対応**
+
+| ユースケース | 推奨モデル | 解像度目安 |
+|---|---|---|
+| 密なデータグリッド・ERP | Claude Opus 4.8 | 2,576px |
+| 標準Webフォーム・ポータル | Claude Sonnet 4.6 | 1,024px |
+| テキスト主体の単純クリック | Claude Haiku 4.5 | 768px |
+
+**プロンプトインジェクション対策とヒューマンインザループ**
+
+Anthropicは画面内コンテンツを自動スキャンするクラシファイアを実装しており、悪意あるコンテンツを検出した場合にClaude自身が人間確認を要求する。バッチ処理でヒューマンインザループが設計上存在しない場合はサポートへ申請することでオプトアウトできる。
+
+エンタープライズでは「最終承認が必要な操作」（財務トランザクション・サービス利用規約への同意・アカウント削除）に対して、必ず人間確認ステップを挿入する。computer useの精度が向上しても、この境界は設計方針として維持する。コンプライアンス上自動実行に帰責できない業務を事前に洗い出し、承認フローの仕様書に落とし込むことが先決だ。
+
+関連する設計として、[プロンプトインジェクションの多層防御アーキテクチャ](/blog/prompt-injection-layered-defense-architecture/)と[エージェントのIAMスコープ付き認証情報設計](/blog/agent-iam-scoped-credentials-design/)も参照されたい。
+
+## 参考
+
+- [Computer use tool – Anthropic Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
+- [Introducing Claude Opus 4.7 – Anthropic](https://www.anthropic.com/news/claude-opus-4-7)
+- [Computer Use Agents 2026: Claude vs OpenAI vs Gemini – Digital Applied](https://www.digitalapplied.com/blog/computer-use-agents-2026-claude-openai-gemini-matrix)
+
+## まとめ
+
+Claude computer useはレガシーシステム統合とQA自動化において実用水準の能力を持つ。エンタープライズが本番に乗せるための設計判断は「API代替かAPIレス統合か」「解像度とモデルティアの最適化」「最終承認ポイントへの人間確認挿入」の3点に集約される。PoC段階から設計基準を定めておかないと、本番移行時にコスト急増か精度不足のどちらかに直面する。
+
+computer useを含むAIエージェント基盤の技術評価・設計・実装支援は、[Kuu株式会社のRDEサービス](https://kuucorp.com/services/rde/)でご相談ください。
