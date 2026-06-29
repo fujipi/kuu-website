@@ -88,6 +88,9 @@ const config = {
 		"/blog/ai-agent-cost-optimization-sme",
 		"/blog/agent-online-evaluation-production-sampling",
 		"/blog/chatgpt-usage-policy-template",
+		// 検索専用ページは廃止し検索窓を Blog/Case に移設。/search/ は /blog/ への
+		// リダイレクトスタブ（noindex）として残るため sitemap から除外。
+		"/search",
 	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {
@@ -193,7 +196,6 @@ const config = {
 		if (p === "/privacy-policy" || p === "/security") {
 			return entry("yearly", 0.3);
 		}
-		if (p === "/search") return entry("monthly", 0.4);
 		if (p === "/en") return entry("monthly", 0.8);
 		if (p.startsWith("/en/services/")) return entry("monthly", 0.7);
 		if (p.startsWith("/en/")) return entry("monthly", 0.6);

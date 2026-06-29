@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SearchClient from "@/components/SearchClient";
 import type { CaseEntryMeta } from "@/lib/case";
 import { buildCasePageUrl } from "@/lib/case-pagination";
 
@@ -57,6 +58,9 @@ export default function CaseListView({
 						Web の記事・X の投稿・企業の PR
 						から見えてくる最新のユースケースをもとに、自社の業務にどう実装するかを具体的な形で書き起こすコーナーです。毎日継続的に追加していきます。
 					</p>
+
+					<SearchClient />
+
 					{industries && industries.length > 0 ? (
 						<div
 							className="fade-in"

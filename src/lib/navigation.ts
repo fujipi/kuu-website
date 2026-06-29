@@ -37,7 +37,6 @@ export function getMainNav(opts: MainNavOptions = {}): NavItem[] {
 			children: [
 				{ href: "/case/", label: "Case" },
 				{ href: "/blog/", label: "Blog" },
-				{ href: "/search/", label: "Search" },
 			],
 		},
 		{ href: "/news/", label: "News" },
