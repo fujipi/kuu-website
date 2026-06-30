@@ -98,6 +98,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"function-calling-structured-output-tool-design",
 			"mcp-vs-function-calling-design-decision",
 		],
+		// コンテキストエンジニアリング（トークン予算・設計原則）とコンテキスト圧縮（Compaction API・長期セッション実行時管理）: 設計フェーズ vs 実行時管理で正当な併存
+		[
+			"context-engineering-token-budget-design",
+			"agent-context-compression-session-management",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
