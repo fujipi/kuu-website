@@ -1,0 +1,114 @@
+---
+title: "AIエージェントにSTRIDE脅威モデリングを適用する設計手順"
+description: "AIエージェントの攻撃面をSTRIDE 6カテゴリで体系化し、なりすまし・改ざん・権限昇格などの具体的リスクと設計対策を、OWASP Agentic Top 10 2026の観点から整理します。"
+date: "2026-07-01"
+lastModified: "2026-07-01"
+tags: ["セキュリティ", "脅威モデリング", "STRIDE", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "security"
+tech_depth: "deep"
+sources:
+  - "https://arxiv.org/html/2605.17163v1"
+  - "https://www.trydeepteam.com/docs/frameworks-owasp-top-10-for-agentic-applications"
+  - "https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf"
+pillar: "ai-governance"
+---
+
+エージェントがメールを送信し、外部APIを呼び出し、コードを実行し、他のエージェントへ仕事を委譲する環境が整った今、攻撃者に与える「操作の機会」は従来のWebシステムとは比較にならない規模に拡大しています。セキュリティを後付けで考えるアーキテクチャに、本番環境でのインシデントは避けられません。脅威モデリングとは、システムを設計段階で攻撃者の目線から分析し、リスクを事前に発見・対処する手法です。
+
+[エージェントガバナンス](/glossary/agent-governance/)を体系的に構築するうえで、脅威モデリングはアーキテクチャ設計と切り離せない工程です。
+
+## STRIDEとは何か
+
+> STRIDEはMicrosoftが提唱した6カテゴリ脅威分類で、なりすまし・改ざん・否認・情報漏えい・可用性破壊・権限昇格を体系的に整理します。
+
+STRIDEは2000年代にMicrosoftが開発し、Windows Vista以降の製品設計で広く採用されてきた実績のある脅威モデリング手法です。システムのデータフロー図（DFD）を起点に、信頼境界を越えるデータフローと各コンポーネントを対象として、6カテゴリそれぞれの脅威を列挙します。
+
+| カテゴリ | 概要 | 主な緩和策 |
+|---|---|---|
+| **S**poofing（なりすまし） | 正規エンティティへの偽装 | 認証・署名検証 |
+| **T**ampering（改ざん） | データ・モデルの不正変更 | 整合性チェック・署名 |
+| **R**epudiation（否認） | 操作記録の否定 | 監査ログ・タイムスタンプ |
+| **I**nformation Disclosure（情報漏えい） | 機密データの暴露 | 暗号化・アクセス制御 |
+| **D**enial of Service（可用性破壊） | リソース枯渇による停止 | レート制限・冗長化 |
+| **E**levation of Privilege（権限昇格） | 不正な権限取得 | 最小権限・スコープ制限 |
+
+従来のWebサービスやAPIではSTRIDEは安定した手法ですが、AIエージェントに適用すると各カテゴリの攻撃ベクタが独自の形を取ります。
+
+## AIエージェント固有のSTRID E変容
+
+> STRIDEをエージェントに適用すると、各カテゴリがモデル偽装・データ汚染・推論ログ欠如・計算枯渇・アライメント破壊という形に変容します。
+
+2025年に公開されたSTRIDE-AI（Rahimian et al., arxiv）は、5層アーキテクチャ（UIレイヤ・アプリケーションレイヤ・モデルレイヤ・インフラレイヤ・データソース）にSTRIDEを適用する方法論を提示しています。エージェント固有の攻撃例と、2025年末にOWASPがリリースした「Top 10 for Agentic Applications 2026（ASI Top 10）」との対応を整理すると以下のとおりです。
+
+| STRIDEカテゴリ | エージェント固有の攻撃例 | ASI Top 10との対応 |
+|---|---|---|
+| Spoofing | 悪意あるAPIラッパーが正規モデルを偽装し、システムプロンプトを窃取 | ASI-03 Agent Identity & Privilege Abuse |
+| Tampering | 外部ドキュメントへの命令埋め込み（間接プロンプトインジェクション）・訓練データへのバックドア注入 | ASI-01 Agent Goal Hijack |
+| Repudiation | 推論ログ無効化によるエージェントアクションの追跡不能 | ASI-08 Cascading Agent Failures |
+| Information Disclosure | 繰り返しクエリによる個人・医療データの再構築（モデル逆転攻撃） | ASI-07 Insecure Inter-Agent Communication |
+| Denial of Service | スポンジ攻撃（計算コスト最大化）・ツールの再帰的無限呼び出し | ASI-02 Tool Misuse & Exploitation |
+| Elevation of Privilege | ジェイルブレイクによるガードレール回避・エージェント委譲による権限逸脱 | ASI-03 / ASI-10 Rogue Agents |
+
+STRIDE-AIの実証実験では、Llama-3-8bベースのRAGチャットボットへの攻撃成功率が、XMLサンドボックスと入力サニタイズの実装により80%から15%まで低下しています。対策を設計段階で組み込むことの効果を裏付けるデータです。
+
+## DFDを起点とした5ステップの脅威列挙
+
+> データフロー図で信頼境界を明示し、境界を越えるすべてのフローにSTRIDEを適用することが脅威発見の起点です。
+
+### ステップ1：DFDの作成
+
+エージェントシステムを次の5要素で図示します。
+
+- **外部エンティティ**：エンドユーザー、外部API、メールサーバー、Webブラウザ
+- **プロセス**：オーケストレーター、サブエージェント、ツール実行環境
+- **データストア**：ベクターDB、セッションメモリ、クレデンシャルストア
+- **データフロー**：「ユーザー入力→LLM→ツール→外部API」の各矢印
+- **信頼境界**：コントロールが変わる箇所（外部入力とシステム内部の境界、エージェント間通信など）
+
+### ステップ2：信頼境界を越えるフローへのSTRIDE適用
+
+信頼境界を越えるフロー（矢印）ごとに6カテゴリをチェックします。「このフローでSpoofingは起きうるか？Tamperingは？」と問いを立て、該当する脅威を列挙します。エージェントが外部ドキュメントを取得するフローにはTampering（間接インジェクション）とInformation Disclosure（文書内機密データの漏えい）が特に高頻度で挙がります。
+
+### ステップ3：DREADスコアによる優先順位付け
+
+列挙した脅威をDREAD（Damage / Reproducibility / Exploitability / Affected Users / Discoverability）でスコアリングし、対処すべき順位を決定します。スコアが高い脅威から緩和策を設計します。
+
+### ステップ4：緩和策をアーキテクチャ設計に組み込む
+
+各脅威への緩和策をシステム設計に落とし込みます。Elevation of Privilege（ジェイルブレイク）への緩和策は[ツールスコープの最小化](/blog/ai-agent-permission-management-design/)と[ヒューマン承認フロー](/blog/ai-agent-human-in-the-loop-design/)、Repudiation（否認）への対策は[監査ログの有効化](/blog/ai-agent-audit-log-management/)です。これらをDFDの該当フローに注釈として記述し、設計ドキュメントとして管理します。
+
+### ステップ5：残留リスクの受容と文書化
+
+すべての脅威を排除することはできません。緩和後に残る残留リスクを明示的に識別し、受容・移転・回避いずれかを決定して文書化します。これがISO 42001の技術統制やEU AI Act対応への回答にもなります。
+
+## OWASP Agentic Top 10 2026との統合活用
+
+> STRIDEで設計レベルの脅威を洗い出し、OWASP Agentic Top 10 2026で実装レベルの弱点を確認する2段階が、エージェントセキュリティ設計の現実的な方法です。
+
+STRIDEが「何が起きうるか」を体系化するのに対し、OWASPは「実際に悪用されている実装上の弱点」を示します。両者を組み合わせることで設計レベルと実装レベルをカバーできます。特に注意すべき項目を抜粋します。
+
+- **ASI-01 Agent Goal Hijack**：ドキュメントや外部ツール出力への命令埋め込みによる目標乗っ取り。コンテキストタグと信頼スコープ付与で対処します（詳細は[多層防御アーキテクチャ](/blog/prompt-injection-layered-defense-architecture/)参照）。
+- **ASI-02 Tool Misuse**：ツールの再帰呼び出しによるリソース枯渇。最大呼び出し深度の設定とレート制限が基本の緩和策です。
+- **ASI-04 Supply Chain Compromise**：外部エージェント・ツールスキーマへのバックドア。依存ツールの署名検証と依存関係のロックが必要です。
+- **ASI-06 Memory & Context Poisoning**：長期メモリへの悪意ある情報書き込み。メモリ書き込みへの承認フローと世代管理で対処します。
+- **ASI-10 Rogue Agents**：目標逸脱・報酬ハッキング。エージェント実行の継続的監視と[可観測性設計](/blog/agent-observability-tracing-instrumentation/)が鍵になります。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**では、全カテゴリを同時に対処しようとするとリソースが足りません。DREADスコアが最上位の3件に絞り、Elevation of Privilege（最小権限・スコープ制限）とRepudiation（監査ログ有効化）を優先実装する実用的なアプローチが有効です。Kuuの[AIオペレーション支援](https://kuucorp.com/services/ai-ops/)では、STRIDE適用ワークショップと優先順位付け支援を提供しています。
+
+**エンタープライズ**では、複数チームが異なるエージェントを開発するため、DFDとSTRIDEの適用を開発プロセスに組み込む仕組みが必要です。脅威モデルをCI/CDパイプラインのドキュメントアーティファクトとして管理し、セキュリティチャンピオン制度とゲートレビューを組み合わせることで、組織横断での一貫した適用が実現します。大規模なエージェント基盤のセキュリティ設計には[RDEサービス](https://kuucorp.com/services/rde/)をご活用ください。
+
+## 参考
+
+- [STRIDE-AI: A Threat Modeling Framework for Generative AI Security Assessment（arxiv, 2025）](https://arxiv.org/html/2605.17163v1)
+- [OWASP Top 10 for Agentic Applications 2026（DeepTeam）](https://www.trydeepteam.com/docs/frameworks-owasp-top-10-for-agentic-applications)
+- [OWASP Top 10 for LLM Applications 2025（PDF）](https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf)
+
+## まとめ
+
+AIエージェントの脅威モデリングは「セキュリティ担当だけの作業」ではなく、アーキテクチャ設計の一部です。DFDで信頼境界を明示し、STRIDEの6カテゴリでフローごとに脅威を列挙し、OWASP Agentic Top 10 2026で実装ギャップを確認する——この2段階の組み合わせが、設計段階でリスクを潰す現実的な手順です。残留リスクを文書化することで、ISO 42001やEU AI Act対応のガバナンス要件にも応えられます。
+
+エージェントのセキュリティ設計を体系的に整備するには、Kuuの[AIオペレーション支援サービス](https://kuucorp.com/services/ai-ops/)へお気軽にご相談ください。
