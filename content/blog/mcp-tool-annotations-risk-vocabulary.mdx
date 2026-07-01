@@ -1,0 +1,106 @@
+---
+title: "MCPツールアノテーション——4ヒントでリスク語彙を設計する"
+description: "MCPのToolAnnotationsは4つのbooleanヒントでツールの副作用リスクを宣言するリスク語彙だ。readOnlyHint・destructiveHintなど設計判断と「危険な三つ組み」多層防御パターンを仕様から解説する。"
+date: "2026-07-01"
+lastModified: "2026-07-01"
+tags: ["MCP", "ToolAnnotations", "リスク設計", "セキュリティ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+target_query: "MCPツールアノテーションはどう設計すればよいか"
+sources:
+  - "https://modelcontextprotocol.io/specification/2025-06-18/server/tools"
+  - "https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/"
+  - "https://modelcontextprotocol.io/docs/concepts/tools"
+pillar: "ai-governance"
+---
+
+MCPサーバーを50本以上のツールで構成するエンタープライズ環境では、どのツールがファイルを書き換え、どのツールが外部APIを呼び出し、どのツールを並列実行しても安全かをクライアントが把握できなければ、承認フローもリスク評価も成立しない。MCP仕様が定義する`ToolAnnotations`は、ツールの副作用特性をサーバーがクライアントに宣言するための**リスク語彙**だ。
+
+[MCP（Model Context Protocol）](/glossary/mcp/)の実装基盤については[MCPサーバー実装ガイド](/blog/mcp-server-implementation-tool-design/)を、認可設計は[MCPのOAuth 2.1スコープ設計](/blog/mcp-security-oauth-scope-design/)を参照してほしい。
+
+## ToolAnnotationsとは何か——「ヒント」が持つ設計上の意味
+
+> ToolAnnotationsはツールの副作用特性を4つのbooleanヒントで宣言するリスク語彙で、クライアントが承認フロー・並列実行・信頼評価を制御するための根拠を提供します。
+
+MCP仕様（2025-06-18版）はToolsの`annotations`フィールドに`ToolAnnotations`型を定義している。仕様が明言する重要な前提が1つある——アノテーションは**ヒントであり保証ではない**。クライアントは「信頼できるサーバーからのアノテーションのみ信頼する」と仕様に明記されており、悪意ある・誤実装のサーバーが誤ったアノテーションを返す可能性を常に考慮しなければならない。
+
+```json
+{
+  "name": "delete_records",
+  "description": "指定条件に一致するレコードを削除する",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "filter": { "type": "string" } },
+    "required": ["filter"]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  }
+}
+```
+
+デフォルト値の設計思想が重要だ。アノテーションを省略したツールは「非読み取り専用・破壊的・非冪等・オープンワールド」として扱われる。**最悪ケースを想定する保守的デフォルト**が採用されており、アノテーションは「リスクを下げる宣言」として機能する。
+
+## 4フィールドの定義と設計判断
+
+> 4つのアノテーションは独立したboolean値で、デフォルトは保守的な「最悪ケース」想定です。組み合わせによってツールのリスクプロファイルが決まります。
+
+| フィールド | デフォルト | 意味 |
+|---|---|---|
+| `readOnlyHint` | `false` | `true`=環境を変更しない（読み取り専用） |
+| `destructiveHint` | `true` | `true`=削除・上書き等の不可逆な変更の可能性あり |
+| `idempotentHint` | `false` | `true`=同一引数の繰り返し呼び出しが安全 |
+| `openWorldHint` | `true` | `true`=インターネット・外部APIへの通信あり |
+
+設計上の判断ポイントを3点挙げる。
+
+**`readOnlyHint`と`destructiveHint`の関係**: `destructiveHint`は`readOnlyHint: false`の場合のみ意味を持つ。読み取り専用ツールに`destructiveHint`を設定することは仕様上無効だ。実装時は`readOnlyHint: true`を設定したツールでは`destructiveHint`を省略するのが明快な設計になる。
+
+**`openWorldHint`の扱い**: 外部APIと通信しない閉域内ツール（オンプレミスDBへの読み書きなど）では`openWorldHint: false`を設定する。将来的に外部接続が追加される可能性がある場合はデフォルト（`true`）のままにするのが保守的設計だ。
+
+**`idempotentHint`の適用範囲**: 冪等性が保証される操作（upsert・ステートレスな外部API呼び出し）のみ`true`にする。「同じ結果が返る」だけでなく「副作用が重複しない」まで確認してから設定する。
+
+## クライアントによるアノテーション活用パターン
+
+> クライアントはreadOnlyHintで並列実行可否を決定し、destructiveHintで承認プロンプトを制御し、openWorldHintでコンテンツ信頼度を引き下げます。
+
+**並列実行の最適化**: Claude Codeは`readOnlyHint: true`のツールを並列ディスパッチし、`false`のツールは直列化して競合ミューテーションを防ぐ。MCP公式ブログ（2026年3月）によれば、読み取り専用ツールを正確にアノテートするとdispatch rateが2倍程度向上する。
+
+**承認フロー制御**: `destructiveHint: true`のツール呼び出しに確認プロンプトを表示し、`idempotentHint: true`のツールは失敗時のリトライを自動化できる。このロジックをクライアントが実装することで、「確認なしに実行して良い操作」と「人間の承認が必要な操作」を宣言的に分離できる。
+
+**信頼境界フラグ**: `openWorldHint: true`のツールが返すコンテンツは、プロンプトインジェクション攻撃の侵入口になり得る。外部WebページをスクレイピングするツールがLLMのコンテキストに取り込まれた悪意ある指示を実行させるシナリオは、`openWorldHint`が正しく設定されていれば事前にフラグを立てることができる。
+
+## 「危険な三つ組み」と多層防御
+
+> プライベートデータアクセス・外部通信・外部コンテンツ取得の三つが同一セッションに揃うと、アノテーションだけでは防御できない高リスク状態になります。
+
+エンタープライズMCPデプロイで特に注意すべき構成パターンが「lethal trifecta（危険な三つ組み）」だ。
+
+- **プライベートデータアクセス**: 社内CRM・従業員DBへの書き込みツール（`readOnlyHint: false`）
+- **外部通信**: Slack送信・外部メールAPIへの投稿ツール（`openWorldHint: true`・`readOnlyHint: false`）
+- **外部コンテンツ取得**: 外部URLスクレイピング・未審査ドキュメント取得（`openWorldHint: true`）
+
+この三つが1セッションに共存すると、外部コンテンツにプロンプトインジェクションが仕込まれた場合、エージェントが社内データを外部に送信するシナリオが成立する。`ToolAnnotations`はこのリスクパターンを検出・可視化するための語彙を提供するが、**それ自体は攻撃を防止しない**。
+
+多層防御の設計では、アノテーションに加えてネットワーク層のエグレスフィルタリング（承認済み外部エンドポイントのみ許可）と実行環境のサンドボックス（外部コンテンツ処理を隔離したコンテナ・MicroVM）を組み合わせる。アノテーションはあくまで「クライアントへの意図の宣言」であり、インフラレベルの制御と補完関係にある。
+
+エンタープライズ規模のMCPサーバー管理・アノテーション設計ガイドライン策定・多層防御アーキテクチャの実装については[KuuのRDEサービス](https://kuucorp.com/services/rde/)が支援している。
+
+## 参考
+
+- [Tools — Model Context Protocol Specification (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+- [Tool Annotations as Risk Vocabulary: What Hints Can and Can't Do — MCP Blog](https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/)
+- [Tools Concepts — Model Context Protocol](https://modelcontextprotocol.io/docs/concepts/tools)
+
+## まとめ
+
+MCPの`ToolAnnotations`は`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`の4フィールドで構成されるリスク語彙だ。デフォルトはすべて最悪ケースを想定する保守的設計であり、アノテーションは「リスクを下げる宣言」として機能する。
+
+クライアントはアノテーションを並列実行の最適化・承認フロー制御・信頼境界フラグとして活用するが、アノテーション自体は保証ではなくヒントに過ぎない。エンタープライズ環境では「危険な三つ組み」パターンを認識したうえで、ネットワーク層のエグレスフィルタリングとサンドボックス実行環境をアノテーションと組み合わせた多層防御を設計することが重要だ。
+
+MCPサーバーのアノテーション設計・エンタープライズ向けセキュリティアーキテクチャのご相談は[KuuのRDEサービス](/services/rde/)までお問い合わせください。
