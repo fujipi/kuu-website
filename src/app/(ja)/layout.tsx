@@ -45,12 +45,18 @@ export const metadata: Metadata = {
 				url: "/images/ogp.png",
 				width: 1200,
 				height: 630,
+				alt: "Kuu株式会社 | しくみが浸透し、あらゆる人の自由をつくる",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		images: ["/images/ogp.png"],
+		images: [
+			{
+				url: "/images/ogp.png",
+				alt: "Kuu株式会社 | しくみが浸透し、あらゆる人の自由をつくる",
+			},
+		],
 	},
 	verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
 		? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }

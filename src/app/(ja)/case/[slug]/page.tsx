@@ -105,6 +105,10 @@ export default async function CaseDetailPage({ params }: Props) {
 			},
 			url,
 			inLanguage: "ja",
+			speakable: {
+				"@type": "SpeakableSpecification",
+				cssSelector: [".answer-block"],
+			},
 			datePublished: c.date,
 			dateModified: c.lastModified || c.date,
 			keywords: c.tags.join(", "),

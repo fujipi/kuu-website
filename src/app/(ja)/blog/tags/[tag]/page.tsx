@@ -26,6 +26,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		title: `${tag}に関する記事一覧 (${posts.length}件) | Kuu株式会社ブログ`,
 		description: tagDescription(tag, posts.length),
 		path: `/blog/tags/${slug}/`,
+		// 記事が少ない薄いタグはインデックス対象外にする（next-sitemap の
+		// isNoindex() が robots meta を読んで sitemap からも自動除外。
+		// 記事が3本に達した時点で自動的にインデックス対象へ戻る）
+		noIndex: posts.length < 3,
 	});
 }
 
