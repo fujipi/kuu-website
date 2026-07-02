@@ -62,6 +62,40 @@ describe("extractFaqPairs", () => {
 		expect(pairs).toHaveLength(2);
 	});
 
+	it("accepts widened question forms (どう〜か / なぜ〜のか / 〜には)", () => {
+		const pairs = extractFaqPairs(
+			md(
+				"## エージェントをどう評価するか",
+				"> 9軸評価で定量化します。",
+				"## なぜガバナンスが必要なのか",
+				"> 自律実行の権限を統制するためです。",
+				"## 導入を始めるには",
+				"> 小さく1業務から始めます。",
+			),
+		);
+		expect(pairs?.map((p) => p.question)).toEqual([
+			"エージェントをどう評価するか",
+			"なぜガバナンスが必要なのか",
+			"導入を始めるには",
+		]);
+	});
+
+	it("rejects noun headings that merely end in か (ほか/なか)", () => {
+		const pairs = extractFaqPairs(
+			md(
+				"## そのほか",
+				"> 質問ではない。",
+				"## 選択肢のなか",
+				"> これも質問ではない。",
+				"## 評価とは",
+				"> 回答1。",
+				"## 監査は必要か",
+				"> 回答2。",
+			),
+		);
+		expect(pairs?.map((p) => p.question)).toEqual(["評価とは", "監査は必要か"]);
+	});
+
 	it("excludes まとめ/参考 headings even if question-shaped", () => {
 		const pairs = extractFaqPairs(
 			md(

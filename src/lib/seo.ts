@@ -102,6 +102,7 @@ export type PageSeoProps = {
  *  - /glossary/{s}/        -> /og/glossary/{s}.png
  *  - /case-studies/{s}/    -> /og/case-studies/{s}.png
  *  - /resources/{s}/       -> /og/resources/{s}.png
+ *  - /news/{slug}/         -> /og/news/{slug}.png
  *  - /ai-governance/, /managed-agents/, /eu-ai-act-jp/ -> /og/{name}.png
  *  - /about/, /contact/, /blog/, /glossary/,
  *    /case-studies/, /resources/ -> /og/{name}.png
@@ -113,8 +114,9 @@ export function resolveOgImage(pathname: string): string {
 	// アーカイブ系ページ（track / industry）はセクション共通 OG にフォールバック
 	if (p.startsWith("/blog/track/")) return "/og/blog.png";
 	if (p.startsWith("/case/industry/")) return "/og/case.png";
-	// news 詳細は per-slug OG を生成していないためセクション共通にフォールバック
-	if (p.startsWith("/news/")) return "/og/news.png";
+	// news 詳細は per-slug OG（/news/ 一覧は末尾の simple マッチで /og/news.png）
+	const news = p.match(/^\/news\/([^/]+)$/);
+	if (news) return `/og/news/${news[1]}.png`;
 	const blog = p.match(/^\/blog\/([^/]+)$/);
 	if (blog) return `/og/blog/${blog[1]}.png`;
 	const gloss = p.match(/^\/glossary\/([^/]+)$/);
@@ -177,8 +179,10 @@ export function generateMetadata({
 		title: { absolute: title },
 		description,
 		keywords: keywords ?? DEFAULT_KEYWORDS,
+		// noIndex でも follow は維持する（薄いアーカイブ等から記事への
+		// リンクを辿れるようにし、リンク評価を落とさない）
 		robots: noIndex
-			? { index: false, follow: false }
+			? { index: false, follow: true }
 			: {
 					index: true,
 					follow: true,
@@ -308,24 +312,50 @@ export const FOUNDER_PERSON: Record<string, unknown> = {
 	],
 };
 
+/**
+ * Kuu株式会社の正準 Organization ノード。トップ・About・Contact で
+ * そのまま <JsonLd> に渡して出力する（ページごとの部分コピーは作らない）。
+ * telephone / openingHours / geo は非公開情報のため記載しない。
+ * postalCode は日本郵便の郵便番号データで確認済み（101-0031 = 千代田区東神田）。
+ */
 export const BASE_ORG = {
+	"@context": "https://schema.org",
+	"@type": "Organization",
 	"@id": ORG_ID,
 	url: BASE_URL,
 	name: SITE_NAME,
 	legalName: SITE_NAME,
-	logo: LOGO_URL,
+	alternateName: "Kuu Inc.",
+	description:
+		"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用まで一社で横串に担う伴走実装パートナー。",
+	logo: {
+		"@type": "ImageObject",
+		url: LOGO_URL,
+	},
+	image: `${BASE_URL}/og/default.png`,
 	slogan: "しくみが浸透し、あらゆる人の自由をつくる",
 	address: {
+		"@type": "PostalAddress",
+		postalCode: "101-0031",
 		streetAddress: "東神田一丁目13番14号",
 		addressLocality: "千代田区",
 		addressRegion: "東京都",
 		addressCountry: "JP",
 	},
-	contactPoint: {
-		contactType: "customer service",
-		url: `${BASE_URL}/contact/`,
-		availableLanguage: "Japanese",
-	},
+	contactPoint: [
+		{
+			"@type": "ContactPoint",
+			contactType: "customer service",
+			url: `${BASE_URL}/contact/`,
+			availableLanguage: ["Japanese", "English"],
+		},
+		{
+			"@type": "ContactPoint",
+			contactType: "sales",
+			url: `${BASE_URL}/contact/`,
+			availableLanguage: ["Japanese", "English"],
+		},
+	],
 	knowsAbout: [
 		"AIエージェント",
 		"エージェントガバナンス",
@@ -360,8 +390,9 @@ export const BASE_ORG = {
 	],
 	foundingDate: "2022",
 	founder: { "@id": FOUNDER_ID },
-	sameAs: [`${BASE_URL}/about/`],
+	sameAs: ["https://github.com/fujipi"],
 	numberOfEmployees: {
+		"@type": "QuantitativeValue",
 		minValue: 1,
 		maxValue: 10,
 	},
