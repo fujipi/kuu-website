@@ -80,7 +80,7 @@ export default async function NewsDetailPage({ params }: Props) {
 	const jsonLd = [
 		{
 			"@context": "https://schema.org",
-			"@type": "Article",
+			"@type": "NewsArticle",
 			headline: item.title,
 			description: item.description,
 			image: {

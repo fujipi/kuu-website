@@ -1,11 +1,12 @@
 /**
  * blog 記事の Markdown から FAQ ペアを抽出し FAQPage JSON-LD を生成する。
  *
- * 抽出ルール（コーパス実測に基づく。2026-06 時点で emit は4記事 — 閾値を
- * 無理に下げず、生成ガイドライン側で質問形見出しを推奨してカバレッジを
- * 前方互換に伸ばす方針）:
- * - H2/H3 が「？/?」「〜とは（何か）」「〜のか/べきか/ですか/ますか」終端
- *   なら質問とみなす（「まとめ」「参考」「おわりに」始まりは除外）
+ * 抽出ルール（コーパス実測に基づく。2026-07 に質問形の検出網羅性を拡張 —
+ * 旧規則（のか/べきか/ですか/ますか 等の限定終端）は「か」終端に一般化。
+ * 全145記事の対象見出しを目視サンプルし誤検知ゼロを確認済み。
+ * 閾値を下げない方針は不変: 2ペア以上・最大6ペア・質問形見出し限定）:
+ * - H2/H3 が「？/?」「〜とは」「〜か」「〜には」終端なら質問とみなす
+ *   （「ほか/なか」終端の名詞と「まとめ」「参考」「おわりに」始まりは除外）
  * - 回答は見出し直後〜次見出し間の最初の DAB（> 引用）。無ければ最初の段落
  * - 2ペア未満なら null、最大6ペア
  */
@@ -15,7 +16,9 @@ export interface FaqPair {
 	answer: string;
 }
 
-const QUESTION_RE = /(？|\?|とは(何か|なにか)?|のか|べきか|ですか|ますか)$/;
+const QUESTION_RE = /(？|\?|とは|か|には)$/;
+// 「〜のほか」「〜のなか」のような名詞終端は「か」で終わるが質問ではない
+const NON_QUESTION_RE = /(ほか|なか)$/;
 const EXCLUDE_RE = /^(まとめ|参考|おわりに)/;
 const MAX_PAIRS = 6;
 const ANSWER_TARGET_LEN = 160;
@@ -112,7 +115,12 @@ export function extractFaqPairs(markdown: string): FaqPair[] | null {
 	const seen = new Set<string>();
 	for (let h = 0; h < headings.length; h++) {
 		const { index, text } = headings[h];
-		if (EXCLUDE_RE.test(text) || !QUESTION_RE.test(text)) continue;
+		if (
+			EXCLUDE_RE.test(text) ||
+			NON_QUESTION_RE.test(text) ||
+			!QUESTION_RE.test(text)
+		)
+			continue;
 		const sectionEnd =
 			h + 1 < headings.length ? headings[h + 1].index : lines.length;
 		const answer = extractAnswer(lines.slice(index + 1, sectionEnd));

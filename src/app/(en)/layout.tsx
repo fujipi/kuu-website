@@ -43,12 +43,18 @@ export const metadata: Metadata = {
 				url: "/images/ogp.png",
 				width: 1200,
 				height: 630,
+				alt: "Kuu Inc. | AI Agent Governance from Japan",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		images: ["/images/ogp.png"],
+		images: [
+			{
+				url: "/images/ogp.png",
+				alt: "Kuu Inc. | AI Agent Governance from Japan",
+			},
+		],
 	},
 	verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
 		? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }

@@ -10,7 +10,6 @@ import { getMainNav } from "@/lib/navigation";
 import {
 	BASE_ORG,
 	BASE_URL,
-	FOUNDER_ID,
 	FOUNDER_PERSON,
 	generateMetadata,
 	ORG_ID,
@@ -50,40 +49,7 @@ export const metadata: Metadata = generateMetadata({
 });
 
 const homeJsonLd = [
-	{
-		"@context": "https://schema.org",
-		"@type": "Organization",
-		"@id": ORG_ID,
-		name: "Kuu株式会社",
-		legalName: "Kuu株式会社",
-		url: BASE_URL,
-		logo: `${BASE_URL}/images/favicon-192.png`,
-		description:
-			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用まで一社で横串に担う伴走実装パートナー。",
-		slogan: "しくみが浸透し、あらゆる人の自由をつくる",
-		address: {
-			"@type": "PostalAddress",
-			streetAddress: "東神田一丁目13番14号",
-			addressLocality: "千代田区",
-			addressRegion: "東京都",
-			addressCountry: "JP",
-		},
-		contactPoint: {
-			"@type": "ContactPoint",
-			contactType: "customer service",
-			url: `${BASE_URL}/contact/`,
-			availableLanguage: "Japanese",
-		},
-		sameAs: ["https://github.com/fujipi"],
-		knowsAbout: BASE_ORG.knowsAbout,
-		founder: { "@id": FOUNDER_ID },
-		foundingDate: "2022",
-		numberOfEmployees: {
-			"@type": "QuantitativeValue",
-			minValue: 1,
-			maxValue: 10,
-		},
-	},
+	BASE_ORG,
 	FOUNDER_PERSON,
 	{
 		"@context": "https://schema.org",
@@ -151,22 +117,6 @@ const homeJsonLd = [
 			"Gemini",
 			"エージェントトランスフォーメーション",
 		],
-	},
-	{
-		"@context": "https://schema.org",
-		"@type": "ProfessionalService",
-		"@id": ORG_ID,
-		name: "Kuu株式会社",
-		url: BASE_URL,
-		description:
-			"AX/DX戦略から現場ディスカバリ、エージェント実装、ガバナンス運用までを横串に担う、東京の伴走実装パートナー。",
-		address: {
-			"@type": "PostalAddress",
-			streetAddress: "東神田一丁目13番14号",
-			addressLocality: "千代田区",
-			addressRegion: "東京都",
-			addressCountry: "JP",
-		},
 	},
 ];
 

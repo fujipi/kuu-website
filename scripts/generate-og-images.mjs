@@ -20,6 +20,7 @@ const GLOSSARY_DIR = path.join(ROOT, "content/glossary");
 const CASE_STUDIES_DIR = path.join(ROOT, "content/case-studies");
 const CASE_DIR = path.join(ROOT, "content/case");
 const RESOURCES_DIR = path.join(ROOT, "content/resources");
+const NEWS_DIR = path.join(ROOT, "content/news");
 const PUBLIC_OG = path.join(ROOT, "public/og");
 const OUT_OG = path.join(ROOT, "out/og");
 // postbuild runs after `next build` has copied public/ -> out/, so writing
@@ -238,6 +239,22 @@ function collectCases() {
 		});
 }
 
+function collectNews() {
+	if (!fs.existsSync(NEWS_DIR)) return [];
+	return fs
+		.readdirSync(NEWS_DIR)
+		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+		.map((f) => {
+			const slug = f.replace(/\.(mdx|md)$/, "");
+			const { data } = matter(fs.readFileSync(path.join(NEWS_DIR, f), "utf-8"));
+			return {
+				out: path.join(OUT_DIR, "news", `${slug}.png`),
+				title: data.title ?? slug,
+				eyebrow: "News",
+			};
+		});
+}
+
 function collectResources() {
 	if (!fs.existsSync(RESOURCES_DIR)) return [];
 	return fs
@@ -328,6 +345,7 @@ async function main() {
 	fs.mkdirSync(path.join(OUT_DIR, "case-studies"), { recursive: true });
 	fs.mkdirSync(path.join(OUT_DIR, "case"), { recursive: true });
 	fs.mkdirSync(path.join(OUT_DIR, "resources"), { recursive: true });
+	fs.mkdirSync(path.join(OUT_DIR, "news"), { recursive: true });
 
 	// 各 collect* は .mdx/.md のみ列挙する（topic-queue.json 等は対象外）
 	const sections = {
@@ -337,6 +355,7 @@ async function main() {
 		"case-studies": collectCaseStudies(),
 		case: collectCases(),
 		resources: collectResources(),
+		news: collectNews(),
 	};
 	for (const [name, list] of Object.entries(sections)) {
 		console.log(`[og] ${name}: ${list.length} entries`);

@@ -6,12 +6,11 @@ import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getMainNav } from "@/lib/navigation";
 import {
+	BASE_ORG,
 	BASE_URL,
 	buildBreadcrumb,
-	FOUNDER_ID,
 	FOUNDER_PERSON,
 	generateMetadata,
-	ORG_ID,
 } from "@/lib/seo";
 
 export const metadata: Metadata = generateMetadata({
@@ -36,34 +35,7 @@ const aboutJsonLd = [
 			name: "Kuu株式会社",
 		},
 	},
-	{
-		"@context": "https://schema.org",
-		"@type": "Organization",
-		"@id": ORG_ID,
-		name: "Kuu株式会社",
-		url: BASE_URL,
-		logo: `${BASE_URL}/images/favicon-192.png`,
-		foundingDate: "2022",
-		founder: { "@id": FOUNDER_ID },
-		numberOfEmployees: {
-			"@type": "QuantitativeValue",
-			minValue: 1,
-			maxValue: 10,
-		},
-		address: {
-			"@type": "PostalAddress",
-			streetAddress: "東神田一丁目13番14号",
-			addressLocality: "千代田区",
-			addressRegion: "東京都",
-			addressCountry: "JP",
-		},
-		contactPoint: {
-			"@type": "ContactPoint",
-			contactType: "customer service",
-			url: `${BASE_URL}/contact/`,
-			availableLanguage: "Japanese",
-		},
-	},
+	BASE_ORG,
 	FOUNDER_PERSON,
 	buildBreadcrumb([
 		{ name: "ホーム", path: "/" },
