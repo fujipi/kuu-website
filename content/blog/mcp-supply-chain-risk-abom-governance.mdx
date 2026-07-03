@@ -1,0 +1,148 @@
+---
+title: "MCPサプライチェーンリスクとABOM——エージェント依存統制"
+description: "200,000件超の脆弱なMCPインスタンスが示す通り、AIエージェントのサプライチェーンは主要攻撃経路だ。ABOM設計と多層統制でMCP依存リスクを管理する手順を解説する。"
+date: "2026-07-03"
+lastModified: "2026-07-03"
+tags: ["サプライチェーンセキュリティ", "MCPサーバー", "エージェントガバナンス", "ABOM"]
+author: "kuu-engineering"
+audience: "both"
+track: "governance-tech"
+tech_depth: "deep"
+sources:
+  - "https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-security-crisis-20260504-csa-styled/"
+  - "https://cloudsmith.com/blog/the-2026-guide-to-software-supply-chain-security-from-static-sboms-to-agentic-governance"
+  - "https://arxiv.org/pdf/2603.10057"
+pillar: "ai-governance"
+target_query: "AIエージェントのサプライチェーンリスクはどう管理するか"
+---
+
+MCPサーバーのエコシステムが急拡大した2026年、AIエージェントのサプライチェーンは組織の主要な攻撃経路に変わった。Cloud Security Allianceの調査では200,000件超の脆弱なMCPインスタンスが確認されており、そのうち82%がパストラバーサルリスクを抱え、OAuth認証を実装しているのはわずか8.5%だ。npm typosquatting経由の偽MCPサーバー配布、マーケットプレイス汚染、設計起因のRCE脆弱性——これらはコードの問題ではなく、依存管理ガバナンスの欠如が引き起こす構造的失敗だ。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツに連動しています。
+
+## AIエージェントのサプライチェーンとは何か
+
+> AIエージェントの依存関係はモデル・MCP・SDK・プロンプトの4層で構成され、各層が独立した攻撃面になる。
+
+従来のソフトウェアサプライチェーンはコードとパッケージが対象だったが、AIエージェントは異なる性質を持つ依存関係を複数の層に持つ。
+
+- **モデル依存**: 基盤LLMのウェイト、ファインチューニングデータ、安全評価結果
+- **プロトコル依存**: MCPサーバー、Function Calling定義、A2Aエンドポイント
+- **SDK・フレームワーク依存**: LangChain、LlamaIndex、Anthropic SDK等のnpmやPyPIパッケージ
+- **ランタイムコンテキスト依存**: システムプロンプトのバージョン、メモリ初期化値、外部ツール定義
+
+このうちMCPサーバーは「信頼を付与された通信エンドポイント」として、エージェントのコンテキストに直接命令を注入できる。これが他の依存関係と本質的に異なる点だ。[エージェントガバナンス](/glossary/agent-governance/)の観点からは、MCP依存を未管理のまま本番運用するのはアクセス制御のないデータベースを外部公開するに等しい。
+
+## MCPサーバー依存が抱える構造的リスクとはどれか
+
+> MCPの設計上の欠陥と認証の任意化が組み合わさり、パストラバーサル・ツールポイズニング・無認証公開の3種の攻撃面を生む。
+
+Cloud Security Alliance（2026年5月）の調査では、MCPの脆弱性は特定製品のコーディングエラーではなく**設計上の欠陥**であることが明らかになっている。主な攻撃ベクターは3種類だ。
+
+### 1. パストラバーサルとRCE
+
+STDIOトランスポートはOS命令をサニタイズなしに実行する設計になっており、これが推定200,000件のインスタンスに影響する。2026年に確認された重大CVEの例を示す。
+
+| CVE番号 | 影響製品 | 深刻度 |
+|---|---|---|
+| CVE-2026-30623 | LiteLLM | Critical |
+| CVE-2025-54136 | Cursor IDE | High |
+| CVE-2026-30615 | Windsurf | High（未パッチ） |
+| CVE-2026-22252 | LibreChat | High |
+
+これらはすべてMCPの公式SDKが持つデフォルト挙動から生じており、個別パッチで解決できる性質ではない。アーキテクチャレベルの対応が必要だ。
+
+### 2. ツールポイズニング
+
+悪意あるMCPサーバーはツール定義にプロンプトインジェクションを埋め込み、エージェントを操作して意図しない操作を実行させる。2026年2月には1,184件の悪意あるマーケットプレイススキルが確認された。攻撃者はtyposquatting（名前が酷似したnpmパッケージ）でも偽MCPサーバーを配布しており、事前承認なしに接続されたMCPサーバーが企業APIキーを外部に漏洩する事例が複数報告されている。[プロンプトインジェクションの多層防御](/blog/prompt-injection-layered-defense-architecture/)と連動した対策が不可欠だ。
+
+### 3. 無認証公開
+
+MCP仕様ではOAuth 2.1は「任意」とされており、2025年7月のスキャンでは1,862台のMCPサーバーが認証なしでインターネットに公開されていた。組織内でシャドーAIとして設置されたMCPサーバーがセキュリティレビューなしに使われている状況は、[シャドーAI対策](/blog/shadow-ai-countermeasures-enterprise/)の観点からも放置できない問題だ。
+
+## ABOMでサプライチェーンを可視化するにはどうするか
+
+> ABOMはSBOMをAI向けに拡張し、モデルウェイト・コンテキスト・MCPサーバーの3層を一元管理する部品表だ。
+
+従来のSBOM（Software Bill of Materials）はコードとパッケージの依存関係を記録するが、AIエージェントの構成要素すべてを捕捉できない。この問題に対応するため、**ABOM（Agent Bill of Materials）**という概念が提唱されている。ABOMはSBOMを3方向に拡張する。
+
+**① 非決定論的コンポーネント（ML-BOM）**
+
+モデルウェイト、ファインチューニングデータセット、安全ベンチマーク結果を記録する**ML-BOM**をABOMに統合する。モデルプロバイダーが変更・更新した際に影響を追跡でき、「どのモデルが使われているか」だけでなく「どのデータで学習されたか」まで把握できる。
+
+**② ランタイムコンテキストコンポーネント**
+
+システムプロンプトのハッシュ値とバージョン（例: `v1.2.3@sha256:abc...`）、メモリ初期化値、コンテキストウィンドウへの外部データ投入ルートを記録する。[システムプロンプトのバージョン管理](/blog/system-prompt-governance-version-control/)と連動させることで、プロンプト変更による挙動差異を追跡できる。
+
+**③ 信頼エンドポイント（MCPサーバー）**
+
+MCPサーバーはエージェントが信頼する通信エンドポイントであり、ABOMの中核をなす。登録すべき属性は以下のとおりだ。
+
+```yaml
+mcp_servers:
+  - id: "github-mcp-v1.2"
+    uri: "https://mcp.example.com/github"
+    version: "1.2.0"
+    sha256: "a3f9c8..."
+    auth: "oauth2.1"
+    scopes: ["repo:read", "issues:write"]
+    approved_at: "2026-06-01"
+    approved_by: "security-team"
+    risk_tier: "tier-2"
+    vulnerabilities_checked_at: "2026-07-01"
+```
+
+ABOMは静的なコンプライアンス文書ではなく、継続的に更新・クエリ可能なシステムとして運用することが前提だ。脆弱性フィードとの相関付けにより、新たなCVEが公開された瞬間に影響を受けるMCPサーバーを特定し、即応できる。
+
+## 実装すべき多層ガバナンス統制はどれか
+
+> MCP承認ワークフロー・バージョンピニング・ETDI・セッション分離の4層が、供給攻撃の基本的な防御ラインを形成する。
+
+ABOMによる可視化の次は統制の実装だ。以下の4層を組み合わせる。
+
+### 層1: MCP承認ワークフロー（Allowlist）
+
+新規MCPサーバーの接続をデフォルトで禁止し、セキュリティチームの審査を経たものだけをallowlistに追加する。審査基準として次の4点を設ける。
+
+1. リポジトリのメンテナー数と更新頻度（公開30日未満・単一メンテナーはブロック）
+2. OSSライセンスと公開元の身元確認
+3. 既知CVEの有無（NVD/OSVデータベース自動照合）
+4. 要求スコープが最小権限の原則を満たすか
+
+9つのレジストリを横断して調査した結果、単一のレジストリオーナーがベッティングに投資するインセンティブを持たないため、悪意あるパッケージが複数のレジストリを通過した事例が確認されている。組織側でのallowlist管理が唯一の確実な防御だ。
+
+### 層2: バージョンピニングと署名検証
+
+MCPサーバーのバージョンを固定（`"github-mcp": "1.2.0"` のように完全バージョン指定）し、更新は明示的な再承認を経てからallowlistを更新する。SLSAレベル3の証明書（ビルドプロセスの暗号署名）を要求することで「どのように作られたか」の検証が可能になる。[AIエージェントの権限管理設計](/blog/ai-agent-permission-management-design/)と連動したスコープ管理も必須だ。
+
+### 層3: ETDI（Enhanced Tool Definition Interface）
+
+ETDIはツール定義の整合性を検証する仕組みで、エージェントが受け取ったツール定義が承認済みのものと一致するかを確認する。ツールポイズニング攻撃では攻撃者がツール定義を改ざんしてエージェントの行動を操作するため、ETDIはこれを検知する重要な統制だ。現時点ではMCP仕様に含まれないが、CSAはETDIの採用を推奨している。
+
+### 層4: セッション分離と最小権限ID
+
+MCPサーバーごとに異なる認証情報を付与し、侵害が一つのサーバーに限定されるよう設計する。エージェントのNon-Human Identity（NHI）管理と統合し、認証情報ローテーションを自動化する。詳細は[エージェントのIAMスコープ付き認証情報設計](/blog/agent-iam-scoped-credentials-design/)を参照してほしい。
+
+[Kuu株式会社のエージェントガバナンス運用管理サービス](/services/ai-ops/)では、ABOM設計からMCP承認ワークフローの構築まで一貫した統制基盤の導入を支援している。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**  
+まずMCP承認ワークフローの整備から着手する。現在使用しているMCPサーバーをリストアップし、公式・検証済みのもの以外は接続を停止する。Dependabotなどの依存管理ツールを導入してCVEアラートを自動化すれば、専任セキュリティ担当なしでも最低限の統制を維持できる。ABOMは最初はスプレッドシートでも構わない——可視化すること自体が最初のゴールだ。
+
+**エンタープライズの場合**  
+ABOM管理を既存のSBOM管理インフラ（SCAツール、Dependencyトラッキング）と統合する。複数チームが独自にMCPサーバーを接続する「シャドーMCP」問題には、ネットワーク境界でのMCPトラフィック可視化とCASBライクな承認ゲートが有効だ。[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)との組み合わせで全社のAIツール通信を一元的に統制できる。MAESTROなどの脅威モデリングフレームワークをMCP依存に適用した統制基盤の設計については、[Kuuのエンタープライズ実装サービス（RDE）](/services/rde/)に相談してほしい。
+
+## 参考
+
+- [MCP Security Crisis: Systemic Design Flaws in AI Agent Infrastructure](https://labs.cloudsecurityalliance.org/research/csa-research-note-mcp-security-crisis-20260504-csa-styled/) — Cloud Security Alliance, 2026年5月
+- [The 2026 Guide to Software Supply Chain Security: From Static SBOMs to Agentic Governance](https://cloudsmith.com/blog/the-2026-guide-to-software-supply-chain-security-from-static-sboms-to-agentic-governance) — Cloudsmith, 2026年
+- [SBOMs into Agentic AIBOMs: Schema Extensions, Agentic Orchestration, and Reproducibility Evaluation](https://arxiv.org/pdf/2603.10057) — arXiv, 2026年3月
+
+## まとめ
+
+AIエージェントのサプライチェーンリスクはMCPサーバーの急速な普及とともに、組織のセキュリティ設計の前提を塗り替えた。200,000件超の脆弱インスタンス、8.5%のOAuth採用率、7件の重大CVE——これらは「後から対処する」問題ではなく、エージェントシステムの設計段階から組み込むべきガバナンス要件だ。
+
+ABOM（エージェント部品表）による依存の可視化、MCP承認ワークフロー、バージョンピニング、ETDIによるツール整合性検証、セッション分離——この4層の統制を組み合わせることで、現実的なサプライチェーン防御が成立する。一度整備すれば継続的に更新・運用できる基盤として機能する。
+
+エージェントガバナンスの統制基盤設計について、[Kuu株式会社のAI Opsサービス](/services/ai-ops/)にご相談ください。
