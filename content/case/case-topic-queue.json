@@ -136,6 +136,16 @@
       "status": "published"
     }
   ],
+    {
+      "slug": "wedding-venue-proposal-agent",
+      "keyword": "ブライダル 結婚式場 ウエディング プランナー 見積 顧客フォロー AIエージェント",
+      "title_hint": "ウエディングプランナーの見積・フォローをAIエージェントに——ブライダル事務をこう速める",
+      "persona": "ブライダル式場・ゲストハウスのウエディングプランナーリーダー",
+      "industry": "ブライダル・ウェディング",
+      "use_case": "見積書作成・プラン提案・顧客フォローの補助自動化",
+      "status": "published"
+    }
+  ],
   "keyword_bank": [
     "卸売 受発注 EDI 代行入力 AIエージェント",
     "保険代理店 見積 申込書 チェック AIエージェント",
