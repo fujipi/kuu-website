@@ -1,0 +1,132 @@
+---
+title: "AIエージェントのゼロトラスト通信設計——mTLS・SPIFFE・eBPFを組み合わせる"
+description: "エンタープライズAIエージェント間通信のゼロトラスト設計を解説。SPIFFE/SPIREによる暗号ID、Istio AmbientでのmTLS強制、eBPFカーネル可視化の実装パターンと限界を示す。"
+date: "2026-07-04"
+lastModified: "2026-07-04"
+tags: ["ゼロトラスト", "mTLS", "SPIFFE", "エージェントセキュリティ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "security"
+tech_depth: "deep"
+sources:
+  - "https://cloudsecurityalliance.org/blog/2026/02/02/the-agentic-trust-framework-zero-trust-governance-for-ai-agents"
+  - "https://www.armosec.io/blog/ebpf-based-ai-agent-enforcement/"
+  - "https://next.redhat.com/2026/03/05/zero-trust-ai-agents-on-kubernetes-what-i-learned-deploying-multi-agent-systems-on-kagenti/"
+  - "https://arxiv.org/html/2508.02736v2"
+---
+
+本番環境のAIエージェントは、外部からの侵入よりも内部の通信経路を経由したラテラルムーブメントで侵害されるリスクが高い。ツール呼び出し・サブエージェント委譲・RAGリクエストが静的APIキーや平文HTTPで保護されているだけでは、2026年のエンタープライズ基準を満たさない。NIST SP 800-207が示すゼロトラストの原則をエージェント間通信に適用し、mTLS・SPIFFE・eBPFを組み合わせた実装設計の要点を示す。
+
+## AIエージェント間通信が脆弱になる3つの理由
+
+> 静的APIキーと境界型ファイアウォールだけでは、エージェントのConfused Deputy問題やラテラルムーブメントを防げない。
+
+マルチエージェント構成では、コーディネーターがサブエージェントにタスクを委譲し、各エージェントがデータベース・外部API・ファイルシステムを横断的に呼び出す。この構成が脆弱になる理由は3点ある。
+
+**静的APIキーの長命化**: サービス間認証をAPIキーで行うと、キーが流出した時点で攻撃者は正当なエージェントとして任意のツールを呼び出せる。短命なX.509証明書と比較してローテーション頻度が低くなりがちで、侵害発見まで被害が拡大する。
+
+**ネットワーク位置に基づく暗黙的信頼**: 同一VPCや同一Namespaceにいるエージェントが相互に無条件で通信できる設定は、「Confused Deputy（混乱した代理人）」問題を引き起こす。正当な権限を持つエージェントAが、攻撃者が制御するエージェントBの要求をそのまま実行してしまうパターンだ。
+
+**観測点の欠如**: ツール呼び出しの内訳がログに残らないと、侵害後のフォレンジックが困難になり、EU AI Act Article 13等のログ要件への対応も遅れる。[エージェントの可観測性設計](/blog/agent-observability-tracing-instrumentation/)はネットワーク設計と一体で考える必要がある。
+
+## ゼロトラストをエージェントに適用するとは何か
+
+> NIST SP 800-207に基づくゼロトラスト設計では、エージェントの全リクエストをIDと権限で逐次検証し、同一ネットワーク内でも暗黙的信頼を与えない。
+
+Cloud Security Alliance（CSA）の「Agentic Trust Framework（ATF）」は、AIエージェント向けゼロトラストを3フェーズで実装する方針を示す。
+
+1. **MVP（2〜3週）**: JWT認証とRBACによるアクセス制御、構造化ログの出力
+2. **Production（4〜6週）**: OAuth2/OIDC統合、レート制限、APIゲートウェイ経由の一元管理
+3. **Enterprise（8〜12週）**: ワークロードIDによるmTLS、ポリシーエンジン統合、LLMトレーシング
+
+エンタープライズフェーズでは各エージェントを「Non-Human Identity（NHI）」として扱い、静的APIキーを廃止して短命な暗号IDへ移行する。Gartnerは2026年末までに企業アプリケーションの40%がタスク特化型エージェントを内包すると予測しており、NHIの適切な管理がIDガバナンスの主戦場になっている。
+
+## mTLS + SPIFFE——エージェントに暗号IDを付与する設計
+
+> SPIFFE/SPIREが発行する短命X.509証明書をエージェントPodに配布し、Istio AmbientのPeerAuthentication STRICTでmTLS強制するパターンがKubernetes上でのZTA実装の出発点だ。
+
+### SPIFFEによるワークロードID
+
+SPIFFE（Secure Production Identity Framework for Everyone）はKubernetesのService Accountに基づく暗号IDを発行する。各エージェントPodは `spiffe://cluster.local/ns/agents/sa/coordinator` 形式のSVIDを受け取り、この証明書が有効な間だけ通信が許可される。有効期間は24時間以内に設定し、spiffe-helperサイドカーが自動ローテーションを行う。
+
+### Istio AmbientでのmTLS強制
+
+Istio Ambient Meshを使うと、アプリケーションコードを変更せずNamespaceレベルでmTLS STRICTモードを適用できる。
+
+```yaml
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: mtls-strict
+  namespace: agents
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: agents
+spec:
+  rules:
+  - from:
+    - source:
+        namespaces: ["agents"]
+```
+
+この設定で `agents` Namespace外からのTCPコネクションはL4レベルで全て遮断される。HTTPメソッド単位の制御（GETのみ許可など）にはL7 Waypointプロキシが別途必要な点に注意が必要だ。
+
+### OAuth2クライアントIDとスコープ制限
+
+[エージェントのIAMスコープ付き認証情報設計](/blog/agent-iam-scoped-credentials-design/)で詳述したように、各エージェントが独立したOAuth2クライアントIDを持ち、Keycloak等のIDプロバイダーから短命なアクセストークンを取得する構成が望ましい。サブエージェントへのタスク委譲時は、このトークンをスコープ制限したうえで引き渡し、委譲先が過剰な権限を行使できない設計にする。
+
+## eBPFによるカーネルレベルの可視化と執行
+
+> eBPFはLinuxカーネル内でエージェントのネットワーク接続・ファイルアクセス・プロセス生成を観測し、LSMフックで不正操作をミリ秒単位で遮断できる。CPU負荷は1〜2.5%程度に抑えられる。
+
+eBPFはカーネル空間でプログラムを実行し、エージェントランタイムに変更を加えずに低レイヤーの挙動を観測できる。ARMOの調査によれば、eBPFが検出・執行できる範囲は次のとおりだ。
+
+| 観測対象 | 検出可否 | LSM執行 |
+|---|---|---|
+| ネットワーク接続先・DNS解決 | ○ | ○ |
+| ファイルアクセスパターン | ○ | ○ |
+| プロセス生成・syscall | ○ | ○ |
+| プロンプトの意図・LLM応答内容 | ✗ | ✗ |
+
+2025年にarXivで発表されたAgentSightは、eBPFでエージェントのネットワークイベントとカーネルイベントを計測し、LLMとの通信を他のシステムコールと因果的に結びつけるハイブリッド相関エンジンを実装した。プロンプトインジェクション攻撃の下流影響（異常なファイルアクセスなど）をsyscallパターンとして検知できる。
+
+**eBPFの本質的な限界**: eBPFは「接続した」「ファイルを開いた」という事実は観測できるが、「なぜそうしたか」は見えない。AI特有の非決定論的なワークロードでは、正常な動作と異常な動作の境界が曖昧であり、静的allowlistだけでは過剰制限か危険な過剰許可のどちらかに偏る。セマンティックな意図の判定にはアプリケーション層のトレーシングを組み合わせる必要がある。
+
+## 多層防御アーキテクチャの設計指針
+
+> ゼロトラストなエージェント通信は、mTLS（L4）・L7 Waypointポリシー・eBPF LSM執行・アプリケーション層トレーシングの4層を重ねて実効性を持つ。
+
+[エージェントハーネスのアーキテクチャ](/blog/agent-harness-architecture/)で論じた実行基盤に、ネットワークセキュリティ層を加えると以下の構成になる。
+
+```
+[コーディネーター Pod]
+    ↓ SPIFFE mTLS（L4 相互認証・暗号化）
+[L7 Waypoint Proxy（Istio）]
+    ↓ AuthorizationPolicy（HTTPメソッド・パスの許可リスト）
+[サブエージェント Pod]
+    ↓ eBPF LSMフック
+[カーネル] ── ネットワーク・ファイル・プロセス操作を監視・執行
+```
+
+複数チームが独立したNamespaceでエージェントを運用するエンタープライズでは、Namespace間のピア認可をポリシーエンジンで一元管理する設計が規模化に有効だ。SPIFFE FederationによるマルチクラスターID連携や、Cilium Network Policyを用いたマイクロセグメンテーションも、大規模運用では検討に値する。
+
+Kuu株式会社の[RDEサービス](/services/rde/)では、エンタープライズのゼロトラストエージェント基盤設計・実装を支援している。SPIFFE/SPIRE・Istio Ambient・eBPFの組み合わせを現行インフラに段階的に適用するためのロードマップ策定から始めることができる。
+
+## 参考
+
+- [The Agentic Trust Framework: Zero Trust Governance for AI Agents — Cloud Security Alliance](https://cloudsecurityalliance.org/blog/2026/02/02/the-agentic-trust-framework-zero-trust-governance-for-ai-agents)
+- [eBPF for AI Agent Enforcement: What Kernel-Level Security Catches (and What It Misses) — ARMO](https://www.armosec.io/blog/ebpf-based-ai-agent-enforcement/)
+- [Zero Trust AI Agents on Kubernetes — Red Hat Emerging Technologies](https://next.redhat.com/2026/03/05/zero-trust-ai-agents-on-kubernetes-what-i-learned-deploying-multi-agent-systems-on-kagenti/)
+- [AgentSight: System-Level Observability for AI Agents Using eBPF — arXiv](https://arxiv.org/html/2508.02736v2)
+
+## まとめ
+
+AIエージェントのネットワーク通信をゼロトラストで設計するには、SPIFFE/SPIREによる暗号ID・Istio AmbientのmTLS STRICTモード・eBPFカーネル執行・アプリケーション層トレーシングの4層を組み合わせる必要がある。静的APIキーや境界型ファイアウォールだけでは、Confused Deputy攻撃やラテラルムーブメントには対応できない。
+
+各エージェントをNon-Human Identityとして管理し、24時間以内の短命証明書でmTLSを維持する設計は、EU AI Actのログ要件や大企業のコンプライアンス基準に対応する共通基盤でもある。Kuu株式会社の[RDEサービス](/services/rde/)では、エンタープライズのゼロトラストエージェント基盤設計・実装を支援している。まずはエージェント間通信のID管理状況を棚卸しするところから着手することを推奨する。
