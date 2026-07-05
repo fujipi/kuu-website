@@ -152,6 +152,15 @@
       "industry": "児童福祉・放課後等デイサービス",
       "use_case": "支援記録・個別支援計画・保護者連絡帳の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "shihoshoshi-registration-agent",
+      "keyword": "司法書士 登記申請 相続登記 会社登記 書類作成 AIエージェント 自動化",
+      "title_hint": "司法書士の登記申請書づくりをAIエージェントに——相続・不動産の事務をこう速める",
+      "persona": "司法書士事務所の所長・代表",
+      "industry": "士業・司法書士事務所",
+      "use_case": "登記申請書類の下書き生成・書類収集進捗管理・依頼者一次対応の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
