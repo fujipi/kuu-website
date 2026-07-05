@@ -760,6 +760,23 @@
         "https://modelcontextprotocol.io/docs/concepts/prompts",
         "https://modelcontextprotocol.io/specification/2025-06-18/server/prompts"
       ]
+    },
+    {
+      "slug": "agent-graceful-degradation-circuit-breaker",
+      "keyword": "サーキットブレーカー エージェント LLM障害 フォールバック 設計",
+      "title_hint": "エージェントのサーキットブレーカー設計——LLM障害を隔離する",
+      "persona": "エンタープライズのプラットフォームエンジニア・SRE（マルチエージェント構成の耐障害性設計を担当する人）",
+      "service_link": "/services/rde/",
+      "status": "published",
+      "audience": "enterprise",
+      "track": "architecture",
+      "tech_depth": "deep",
+      "target_query": "LLM API障害時にエージェントはどうフォールバック設計すればよいか",
+      "sources": [
+        "https://www.getmaxim.ai/articles/retries-fallbacks-and-circuit-breakers-in-llm-apps-a-production-guide/",
+        "https://www.truefoundry.com/blog/rate-limiting-ai-agents-preventing-llm-api-exhaustion",
+        "https://dev.to/waxell/ai-agent-circuit-breakers-the-reliability-pattern-production-teams-are-missing-5bpg"
+      ]
     }
   ],
   "keyword_bank": {
