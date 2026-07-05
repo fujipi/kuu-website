@@ -1,0 +1,138 @@
+---
+title: "AIエージェントのPII設計——匿名化・仮名化・マスキング"
+description: "AIエージェントのPII処理では匿名化・仮名化・マスキングの3手法を使い分けます。AIゲートウェイで自動検出し、可逆トークン化で多ターン文脈を保持しつつ、出力スキャンで漏洩を防ぐ設計パターンを解説します。"
+date: "2026-07-05"
+lastModified: "2026-07-05"
+tags: ["PII", "プライバシー設計", "データ匿名化", "エージェントセキュリティ"]
+author: "kuu-engineering"
+audience: "both"
+track: "security"
+tech_depth: "deep"
+target_query: "AIエージェントで個人情報（PII）を安全に処理する設計はどうすればよいか"
+sources:
+  - "https://arxiv.org/pdf/2606.26627"
+  - "https://www.gravitee.io/blog/how-to-prevent-pii-leaks-in-ai-systems-automated-data-redaction-for-llm-prompt"
+  - "https://jp.konghq.com/blog/pii-sanitization"
+pillar: "ai-governance"
+---
+
+AIエージェントに外部ユーザーの問い合わせや社内データベースの内容を渡すとき、プロンプトには氏名・メールアドレス・口座番号などの個人情報（PII）が混入します。LLMに生のPIIを送ると、プロバイダー側のログへの記録・プロンプトインジェクション経由の抜き取り・推論による再特定など複数の経路でリスクが生じます。本稿では、エージェントがPIIを含むデータを安全に処理するための3手法と実装パターンを整理します。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツに連動しています。権限管理設計は[エージェントの権限管理](/blog/ai-agent-permission-management-design/)を合わせて参照してください。
+
+## AIエージェントにおけるPIIリスクは何か
+
+> AIエージェントはLLMへの入力・ツール出力・メモリの3箇所でPIIを取り扱い、各経路に固有のリスクが生じます。
+
+2026年に発表されたarXivの調査論文（*Agents That Know Too Much*）は、LLMエージェントのPIIリスクを「プロンプト段階・ツール実行段階・メモリ段階」の3フェーズに分類しています。
+
+- **プロンプト入力段階**: ユーザーが入力した問い合わせ文やRAGで取得した文書にPIIが含まれ、LLMプロバイダーAPIへ送信される
+- **ツール実行段階**: エージェントが呼び出したデータベースクエリ・Web APIの返答にPIIが含まれ、そのままコンテキストに積み上がる
+- **メモリ・ログ段階**: 長期記憶ストアや観測ツールのトレースにPIIが保存され、アクセス制御が甘い場合に漏洩する
+
+インフラ監視（HTTP 200・レイテンシ）ではこれらのセマンティックなPII混入を検出できません。アーキテクチャレベルの設計が必要です。
+
+## 3手法の比較——匿名化・仮名化・マスキングをどう使い分けるか
+
+> 匿名化・仮名化・マスキングの3手法は規制要件で使い分けます。多ターン文脈を保持しながらPIIを隠すには仮名化が最適です。
+
+| 手法 | 操作 | 可逆性 | 文脈保持 | 主な用途 |
+|---|---|---|---|---|
+| **匿名化** | PIIを完全削除または集計 | 不可逆 | なし | 統計分析・長期ログ |
+| **仮名化** | PIIをトークン/UUIDに置換しマップ保持 | 可逆 | あり | 多ターン会話・インシデント調査 |
+| **マスキング** | PIIをプレースホルダー（`[NAME]`等）に置換 | 不可逆 | 部分的 | 一問一答型タスク・ログ表示 |
+
+GDPRはデータ最小化原則（Article 5(1)(c)）でLLMへの不要なPII送信を抑制することを求めており、日本の改正個情法も第三者提供に当たる外部APIへの送信に目的明示義務を課しています。規制要件を確認した上で、タスクの継続性が必要な多ターン会話には仮名化、単発処理には不可逆マスキングと使い分けます。
+
+## ゲートウェイ層でのPII自動検出と制御の設計
+
+> AIゲートウェイをPII検出の適用点とし、NERモデルで識別してからLLMへの入力をサニタイズします。
+
+アプリケーションコードごとにPII除去を実装すると、チームが増えるにつれて抜け漏れが生じます。**AIゲートウェイ**（LLMゲートウェイ）をポリシー適用点とすることで、複数エージェントサービスへ一括してPII制御を適用できます。
+
+```
+ユーザー入力
+    ↓
+[AIゲートウェイ]
+  ① NERモデルによるPII検出
+  ② 検出したエンティティをマスクまたはトークンに置換
+  ③ サニタイズ済みプロンプトをLLMへ転送
+    ↓
+[LLM]
+  ④ サニタイズ済み入力で推論
+    ↓
+[AIゲートウェイ]
+  ⑤ LLM出力をスキャン（漏洩チェック）
+    ↓
+ユーザーへ返却
+```
+
+**NERモデルの選定**では精度とスループットのトレードオフがあります。Graviteeのガイドは「小型モデルは非英語入力や複雑なプロンプトでPIIを見落とすことがある」と指摘しており、日本語対応の専用モデルまたは多言語対応のGLiNER系モデルの評価が必要です。
+
+**ブロッキング vs リダクション**の設定は用途で分けます。氏名・メールアドレスはリダクション（プレースホルダーへ置換してLLMへ転送継続）、クレジットカード番号・マイナンバーはブロッキング（リクエスト自体を拒否しユーザーに入力削除を促す）が一般的です。
+
+## 多ターン会話での可逆トークン化設計
+
+> 可逆トークン化はPIIをUUIDで置換してLLMに渡し、回答内トークンを逆引きして元値に戻す多ターン対応の設計です。
+
+マスキングだけでは複数ターンにまたがる会話で不整合が生じます。例えば「田中さんのアカウントは？」→「`[NAME]`のアカウントを確認します」という返答が次のターンでも`[NAME]`と続くと、エージェントは特定の人物のコンテキストを保持できません。
+
+可逆トークン化は、PIIをセッションスコープのUUIDに置換しながらPIIとUUIDのマッピングをサーバーサイドで保持します。
+
+```python
+import uuid
+
+class PIITokenizer:
+    def __init__(self):
+        self._token_map: dict[str, str] = {}   # {uuid: pii_value}
+        self._reverse_map: dict[str, str] = {} # {pii_value: uuid}
+
+    def tokenize(self, text: str, detected_pii: list[str]) -> str:
+        for pii in detected_pii:
+            if pii not in self._reverse_map:
+                token = f"TOKEN_{uuid.uuid4().hex[:8].upper()}"
+                self._token_map[token] = pii
+                self._reverse_map[pii] = token
+            text = text.replace(pii, self._reverse_map[pii])
+        return text
+
+    def detokenize(self, text: str) -> str:
+        for token, pii in self._token_map.items():
+            text = text.replace(token, pii)
+        return text
+```
+
+マッピングテーブルはサーバーサイドのセッションストア（Redis等）に保存し、セッション終了時に削除します。LLMに渡るのはUUIDのみで、マッピングテーブルは外部に出ません。マッピングテーブル自体のアクセスを[IAMスコープ付き認証情報](/blog/agent-iam-scoped-credentials-design/)で制限することが必要です。
+
+## 出力スキャンとPII漏洩検知の実装
+
+> LLM出力のPII漏洩はプロンプトインジェクションや推論による再特定から生じます。出力スキャンで二重防御します。
+
+入力サニタイズだけでは不十分です。LLMがシステムプロンプトや過去のツール出力に含まれたPIIを「推論」して出力に含めることがあります（*de-anonymization*）。また、悪意あるプロンプトインジェクションで入力フィルターを回避されるリスクもあります。
+
+出力スキャンは入力フィルターと同じNERモデルをLLMの出力側にも適用し、PIIが検出された場合はマスキングしてからユーザーへ返却します。
+
+出力スキャンが検知すべき主要なリスクは2つです。
+
+- **直接漏洩**: 入力に含まれたPIIがそのままLLMの回答に引用される
+- **推論的漏洩**: 匿名化されたデータの組み合わせからLLMがPIIを再推論する
+
+後者の推論的漏洩への対応としては、属性の組み合わせによる特定が可能な情報（「35歳・東京在住・特定職業」など）のk-匿名性チェックを定期的に実施することが有効です。ただし完全防止は困難であり、アウトプット監査と組み合わせた多層防御が現実的です。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: まずゲートウェイ層にマスキングポリシーを1つ導入し、氏名・メールアドレス・電話番号の3種類をリダクションするところから始めます。Kong AI GatewayやGravitee等にはPIIサニタイゼーション機能が組み込まれており、コード変更なしで有効化できます。[Kuuの運用管理サービス（AI-Ops）](https://kuucorp.com/services/ai-ops/)では、ゲートウェイポリシーの設計と検証を支援しています。
+
+**エンタープライズの場合**: テナント・ユーザーセグメント・データ分類（機密/内部/公開）ごとにPIIポリシーを分離し、Control Plane Groupで一元管理します。GDPRのData Processing Agreement（DPA）でLLMプロバイダーとの処理委託関係を明確化した上で、PIIのデータレジデンシー要件に応じてVPC内での処理を検討します。[Kuuの大規模AI基盤支援（RDE）](https://kuucorp.com/services/rde/)では、エンタープライズ規模のPIIアーキテクチャ設計とGDPR/個情法対応を担当しています。
+
+## 参考
+
+- [Agents That Know Too Much: A Data-Centric Survey of Privacy in LLM Agents（arXiv 2606.26627）](https://arxiv.org/pdf/2606.26627)
+- [How to Prevent PII Leaks in AI Systems: Automated Data Redaction for LLM Prompts — Gravitee](https://www.gravitee.io/blog/how-to-prevent-pii-leaks-in-ai-systems-automated-data-redaction-for-llm-prompt)
+- [PII Sanitization: LLMやAIエージェントにおける個人情報保護 — Kong株式会社](https://jp.konghq.com/blog/pii-sanitization)
+
+## まとめ
+
+AIエージェントのPII処理は、入力・ツール出力・メモリの3フェーズそれぞれに異なるリスクがあります。ゲートウェイ層でNERモデルによる自動検出と匿名化・仮名化・マスキングの3手法を目的に合わせて使い分け、出力スキャンで二重防御します。多ターン会話が必要な場合は可逆トークン化を用いてセッションスコープのUUIDマッピングをサーバーサイドで管理します。
+
+PII処理設計・ゲートウェイポリシー構築を検討している場合は[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)にご相談ください。
