@@ -1,0 +1,161 @@
+---
+title: "ClaudeストリーミングAPI設計——TTFT最適化と段階応答"
+description: "Claude APIのSSEストリーミングでTTFT300ms台を実現する設計を解説。eager_input_streamingによるツール引数の段階配信とJSON蓄積パターン、本番での3つの落とし穴も示す。"
+date: "2026-07-06"
+lastModified: "2026-07-06"
+tags: ["ストリーミング", "Claude API", "TTFT", "eager_input_streaming"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/streaming"
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/fine-grained-tool-streaming"
+target_query: "Claude APIのストリーミングはどう設計・実装するか"
+pillar: "ai-governance"
+---
+
+エージェントを本番で動かすと、最初の応答が3秒以上かかるだけで利用者は「壊れた」と感じる。LLMの生成速度は変えられないが、ストリーミング設計で知覚レイテンシは劇的に下げられる。Anthropicが提供するSSE（Server-Sent Events）ベースのストリーミングAPIを正しく実装すれば、TTFT（Time to First Token）を300ms台に抑え、ツール使用中も部分的な引数を段階配信できる。
+
+## ストリーミングAPIとはどう動くか
+
+> Claude APIはSSEプロトコルでトークンを逐次配信する。`stream: true`を設定すると、生成が完了する前から`content_block_delta`イベントでトークンが流れ始め、体感レイテンシを大幅に短縮できる。
+
+リクエストに `"stream": true` を渡すだけで、レスポンスがSSEストリームに切り替わる。イベントの種類は6つある。
+
+| イベント | 内容 |
+|---|---|
+| `message_start` | メッセージオブジェクトの初期化（使用トークン数など） |
+| `content_block_start` | コンテンツブロック開始（`text`または`tool_use`） |
+| `content_block_delta` | テキスト差分（`text_delta`）またはツール引数差分（`input_json_delta`） |
+| `content_block_stop` | コンテンツブロック終了 |
+| `message_delta` | メッセージレベルの更新（stop_reason, usage など） |
+| `message_stop` | ストリーム終了 |
+
+Python SDKでは `messages.stream()` コンテキストマネージャが内部のSSE処理を隠蔽し、`stream.text_stream` でテキストのみを取得できる。
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-8",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello"}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+```
+
+TypeScript SDKでは `.on("text", handler)` で同様のパターンが使える。低レベルのSSEイベントを直接扱いたい場合は `stream_raw()` / `createStreaming()` を使う。
+
+## TTFTはなぜエージェントUXを左右するか
+
+> TTFT（Time to First Token）は「リクエスト送信から最初のトークン受信まで」の時間で、ユーザーが体感する応答速度を決定する指標だ。200ms以下なら即座、1秒以上は遅延として知覚される。
+
+TTFTは2つの要因に分解できる。
+
+1. **ネットワーク往復時間**: クライアントからAnthropicのエンドポイントまでの距離。東京リージョン経由なら50〜100ms程度。
+2. **モデル処理時間**: プロンプト長とモデルサイズに依存。Claude Haiku 4.5は最速クラス（公開ベンチマークで0.81秒前後）、Sonnet 4.6は1.14秒前後。
+
+ノンストリーミングでは全トークンが生成完了するまでユーザーは何も見えない。1,000トークンの応答をOpus 4.8（約62 t/s）で生成すると16秒超かかる。ストリーミングにすれば最初のトークンは1秒以内に届き始め、体感速度が大幅に改善する。
+
+エージェントが複数回ツールを呼ぶ場合、各ターンのTTFTが積み上がる。メインのオーケストレーターはSonnet 4.6、サブエージェントは高速なHaiku 4.5に分けると、全体TTFTを抑えつつ精度を確保できる（[エージェント設計のClaudeモデル選択](/blog/claude-model-tool-use-performance-comparison/)も参照）。
+
+## SSEイベント処理パターンはどう設計するか
+
+> ストリームハンドラは「蓄積」と「リアクション」を分離して設計する。SDKのアキュムレーターで最終メッセージを組み立て、リアクション層でUIに部分出力を即時反映する。
+
+ストリーミング設計の基本原則は「蓄積」と「リアクション」の分離だ。
+
+- **蓄積**: SDKのアキュムレーター（Python: `stream.get_final_message()`）に最終的な完全オブジェクトを組み立てさせる。自前で `content_block_delta` を連結するのは、SDKが既にそれを行うためDRY違反になる。
+- **リアクション**: `on("text", handler)` や `stream.text_stream` のイベントリスナーで、到着した差分をUIや下流処理へ即時反映する。
+
+```python
+with client.messages.stream(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Q3の売上サマリを作成して"}],
+) as stream:
+    # リアクション: 到着したテキストを即時出力
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+
+    # 蓄積: 完全なメッセージオブジェクトを取得
+    final = stream.get_final_message()
+    stop_reason = final.stop_reason  # "end_turn" | "tool_use" | "max_tokens"
+```
+
+`stop_reason` の確認は必須だ。`tool_use` なら次のAPIコールでツール結果を返すターンに入り、`max_tokens` なら切断された可能性があるため、`max_tokens` を増やして再送するかエラーを返すかを判断する。
+
+## ツール使用のストリーミング——eager_input_streamingの設計
+
+> `eager_input_streaming: true` を設定すると、サーバー側のJSONバリデーション前にツール引数の断片が流れ始める。大きなドキュメント生成ツールでは最初の断片までのレイテンシを大幅に短縮できる。
+
+通常のツール使用ストリーミングはサーバーがJSONを検証してから配信するため、引数が大きいと最初の断片が届くまで待たされる。`eager_input_streaming` を `true` にするとこの検証をスキップし、Claudeが生成した瞬間に断片が到着する。
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-8",
+    max_tokens=4096,
+    tools=[{
+        "name": "generate_report",
+        "description": "長文レポートを生成する",
+        "eager_input_streaming": True,
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "content": {"type": "string"}
+            },
+            "required": ["content"]
+        }
+    }],
+    messages=[{"role": "user", "content": "Q3レポートを書いて"}],
+) as stream:
+    for event in stream:
+        if event.type == "input_json":
+            # 断片が到着次第、プログレスバーを更新するなどのリアクションが可能
+            print(event.partial_json, end="", flush=True)
+    final = stream.get_final_message()
+```
+
+ツール引数の蓄積パターンは、コンテンツブロックインデックスをキーにした辞書で管理する。
+
+1. `content_block_start`（type=`tool_use`）: `tool_inputs[index] = ""`
+2. `content_block_delta`（type=`input_json_delta`）: `tool_inputs[index] += event.delta.partial_json`
+3. `content_block_stop`: `json.loads(tool_inputs[index])` で解析（例外をキャッチ）
+
+`eager_input_streaming` 使用時は、蓄積したJSONが不完全な場合がある。解析に失敗したら `is_error: true` とともに `{"INVALID_JSON": "<生の文字列>"}` をツール結果として返す。これによりClaudeが再試行の文脈を理解できる。
+
+## 本番での3つの落とし穴と対策
+
+> マークダウンの途中レンダリング・ストリームの途中終了・接続タイムアウトの3点が本番で最もよく起きる問題だ。それぞれ実装レベルで確実に対処できる。
+
+**① マークダウンの途中レンダリング**
+
+`text_delta` が届くたびにマークダウンをHTMLに変換すると、壊れたHTMLが生成される。`**bold**` の最初の `**` だけが届いた瞬間に変換しようとするためだ。対策は2つある。
+
+- テキストをプレーンテキストで表示し、`message_stop` 後にHTMLに変換する
+- 完結したブロック（段落・見出し）単位まで蓄積してから変換する
+
+**② ストリームの途中終了**
+
+`with stream` コンテキストを抜けると残りのチャンクが破棄され、`get_final_message()` が不完全なデータを返す。`text_stream` のループが途中で `break` した場合も同様だ。途中終了が必要なケースはタイムアウト処理と切り離し、`CancelledError` を適切にハンドルする。
+
+**③ 接続タイムアウト**
+
+長い生成中にリバースプロキシやロードバランサーが接続を切ることがある。Anthropic SDKは接続タイムアウトを `timeout` パラメータで設定できる（デフォルトは600秒）。ストリームが中断されたら `stop_reason` が `end_turn` でないことで検出し、会話履歴を引き継いで再開する。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB向け**: SDKのデフォルト設定（Python: `anthropic.Anthropic()`, TypeScript: `new Anthropic()`）で始められる。まずテキストストリーミングのみ実装し、ツール使用のストリーミングは後から追加するのが安全だ。Kuuの[AIエージェント運用管理サービス](/services/ai-ops/)では、ストリーミング対応の設計相談も受け付けている。
+
+**エンタープライズ向け**: 複数チームが同一ストリームエンドポイントを利用する場合、LLMゲートウェイ側でSSEのプロキシが必要になる。ゲートウェイが保持する接続数の上限設計と、バックプレッシャー時のエラーハンドリングが重要だ。また、大規模な `eager_input_streaming` はJSON解析の失敗率をモニタリングし、閾値超過時にアラートを出す仕組みを組み込む。エンタープライズ規模のストリーミング基盤設計は[RDEサービス](/services/rde/)で支援している。
+
+## 参考
+
+- [Streaming messages - Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/streaming)
+- [Fine-grained tool streaming - Claude Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/fine-grained-tool-streaming)
+
+## まとめ
+
+Claude APIのストリーミング設計は、`stream: true` の一行から始まり、ツール使用での `eager_input_streaming`、本番でのタイムアウト・マークダウン・JSON蓄積の3点を押さえることで完結する。TTFTを300ms台に抑えることはモデル能力の問題ではなく実装設計の問題だ。
+
+エージェントのストリーミング設計や本番運用の相談は[Kuu株式会社のAIエージェント運用管理サービス](/services/ai-ops/)へ。エンタープライズ規模の基盤設計は[RDEサービス](/services/rde/)で対応している。
