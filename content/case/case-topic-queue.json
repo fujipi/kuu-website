@@ -134,8 +134,7 @@
       "industry": "訪問介護・在宅介護",
       "use_case": "ヘルパーシフト・訪問記録・サービス提供実績記録票の補助自動化",
       "status": "published"
-    }
-  ],
+    },
     {
       "slug": "wedding-venue-proposal-agent",
       "keyword": "ブライダル 結婚式場 ウエディング プランナー 見積 顧客フォロー AIエージェント",
@@ -143,6 +142,15 @@
       "persona": "ブライダル式場・ゲストハウスのウエディングプランナーリーダー",
       "industry": "ブライダル・ウェディング",
       "use_case": "見積書作成・プラン提案・顧客フォローの補助自動化",
+      "status": "published"
+    },
+    {
+      "slug": "afterschool-day-service-record-agent",
+      "keyword": "放課後等デイサービス 支援記録 個別支援計画 保護者連絡帳 AIエージェント 自動化",
+      "title_hint": "放課後等デイサービスの支援記録・保護者連絡をAIエージェントに——児発管の多重業務をこう減らす",
+      "persona": "放課後等デイサービスの管理者兼児発管",
+      "industry": "児童福祉・放課後等デイサービス",
+      "use_case": "支援記録・個別支援計画・保護者連絡帳の補助自動化",
       "status": "published"
     }
   ],
