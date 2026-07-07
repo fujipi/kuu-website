@@ -1,0 +1,110 @@
+---
+title: "LLMストリーミング実装——SSEとWebSocketの選択基準"
+description: "LLMストリーミング出力でSSEとWebSocketをどう選ぶか。Claude APIのSSEイベント構造とエージェントパイプラインの逆圧問題まで設計判断を解説。"
+date: "2026-07-07"
+lastModified: "2026-07-07"
+tags: ["ストリーミング", "SSE", "アーキテクチャ", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/api/messages-streaming"
+  - "https://tianpan.co/blog/2026-04-12-backpressure-in-agent-pipelines-when-ai-generates-work-faster-than-it-can-execute"
+---
+
+LLMが応答を返し始めるまでの空白時間は、ユーザー体験にとって致命的な問題です。1,000トークンの応答をすべて待ってから表示する非ストリーミング設計では、体感レスポンス時間が5〜30秒に達します。ストリーミングで最初のトークンを即座に表示するだけで、ユーザーはほとんど待機を感じなくなります。本記事ではプロトコル選択の根拠からClaude APIのイベント構造、エージェントパイプライン固有の落とし穴まで、実装者が直面する設計判断を順に整理します。
+
+## なぜLLMのレスポンスにストリーミングが必要か
+
+> LLMストリーミングは最初のトークンを即座に送信し、体感レスポンス時間を数秒単位で短縮します。
+
+LLMの応答品質は変わらないのに、「遅い」と感じさせる主因は**TTFT（Time to First Token）**です。非ストリーミングでは全トークン生成が終わるまでHTTPレスポンスが返らないため、ユーザーは空白画面を見続けます。ストリーミング設計ではTTFTを200〜500ms以内に抑えることができ、残りの生成が続く間もユーザーは文字が増えていく様子をリアルタイムで確認できます。
+
+実装上のもう一つの理由はHTTPタイムアウト回避です。Anthropic SDKは`max_tokens`が大きい場合、タイムアウトを防ぐために内部でストリーミングを利用します。直接APIを呼ぶ場合も、長い生成ではストリーミングが事実上の必須選択です。
+
+## SSEとWebSocketの選択基準はどこにあるか
+
+> SSEはHTTPの単方向ストリームでLLM配信の標準、WebSocketは双方向が必要な場合のみ選びます。
+
+LLMのトークン配信に必要な通信は「サーバー→クライアント」の**一方向**です。この用途にWebSocketを選ぶと、双方向接続の確立・スティッキーセッション管理・接続ブローカー追加という不要なコストが発生します。
+
+**SSEを選ぶべき場合**
+
+- ブラウザへのリアルタイムトークン配信
+- 標準的なHTTPロードバランサー（Nginx・ALB）をそのまま使いたい場合
+- 再接続をブラウザの`EventSource`標準機能に任せたい場合
+
+**WebSocketを選ぶべき場合**
+
+- チャットUIで同一接続を使いクライアントから途中入力を送信する場合
+- 音声やバイナリデータを同時に流すリアルタイムマルチモーダルアプリ
+
+2026年時点、MCP（Model Context Protocol）の公式リモートトランスポートも「Streamable HTTP」へ移行しており、ブラウザ向けSSE新規構築は実質非推奨になっています。新規構築はStreamable HTTPを選択し、既存SSE資産は順次移行が推奨されます。
+
+## Claude APIのSSEイベント構造を理解する
+
+> Claude APIはSSEで5種類のイベントを発行し、ツール呼び出し時もJSONデルタとして部分的にストリームします。
+
+`"stream": true`を設定するとClaude APIは以下の順でSSEイベントを発行します。
+
+1. **`message_start`** — 空の`content`を持つMessageオブジェクトを返す。使用トークン数の初期値も含む
+2. **`content_block_start`** — テキストブロックまたはtool_useブロックの開始。`index`でブロック位置を示す
+3. **`content_block_delta`** — 差分トークンを含む。テキストなら`text_delta`、ツール呼び出しの引数なら`input_json_delta`
+4. **`content_block_stop`** — ブロック終了
+5. **`message_delta`** — `stop_reason`・累積使用トークン数などのトップレベル変更
+6. **`message_stop`** — ストリーム終了
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-8",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": query}],
+) as stream:
+    for text in stream.text_stream:
+        yield f"data: {text}\n\n"  # SSEフォーマットでフロントエンドへ転送
+```
+
+ツール呼び出しをストリームする場合、`input_json_delta`は**部分的なJSON文字列**を送信するため、受信側は`json.loads()`を呼ぶ前に`content_block_stop`まで文字列を蓄積する必要があります。途中でパースしようとすると`JSONDecodeError`が発生します。
+
+エラーイベントはHTTPステータスでなく`event: error`として流れることがあります（例: 過負荷時の`overloaded_error`）。エラー処理はHTTPレスポンスコードだけでなくSSEイベントストリームも監視する設計が必要です。
+
+## エージェントパイプラインでの逆圧問題
+
+> エージェントがファンアウトすると生成速度が処理速度を超えるため、有界キューで逆圧制御しないとシステムが崩壊します。
+
+単一のLLM呼び出しではストリーミングの実装は比較的単純です。問題はマルチエージェント構成で顕在化します。**ファンアウト**（1つのオーケストレーターが複数のサブエージェントを並列起動）する設計では、トークン生成速度がダウンストリームの処理速度を大幅に上回ることがあります。
+
+代表的な症状は以下の3つです。
+
+**1. 無制限キュー膨張**  
+サブエージェントが生成した中間結果をキューに積み続けると、メモリが枯渇するまで処理が続きます。有界キュー（bounded queue）を設定し、満杯時は新規ジョブを拒否またはブロックする設計が必要です。
+
+**2. トークン予算超過**  
+エージェントが子エージェントを再帰的に生成する設計では、消費トークンが指数的に増加します。親から子へ予算を配分し（例: 親1,000トークン→子エージェント1つあたり200トークン上限）、超過したら新規起動を抑止するヒエラルキカル予算設計が有効です。
+
+**3. 優先度なきシェディング**  
+逆圧が高まった際に、ユーザー向け最終回答の生成とオプショナルな補完処理が同じ優先度でキューに入ると、最優先の処理が遅延します。P0（ユーザー回答・安全チェック）はシェディング対象外、P2（追加コンテキスト収集など）は積極的にシェディングする優先度制御が不可欠です。
+
+[エージェントガバナンス](/glossary/agent-governance/)の観点では、逆圧の検知指標（キュー深さ・トークン消費速度・サブエージェント起動数）を[可観測性](/blog/agent-observability-tracing-instrumentation/)基盤に組み込み、アラートで把握できる構造が前提になります。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB向け**  
+まずはPythonのAnthropicSDKが提供するストリームヘルパーをそのまま使い、FastAPIやNext.js APIルートでSSEを前段に差し込む最小構成から始めるのが現実的です。独自のSSEプロキシを書く前に、`client.messages.stream()`が内部でストリームを処理しつつ`get_final_message()`で結果を返す「遅延ストリーミング」モードも活用できます。[AI運用管理](/services/ai-ops/)の観点から、エラーログだけは最初から構造化して保存する習慣をつけてください。
+
+**エンタープライズ向け**  
+複数チームが同一LLMゲートウェイを共有する環境では、アップストリームへのストリーミング接続数がレート制限に直接影響します。ゲートウェイ層でコネクションプールを制御し、テナントごとの最大同時ストリーム数を設定する[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)が前提です。逆圧制御の設計・運用支援には[RDEサービス](/services/rde/)もご活用ください。
+
+## 参考
+
+- [Streaming messages — Claude API Docs](https://platform.claude.com/docs/en/api/messages-streaming)
+- [Backpressure in Agent Pipelines — TianPan.co](https://tianpan.co/blog/2026-04-12-backpressure-in-agent-pipelines-when-ai-generates-work-faster-than-it-can-execute)
+
+## まとめ
+
+LLMストリーミングのプロトコル選定は、**新規ならStreamable HTTP、ブラウザ向け既存資産ならSSE**が現時点の指針です。WebSocketはLLMのトークン配信には過剰で、双方向通信が必要な特殊ケースのみに限定します。Claude APIのSSEイベント構造を正しく理解し、特にツール呼び出し時の部分JSONデルタとエラーイベントの処理を実装することが安定稼働の前提です。
+
+マルチエージェント構成では逆圧制御が本番品質の分岐点になります。有界キュー・ヒエラルキカルトークン予算・優先度シェディングの3つを設計に組み込んでください。
+
+エージェントのストリーミング設計・逆圧制御・運用監視の相談は[Kuu株式会社のAI運用管理サービス](/services/ai-ops/)までお気軽にどうぞ。
