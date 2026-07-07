@@ -497,6 +497,24 @@
   ],
   "topics_from_keyword_bank": [
     {
+      "slug": "agent-platform-managed-vs-selfhost-decision-smb",
+      "keyword": "エージェント基盤 マネージドサービス セルフホスト 中小企業",
+      "title_hint": "中小企業のエージェント基盤選定——マネージドかセルフホストか",
+      "persona": "エージェント基盤の選定を検討している中小企業のIT担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェント基盤はマネージドとセルフホストのどちらを選ぶべきか",
+      "sources": [
+        "https://aws.amazon.com/bedrock/agentcore/",
+        "https://azure.microsoft.com/en-us/products/ai-foundry/agent-service/",
+        "https://dify.ai/",
+        "https://www.marka-development.com/news/self-hosted-llm-vs-api-the-real-cost-and-security-trade-offs-for-enterprise-in-2026/"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "agent-threat-modeling-stride",
       "keyword": "AIエージェント 脅威モデリング STRIDE セキュリティ設計",
       "title_hint": "AIエージェントにSTRIDE脅威モデリングを適用する設計手順",

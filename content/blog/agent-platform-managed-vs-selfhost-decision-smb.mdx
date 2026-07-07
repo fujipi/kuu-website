@@ -1,0 +1,91 @@
+---
+title: "中小企業のエージェント基盤選定——マネージドかセルフホストか"
+description: "月1億トークン未満の中小企業にはマネージドが有利。Bedrock AgentCore・Vertex AI・Dify（OSS）を5軸で比較し、最初に選ぶべきエージェント基盤を示します。"
+date: "2026-07-07"
+lastModified: "2026-07-07"
+tags: ["エージェント基盤", "マネージドサービス", "セルフホスト", "AIエージェント"]
+author: "kuu-editorial"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+target_query: "AIエージェント基盤はマネージドとセルフホストのどちらを選ぶべきか"
+sources:
+  - "https://aws.amazon.com/bedrock/agentcore/"
+  - "https://azure.microsoft.com/en-us/products/ai-foundry/agent-service/"
+  - "https://dify.ai/"
+  - "https://www.marka-development.com/news/self-hosted-llm-vs-api-the-real-cost-and-security-trade-offs-for-enterprise-in-2026/"
+pillar: "ai-governance"
+---
+
+AIエージェントを本番に投入しようとしたとき、最初に直面するのが「どこで動かすか」という基盤選定です。クラウド3大プロバイダのマネージドサービスと、DifyやLangGraphに代表するオープンソースのセルフホスト基盤では、コスト・運用負荷・データ主権が根本から異なります。「とりあえずクラウドに乗せれば良い」という判断が後から大きな移行コストになるケースが増えています。
+
+## AIエージェント基盤とは何か
+
+> エージェント基盤はLLM呼び出し・メモリ・ツール実行・ログを束ねる実行環境で、選定が長期の運用コストを左右します。
+
+AIエージェントが本番で動くためには、モデル呼び出し・会話履歴の管理・外部ツールの実行・ログ保存を一元的に扱う実行環境が必要です。これをエージェント基盤と呼びます。[エージェントガバナンス](/glossary/agent-governance/)の観点では、この基盤の選定が後続の権限設計・可観測性・コスト管理の出発点になります。
+
+2026年時点の選択肢は大きく3種類です。
+
+| 種類 | 代表例 | 特徴 |
+|---|---|---|
+| クラウドマネージド | Bedrock AgentCore・Vertex AI・Azure AI Foundry | スケーリング自動、数日で稼働 |
+| OSSセルフホスト | Dify・LangGraph・Flowise | データ主権確保、カスタマイズ自由 |
+| ハイブリッド | クラウド推論＋自社オーケストレーション | 規制対応と柔軟性を両立 |
+
+## マネージドサービスは何を提供するか
+
+> 3大クラウドはスケーリング・セキュリティ・モニタリングをSLAで提供し、エンジニア不在の中小企業でも数日で稼働できます。
+
+**AWS Bedrock AgentCore**は2025年10月にGAとなり、サーバーレスのマイクロVM分離・OAuth統合（GitHub・Salesforce・Slack）・40種以上のモデルカタログを提供します。既存AWSインフラとの親和性が高く、IAMによる[権限管理設計](/blog/ai-agent-permission-management-design/)を活かせます。
+
+**Azure AI Foundry Agent Service**はMicrosoft 365・Teamsとワンクリック連携します。Phi-4-miniモデルは100万入力トークンあたり$0.07と低コストで、Office系ツールを中心に使う中小企業に適しています。
+
+**Google Vertex AI（Gemini Enterprise Agent Platform）**はBigQuery・Google Workspaceとの統合が強みです。Agent Development Kit（ADK）とAgent Studioを組み合わせたフルスタック環境で、Google Cloud投資がある組織の第一候補になります。
+
+3者に共通するのは「インフラ管理をベンダーに委譲できる」点です。モデルアップデートは自動で適用され、バースト時のスケーリングも自動です。専任エンジニアが不在の中小企業では、この運用負荷のオフロードが最大の価値になります。
+
+## セルフホストはいつ選ぶべきか
+
+> 月1億トークン超・データ主権要件・専任DevOpsが揃う場合のみ、セルフホストが選択肢になります。
+
+オープンソースで最も普及しているDifyは、2026年時点でGitHub Star 131,000超・本番導入280社以上です。Docker Composeで30分程度で構築でき、RAGパイプライン・MCPサポート・マルチモデル切替を視覚的に操作できます。月$59からのクラウド版も提供されており、まず試してから自己ホストへ移行するパスもあります。
+
+ただしセルフホストの実コストはコンピュート費だけではありません。セキュリティパッチ・モデルアップデート・障害対応を含む運用コストはコンピュート費の3〜5倍が目安です。推論APIと比較して採算が取れるのは月1億〜2.56億トークン以上からが一般的です。
+
+セルフホストが合理的なケース:
+- 医療・法務・金融で個人情報の国内保持が法令上必須
+- 月次トークン量が安定して1億を超える
+- 独自ワークフローやモデルのカスタマイズが不可欠
+- DevOpsエンジニアが専任で1名以上いる
+
+上記のどれにも当てはまらない中小企業は、マネージドサービスから始めるほうがリスクを抑えられます。
+
+## 5軸の選定フレームワーク
+
+> 既存クラウド・コンプライアンス・月次トークン量・運用体制・拡張性の5軸で評価し、3軸以上一致するサービスを選ぶ手順を示します。
+
+| 判断軸 | マネージド有利 | セルフホスト有利 |
+|---|---|---|
+| ① 既存クラウド | AWS・GCP・Azureを主用途で使用 | クラウド非依存またはオンプレ中心 |
+| ② コンプライアンス | 一般業務（SaaS利用規約で許容） | HIPAA・国内データ保持・弁護士秘匿 |
+| ③ 月次トークン量 | 1億未満 | 1億超で推論コストが支配的 |
+| ④ 運用体制 | エンジニア不在〜0.5名 | DevOps専任1名以上 |
+| ⑤ 拡張性 | 標準機能で業務が成立 | 独自ワークフローが不可欠 |
+
+「①〜⑤のうち3軸以上マネージド有利」が最初の判断基準です。該当するなら、既存クラウドのサービスから始めます。AWSユーザーならBedrock AgentCore、GoogleユーザーならVertex AI、Microsoft 365ユーザーならAzure AI Foundryが自然な出発点です。
+
+基盤が決まったあとは[権限管理設計](/blog/ai-agent-permission-management-design/)と[可観測性の計装](/blog/agent-observability-tracing-instrumentation/)がセットで必要になります。Kuuの[AIオペレーションサービス](https://kuucorp.com/services/ai-ops/)では、既存インフラの状況を踏まえた基盤選定から運用設計まで一貫して支援しています。
+
+## 参考
+
+- [Amazon Bedrock AgentCore（AWS公式）](https://aws.amazon.com/bedrock/agentcore/)
+- [Azure AI Foundry Agent Service（Microsoft公式）](https://azure.microsoft.com/en-us/products/ai-foundry/agent-service/)
+- [Dify公式サイト](https://dify.ai/)
+- [Self-Hosted LLM vs API: Real Cost and Security Trade-offs 2026（Marka Development）](https://www.marka-development.com/news/self-hosted-llm-vs-api-the-real-cost-and-security-trade-offs-for-enterprise-in-2026/)
+
+## まとめ
+
+エージェント基盤の選定は「マネージドが安全」でも「OSSが安い」でもなく、既存クラウド環境・コンプライアンス要件・月次トークン量・運用体制の4点で決まります。月1億トークン未満・専任エンジニアなし・一般業務であれば、マネージドサービスが現実的な出発点です。
+
+基盤選定から運用設計・権限管理・コスト最適化まで通したご相談は[Kuuのエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)からどうぞ。
