@@ -1,0 +1,135 @@
+---
+title: "Sagaパターンでエージェント処理を取り消す——補償設計と一貫性保証"
+description: "AIエージェントのマルチステップ処理で失敗した場合に完了済みアクションを安全に取り消すSagaパターンを解説。オーケストレーター型実装と補償アクション設計の原則を示す。"
+date: "2026-07-08"
+lastModified: "2026-07-08"
+tags: ["Sagaパターン", "アーキテクチャ", "エージェント設計", "分散システム"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+target_query: "AIエージェントのマルチステップ処理で失敗した場合の補償・ロールバックをどう設計するか"
+sources:
+  - "https://vadim.blog/durable-execution-llm-agents/"
+  - "https://brightlume.ai/blog/long-running-ai-agents-scheduling-durability-recovery"
+  - "https://mightybot.ai/blog/fault-tolerant-ai-agent-pipelines/"
+  - "https://tianpan.co/blog/2026-04-20-idempotency-llm-pipelines"
+pillar: "ai-governance"
+---
+
+送金エージェントが外部決済APIへの呼び出しを完了し、次のメール通知ステップで失敗した——この場合、送金を取り消せるか。[チェックポイントとリトライ](/blog/agent-harness-state-management-retry-design/)は「失敗ステップを再実行する」仕組みで、すでに完了したアクションを逆順に取り消す機能を持たない。マルチステップのエージェントが業務ロジックに踏み込むほど、この「補償（Compensation）」の設計が不可欠になる。
+
+## Sagaパターンとは何か
+
+> Sagaパターンはマルチステップのトランザクションをローカルトランザクションの連鎖に分解し、各ステップに補償アクションを対応付けて一貫性を保証する設計手法です。
+
+従来のデータベーストランザクション（2フェーズコミット）は、外部API呼び出し・メール送信・在庫引き当てといった操作をまたいでアトミック性を保証できない。分散したシステム間ではロールバックコマンドが存在しないからだ。
+
+Sagaはこの制約を「補償」で乗り越える。各ステップが完了したら補償アクションを定義しておき、後続ステップが失敗した場合に完了済みステップを**逆順で取り消す**。
+
+| ステップ | 前進アクション | 補償アクション |
+|---|---|---|
+| 1 | 在庫引き当て | 在庫を解放する |
+| 2 | 決済処理 | 返金リクエストを送信 |
+| 3 | 配送指示 | 配送キャンセルAPIを呼ぶ |
+| 4 | 通知送信 | ─（補償なし） |
+
+ステップ3で失敗した場合、ステップ2（返金）→ステップ1（在庫解放）の順で補償が走り、システムを整合した状態に戻す。ステップ4のような取消不可の操作には「補正（Correction）」を代わりに設計する（後述）。
+
+## なぜリトライだけでは不十分なのか
+
+> リトライは失敗ステップを再実行しますが、補償はすでに完了したステップを取り消します。失敗位置によってはリトライが副作用を悪化させます。
+
+リトライはある前提を持つ——失敗したステップを再実行しても副作用が生じない（冪等である）こと。しかし現実のエージェントが呼ぶ外部APIには非冪等な操作がある。
+
+- 注文API：べき等キーなしで二重呼び出しすると二重注文になる
+- 送金API：べき等キーがなければ二重送金が発生する
+- メール送信：リトライするたびに同じメールが届く
+
+こうした**非冪等アクションを含むフロー**では、完了ステップの取り消しが必要になる。Sagaはリトライの「縦方向の回復」に対し、「横方向の巻き戻し」を担う補完的なパターンだ。両者を組み合わせて使うのが実用的な設計となる。
+
+## 2種類のSaga実装——コレオグラフィーとオーケストレーター
+
+> コレオグラフィーはイベント駆動の自律調整、オーケストレーターは中央集権的な指示制御です。エージェントハーネスには後者が適しています。
+
+**コレオグラフィー型（Choreography）**
+
+各コンポーネントがイベントを発行し、他コンポーネントがそれを購読して処理を続ける。サービス間の直接依存がなく疎結合になる反面、フローの全体像が分散してデバッグが難しくなる。[イベント駆動エージェント](/blog/event-driven-agent-workflow-design/)と相性は良いが、補償の追跡が複雑になりやすい。
+
+**オーケストレーター型（Orchestrator）**
+
+中央のSagaオーケストレーターがどのサービスを呼ぶかを順次指示し、補償アクションの実行も管理する。フローが一ヶ所に集中するため、[エージェントの可観測性](/blog/agent-observability-tracing-instrumentation/)と組み合わせてデバッグしやすい。
+
+エージェントハーネスにはオーケストレーター型が適している。エージェント自体がステップを順次実行する設計と構造が一致し、状態機械（State Machine）として自然に実装できるからだ。
+
+```python
+class SagaOrchestrator:
+    def __init__(self, steps: list[SagaStep]):
+        self.steps = steps
+        self.completed: list[int] = []
+
+    def execute(self) -> bool:
+        for i, step in enumerate(self.steps):
+            try:
+                step.run()
+                self.completed.append(i)
+            except Exception as e:
+                self._compensate()
+                raise SagaFailedError(step=i, cause=e)
+        return True
+
+    def _compensate(self):
+        for i in reversed(self.completed):
+            try:
+                self.steps[i].compensate()
+            except Exception:
+                # 補償失敗はログに記録して継続（補償の無限ループは作らない）
+                log_compensation_failure(step_index=i)
+```
+
+各 `SagaStep` は `run()` と `compensate()` を実装し、オーケストレーターはどこまで完了したかを `completed` リストで追跡する。失敗時は逆順で `compensate()` を呼ぶシンプルな構造だ。
+
+## 補償アクションの設計原則
+
+> 補償アクションは元の操作を物理的に巻き戻すのではなく、ビジネス的に等価な取消を実行します。設計原則は4つです。
+
+**原則1: 補償は冪等にする**
+
+補償アクション自体も失敗してリトライされる。「返金フラグが未設定なら返金APIを呼ぶ」のように状態を確認してから実行し、二重補償が起きない設計にする。
+
+**原則2: 「取消不可」操作には補正を設計する**
+
+メール送信・SMS通知・物理的な出荷処理は取り消せない。補償アクションの代わりに「誤りを認めて次の行動を案内するメールを送る」のような補正（Correction）を定義する。補正は副作用として認識した上で、インシデントレポートに記録する。
+
+**原則3: 補償の失敗には人間エスカレーションを設定する**
+
+補償アクション自体が失敗した場合（返金APIが503を返し続けるなど）、自動補償を止めてアラートを発報し、人間に引き継ぐ。補償の補償を無限に連鎖させると複雑性だけが増す。
+
+**原則4: ステップとタイムアウトをセットで定義する**
+
+各ステップと補償アクションにタイムアウトを設ける。「30秒待って応答なし→タイムアウトエラーとして補償を起動」が標準的な設計だ。タイムアウト値はSLAとインフラのP99レイテンシから逆算して決める。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB・中小規模チームの場合**: 外部API呼び出しが2〜3ステップのシンプルなフローであれば、上記のオーケストレーターパターンを自前実装できる。状態はPostgreSQLのテーブルに記録し、補償状況を管理するシンプルな構成で十分だ。ライブラリへの過度な依存を避け、状態遷移ロジックを明示的に書くほうがデバッグが容易になる。[Kuuの AIオペレーションサービス](/services/ai-ops/)ではSagaパターンの設計支援に対応している。
+
+**エンタープライズの場合**: マイクロサービス間をまたぐ分散Sagaでは、Temporal・AWS Step FunctionsのSagaモードなど、ワークフローエンジンの利用を検討する。補償ログはイベントソーシング方式で改ざん防止ストレージに保管し、SOX/ISMAP等の規制要件に対応する。[RDEサービス](/services/rde/)では分散Sagaの設計から監査対応まで支援している。
+
+## 参考
+
+- [Durable Execution for LLM Agents（Vadim's blog）](https://vadim.blog/durable-execution-llm-agents/)
+- [Long-Running AI Agents: Scheduling, Durability, and Recovery（Brightlume AI）](https://brightlume.ai/blog/long-running-ai-agents-scheduling-durability-recovery)
+- [Designing Fault-Tolerant AI Agent Pipelines（MightyBot）](https://mightybot.ai/blog/fault-tolerant-ai-agent-pipelines/)
+- [Idempotency Is Not Optional in LLM Pipelines（TianPan.co）](https://tianpan.co/blog/2026-04-20-idempotency-llm-pipelines)
+
+## まとめ
+
+Sagaパターンは「失敗ステップをリトライする」のではなく「完了済みステップを取り消す」補償設計だ。エージェントが業務ロジックを扱うほどこの設計は重要になる。
+
+- チェックポイント＋リトライ：冪等な操作の失敗回復に使う
+- Sagaパターン：非冪等操作を含む多段フローで一貫性を守る
+- 補償アクションは冪等に設計し、取消不可操作は「補正」で対応する
+- 補償の失敗は人間エスカレーションで止め、無限連鎖を作らない
+- エンタープライズではTemporalなどのワークフローエンジンで実装を簡素化する
+
+エージェントの設計・運用は[Kuuの AIオペレーションサービス](/services/ai-ops/)にご相談ください。
