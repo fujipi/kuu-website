@@ -1,0 +1,117 @@
+---
+title: "Claude Sonnet 5エンタープライズ設計——ノード配置とコスト最適化"
+description: "Claude Sonnet 5（2026年6月）はOpus 4.8に迫る能力をSonnet価格で提供する。Adaptive Thinking・effort制御・Batch API 300k出力を軸にエンタープライズ設計指針を示す。"
+date: "2026-07-09"
+lastModified: "2026-07-09"
+tags: ["Claude", "エージェント設計", "モデル選択", "Batch API"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude Sonnet 5はエンタープライズのエージェント設計でどう活用すべきか"
+sources:
+  - "https://www.anthropic.com/news/claude-sonnet-5"
+  - "https://platform.claude.com/docs/en/docs/about-claude/models/overview"
+  - "https://www.anthropic.com/claude/sonnet"
+pillar: "ai-governance"
+---
+
+エンタープライズのエージェント基盤を設計する際、Claude Sonnet 5の登場（2026年6月30日）が選択肢を根本的に変えた。従来Opus 4.8でなければ安定しなかった長タスクチェーン実行が、Sonnet価格（標準$3/MTok）で得られるようになった。Adaptive Thinkingとeffortパラメータによる推論深度の制御、Batch APIの300kトークン出力、プロンプトキャッシュの組み合わせが、エンタープライズ規模のコスト設計を大きく変える。
+
+## Claude Sonnet 5とは何か
+
+> 2026年6月30日リリースのClaude Sonnet 5は1Mコンテキスト・128k出力でOpus 4.8に迫る能力を持つ。
+
+Claude Sonnet 5（モデルID：`claude-sonnet-5`）は、Anthropicが2026年6月30日にリリースした現行Sonnetシリーズの最新版だ。主要スペックは以下のとおりだ。
+
+| 項目 | 仕様 |
+|---|---|
+| コンテキストウィンドウ | 1M トークン（約55万語） |
+| 最大出力（Messages API） | 128k トークン |
+| 最大出力（Batch API） | 300k トークン（ベータヘッダー使用） |
+| 価格（イントロ・2026年8月31日まで） | 入力 $2/MTok・出力 $10/MTok |
+| 価格（標準） | 入力 $3/MTok・出力 $15/MTok |
+| Adaptive Thinking | あり（effortパラメータで制御） |
+| Extended Thinking | なし |
+| プロンプトキャッシュ割引 | 最大90% |
+| Batch API割引 | 50% |
+
+Anthropicは「速度と知性の最良の組み合わせ」と位置づけており、コーディング・エージェント・プロフェッショナルワークフローでOpus 4.8に迫る品質を持つ。Sonnet 4.6と比較して、推論精度・ツール使用精度・長タスクチェーンの完遂率が大幅に向上した。
+
+## エンタープライズエージェントへの影響はどこにあるか
+
+> Sonnet 5のツール呼び出し安定性はSonnet 4.6より向上し、長いタスクチェーンでの中断率が低下した。
+
+Sonnet 4.6ではツール呼び出しの途中で停止する、あるいは部分的な結果で回答してしまうケースが報告されていた。Sonnet 5はツール選択精度と引数生成の安定性が向上し、「CRM更新→顧客通知→社内レポート生成」のような複合ワークフローをより確実に完遂する。
+
+Anthropicのシステムカード（2026年6月）が示す主な改善点は以下の3点だ。
+
+1. **ハルシネーション率の低下**：Sonnet 4.6比でハルシネーションが有意に減少。長文脈での事実精度が向上した。
+2. **プロンプトインジェクション耐性**：Opus 4.7/4.8と同等のデフォルトサイバーセキュリティ保護を実装済み。
+3. **自己検証の向上**：明示的なプロンプト設計なしに、エラー発生時の自己修正ループが機能する。
+
+[エージェントガバナンス](/glossary/agent-governance/)設計においてプロンプトインジェクション耐性の向上は特に重要だ。外部データソースを参照する検索拡張エージェントや、社外APIと連携するワークフローでは、モデル側の防御機構がアーキテクチャ全体の安全性の基盤となる。多層防御の設計については[プロンプトインジェクションの多層防御](/blog/prompt-injection-layered-defense-architecture/)を参照されたい。
+
+## Adaptive Thinkingとeffortパラメータはどう使うか
+
+> Sonnet 5はAdaptive ThinkingをデフォルトでONにし、effortパラメータでその深度とコストを制御できる。
+
+Sonnet 5はAdaptive Thinkingを標準サポートする。Claude APIとClaude CodeではデフォルトのeffortはHighに設定されており、明示的に指定しない場合はより深い推論が有効になる。effortは`low`・`medium`・`high`・`xhigh`の4段階で設定可能だ。
+
+各effortレベルの使い分けの指針は以下のとおりだ。
+
+| effort | 推奨用途 | 特徴 |
+|---|---|---|
+| `low` | 高頻度の分類・ルーティング | 最低レイテンシ・最低コスト |
+| `medium` | 標準的な業務処理 | バランス型 |
+| `high`（デフォルト） | 複合推論・コード生成 | 品質重視 |
+| `xhigh` | 難解な問題・長時間タスク | 最高品質 |
+
+エンタープライズのエージェントアーキテクチャでは、ノードごとにeffortを最適化することがコスト管理の要点だ。同一のSonnet 5を使いながら、入力検証のような軽量ノードには`low`、最終判断ノードには`high`を割り当てることで、品質を損なわずに推論コストを削減できる。
+
+Extended ThinkingとAdaptive Thinkingの機能上の違いについては[Extended Thinking設計指針](/blog/extended-thinking-adaptive-thinking-design/)を参照されたい。Haiku 4.5はExtended Thinkingをサポートするが、Adaptive Thinkingをサポートしない点にも注意が必要だ。
+
+## Fable 5・Opus 4.8・Sonnet 5・Haiku 4.5のノード割り当て設計
+
+> 高コスト判断はFable 5、複合実行はSonnet 5、高頻度分類はHaiku 4.5に割り当てるのが基本形だ。
+
+現行モデルファミリーの比較を整理する。
+
+| モデル | モデルID | 入力価格 | 最大出力 | 推奨用途 |
+|---|---|---|---|---|
+| Claude Fable 5 | `claude-fable-5` | $10/MTok | 128k | 長期エージェント・最高品質判断 |
+| Claude Opus 4.8 | `claude-opus-4-8` | $5/MTok | 128k | 複雑なコーディング・設計判断 |
+| Claude Sonnet 5 | `claude-sonnet-5` | $3/MTok | 128k（Batch:300k） | 複合ワークフロー実行・標準判断 |
+| Claude Haiku 4.5 | `claude-haiku-4-5` | $1/MTok | 64k | 高頻度分類・ルーティング・要約 |
+
+エンタープライズのマルチエージェント構成では、**OrchestratorにSonnet 5またはOpus 4.8、SubagentにHaiku 4.5**を配置するパターンが費用対効果に優れる。計画・設計フェーズに高度な判断が集中する用途ではFable 5をOrchestrator層に置き、Sonnet 5を実行層に下ろす三層構成も有効だ。
+
+Sonnet 5は従来Opus 4.8が担っていた多くの役割を代替できる水準に達している。エージェント全体のコストをOpus 4.8ベースから試算し直す価値がある。詳細なモデル比較は[エージェント設計のClaudeモデル選択](/blog/claude-model-tool-use-performance-comparison/)を参照されたい。大規模エージェント基盤の構築については[RDEサービス](/services/rde/)で技術支援を提供している。
+
+## コスト最適化——Batch APIとプロンプトキャッシュの組み合わせ
+
+> Sonnet 5はBatch API（50%割引・300k出力）とプロンプトキャッシュ（最大90%削減）を同時に適用できる。
+
+Sonnet 5をエンタープライズ規模で運用する場合、2つのコスト削減機構を把握しておく必要がある。
+
+**Batch API（Message Batches API）**
+
+Batch APIを利用すると通常の50%の価格で処理できる。さらに`output-300k-2026-03-24`ベータヘッダーを付加することで、1リクエストあたり最大300kトークンの出力が可能だ（Messages APIの128kから大幅に拡張）。長文ドキュメント生成・大規模コード生成・レポート自動化のような用途に直接適用できる。非同期処理でSLAに余裕がある場合（バッチ分析・夜間文書処理・週次レポート生成など）はBatch APIが最優先の設計選択だ。
+
+**プロンプトキャッシュ**
+
+システムプロンプトや長文コンテキストをキャッシュすることで最大90%のコスト削減が可能だ。マルチターンのエージェントループでは、各ターンで同じシステムプロンプトとコンテキストを再送するケースが多い。プロンプトキャッシュを有効化するだけで、高頻度のエージェント実行コストを大幅に圧縮できる。Batch APIとプロンプトキャッシュは併用可能であり、定型タスクの大量バッチ処理では両方を組み合わせることが最もコスト効率が高い。
+
+大規模プラットフォームにおけるトークンコスト計装・部門配賦の設計については[AI FinOps入門](/blog/ai-finops-token-cost-instrumentation/)を参照されたい。
+
+## 参考
+
+- [Introducing Claude Sonnet 5 – Anthropic](https://www.anthropic.com/news/claude-sonnet-5)
+- [Claude Models Overview – Anthropic Platform Docs](https://platform.claude.com/docs/en/docs/about-claude/models/overview)
+- [Claude Sonnet – Anthropic](https://www.anthropic.com/claude/sonnet)
+
+## まとめ
+
+Claude Sonnet 5は、エンタープライズのエージェント設計における性能とコストのトレードオフを大幅に改善した。Adaptive Thinkingによるeffort制御、Batch APIの300kトークン出力対応、プロンプトキャッシュによる最大90%コスト削減を組み合わせることで、従来Opus 4.8を必要としていた多くの用途をSonnet価格で実装できる。ノードごとのモデル選択とeffortレベルの最適化が、エンタープライズエージェント基盤のコスト管理の要点となる。
+
+大規模エージェント基盤の設計から本番運用まで、エンジニアリング観点での支援は[Kuu株式会社のRDEサービス](/services/rde/)にご相談ください。
