@@ -161,7 +161,7 @@
       "industry": "士業・司法書士事務所",
       "use_case": "登記申請書類の下書き生成・書類収集進捗管理・依頼者一次対応の補助自動化",
       "status": "published"
-    }
+    },
     {
       "slug": "cleaning-service-report-agent",
       "keyword": "清掃業 ビルメンテナンス 清掃日誌 点検報告書 シフト管理 AIエージェント 自動化",
@@ -169,6 +169,15 @@
       "persona": "清掃会社の現場責任者・施設管理担当者",
       "industry": "清掃業・ビルメンテナンス業",
       "use_case": "清掃日誌・点検報告書・スタッフシフト管理の補助自動化",
+      "status": "published"
+    },
+    {
+      "slug": "sme-consultant-subsidy-application-agent",
+      "keyword": "中小企業診断士 事業計画書 補助金申請 AIエージェント 属人化解消",
+      "title_hint": "中小企業診断士の事業計画書づくりをAIエージェントに——補助金申請の事務をこう速める",
+      "persona": "中小企業診断士事務所の代表・認定支援機関担当者",
+      "industry": "士業・中小企業診断士事務所",
+      "use_case": "事業計画書ドラフト生成・補助金申請書類作成支援・経営診断レポート補助の自動化",
       "status": "published"
     }
   ],
