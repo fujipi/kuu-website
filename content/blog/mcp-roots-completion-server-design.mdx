@@ -1,0 +1,201 @@
+---
+title: "MCP RootsとCompletion実装設計——ファイル境界宣言と引数補完"
+description: "MCPのRootsでクライアントがファイル境界をサーバーに宣言し、Completionで引数補完候補を提供する2つの実装パターンを解説。2025-06-18仕様のJSON-RPC設計とセキュリティ考慮を示す。"
+date: "2026-07-10"
+lastModified: "2026-07-10"
+tags: ["MCP", "プロトコル設計", "エージェント開発", "補完API"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+target_query: "MCPのRootsとCompletionはどう実装するか"
+sources:
+  - "https://modelcontextprotocol.io/docs/concepts/roots"
+  - "https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/completion"
+---
+
+MCPサーバーを実装するとき「クライアントがどのディレクトリを扱っているか」「プロンプト引数に何を入れればよいか」という2つの問いが設計上の死角になりやすい。RootsとCompletionは、サーバーとクライアントの情報非対称を解消するために仕様化された機構です。2025-06-18仕様に正式収録されたこの2機能を実装するかどうかで、MCPサーバーが単なる「ツール提供者」に留まるか、IDEライクなコンテキスト認識型サーバーになるかが変わります。
+
+## MCPのRootsとCompletionとは何か
+
+> Rootsはファイル境界宣言、Completionは引数補完提供の機構で、どちらも2025-06-18仕様に定義された独立したケーパビリティです。
+
+[MCP（Model Context Protocol）](/glossary/mcp/)の中核はツール・リソース・プロンプトの3プリミティブです（[MCPプリミティブの使い分け](/blog/mcp-primitives-selection-guide/)を参照）。2025-06-18仕様はそれに加えて、クライアント機能（Roots）とサーバーユーティリティ（Completion）を追加しました。
+
+**Roots**はクライアント側の機能です。クライアントが「どのディレクトリ・ファイルにアクセスしてよいか」という境界をサーバーに公開します。サーバーは宣言されたRootsの外へはファイル操作を行わない設計が求められます。
+
+**Completion**はサーバー側のユーティリティです。プロンプト引数やリソースURIテンプレートのパラメータに対して、補完候補を最大100件返します。この機構によりIDEのコード補完に相当するUXをMCPクライアントが提供できます。
+
+2つの機能はそれぞれ独立してケーパビリティを宣言し、片方だけ実装することも可能です。ただし[MCPサーバー実装の設計](/blog/mcp-server-implementation-tool-design/)で述べた通り、クライアントとサーバーのケーパビリティ一致が前提となります。
+
+## Rootsの実装——クライアントがファイル境界をサーバーに公開する
+
+> Rootsはサーバーが `roots/list` で許可ディレクトリを取得し、`notifications/roots/list_changed` で変更を受け取るプル型の境界同期機構です。
+
+### ケーパビリティ宣言
+
+クライアント（ホスト環境）は初期化フェーズで次のケーパビリティを宣言します。`listChanged: true` は、ルートリストが変化したときにサーバーへ通知を送ることを意味します。
+
+```json
+{
+  "capabilities": {
+    "roots": {
+      "listChanged": true
+    }
+  }
+}
+```
+
+サーバーはケーパビリティを確認してから `roots/list` を呼び出します。クライアントがRootsをサポートしない場合、エラーコード `-32601`（Method not found）が返ります。
+
+### roots/list の呼び出しと応答
+
+サーバーが `roots/list` を送信すると、クライアントは許可されたRootオブジェクトのリストを返します。`uri` フィールドは現仕様では `file://` URI のみ有効で、`name` は表示用の任意ラベルです。
+
+```json
+// サーバー → クライアント (リクエスト)
+{ "jsonrpc": "2.0", "id": 1, "method": "roots/list" }
+
+// クライアント → サーバー (レスポンス)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "roots": [
+      { "uri": "file:///home/user/repos/backend", "name": "Backend" },
+      { "uri": "file:///home/user/repos/frontend", "name": "Frontend" }
+    ]
+  }
+}
+```
+
+フロントエンドとバックエンドを別Rootとして宣言することで、サーバーが「どちらのコードベースを操作するか」を文脈から判断できます。
+
+### 変更通知と再同期
+
+ワークスペースが変化したとき（ブランチ切り替え、プロジェクト追加など）、クライアントは `notifications/roots/list_changed` 通知を送信します。サーバーはこれを受けて `roots/list` を再実行し、キャッシュを更新します。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "notifications/roots/list_changed"
+}
+```
+
+### セキュリティ要件
+
+仕様はクライアントとサーバーの双方に義務を定めています。クライアントはパストラバーサル（`../` による境界突破）を防ぐためにすべてのRoot URIをバリデーションし、適切なアクセス制御を実装しなければなりません。サーバーはRoots外へのファイル操作を行わず、Rootsが利用不能になった場合に安全にハンドリングする実装が求められます。[AIエージェントの権限管理設計](/blog/ai-agent-permission-management-design/)で解説した最小権限の原則は、Rootsの境界宣言にもそのまま適用されます。
+
+## Completionの実装——コンテキスト対応引数補完の提供
+
+> Completionはサーバーが引数補完候補を返す仕組みで、`context.arguments` に先行解決済みの値を渡すことでコンテキスト対応の候補絞り込みができます。
+
+### ケーパビリティ宣言
+
+サーバーは初期化フェーズで `completions` ケーパビリティを宣言します。
+
+```json
+{
+  "capabilities": {
+    "completions": {}
+  }
+}
+```
+
+### completion/complete リクエストと応答
+
+クライアントは `completion/complete` で補完候補をリクエストします。`ref` フィールドで「何に対する補完か」を指定します。`ref/prompt` はプロンプト名、`ref/resource` はリソースURIテンプレートへの参照です。
+
+```json
+// クライアント → サーバー (プロンプト引数の補完リクエスト)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "completion/complete",
+  "params": {
+    "ref": { "type": "ref/prompt", "name": "code_review" },
+    "argument": { "name": "language", "value": "py" }
+  }
+}
+
+// サーバー → クライアント (補完候補)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "completion": {
+      "values": ["python", "pytorch", "pyside"],
+      "total": 10,
+      "hasMore": true
+    }
+  }
+}
+```
+
+`values` は関連度順に並んだ候補（最大100件）、`total` は全候補数（省略可）、`hasMore` は追加候補の有無を示します。
+
+### context.arguments による多引数補完
+
+プロンプトが複数の引数を持つ場合、クライアントは先行解決済みの引数を `context.arguments` で渡します。サーバーはこれを参照してコンテキスト対応の候補を生成できます。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "completion/complete",
+  "params": {
+    "ref": { "type": "ref/prompt", "name": "code_review" },
+    "argument": { "name": "framework", "value": "fla" },
+    "context": {
+      "arguments": { "language": "python" }
+    }
+  }
+}
+// → 候補は "flask" のみ（language=python の文脈を踏まえた絞り込み）
+```
+
+この設計により、2つ目以降の引数は既入力の値を踏まえた絞り込み補完が可能になります。
+
+### 実装上の注意点
+
+補完リクエストはユーザーが文字を入力するたびに発生するため、サーバーはレート制限を実装し、クライアント側はデバウンスを設ける必要があります。候補はファジーマッチングで関連度順にソートし、機密データを候補から除外するアクセス制御を設けます。エラー時は `-32601`（ケーパビリティ非対応）、不正なプロンプト名・引数欠損は `-32602`（Invalid params）を返します。
+
+## RootsとCompletionの組み合わせ設計
+
+> RootsとCompletionを組み合わせると、宣言されたファイル境界を参照したリソースURI補完など、コンテキスト認識型の補完体験を構築できます。
+
+### リソースURIテンプレートとRootsの連携
+
+`ref/resource` を使うと、リソースURIテンプレートのパラメータに対して補完を提供できます。Rootsで宣言されたディレクトリ内のファイルパスのみを補完候補として返すことで、ユーザーが有効なURIを入力する際の誤りを削減できます。
+
+例えば `file:///{path}` というリソースURIテンプレートに対して、クライアントがRootsで宣言した `file:///home/user/repos/backend` 配下のファイルだけを候補として返す設計が可能です。サーバーはRoots外のパスを候補に含めてはなりません。
+
+### キャッシュ設計
+
+Rootsのリストは `notifications/roots/list_changed` が来るまで有効なのでサーバー側でキャッシュできます。Completionの候補も同一の `ref` + `argument.value` の組み合わせに対して短期キャッシュが有効です。ただし機密データを含む可能性がある場合は、キャッシュのスコープをユーザーセッション単位に制限します。
+
+### 実装チェックリスト
+
+- [ ] `initialization` でRoots（クライアント）/Completions（サーバー）のケーパビリティを宣言
+- [ ] `roots/list` を接続時に呼び出し、`notifications/roots/list_changed` で再同期する
+- [ ] Root URIのパストラバーサル検証をクライアント側に実装する
+- [ ] `completion/complete` のレート制限とクライアント側デバウンスを設定する
+- [ ] `context.arguments` を活用したコンテキスト対応多引数補完を実装する
+- [ ] 機密データを補完候補から除外するアクセス制御を設ける
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: RootsとCompletionは独立して実装できます。まず `completion/complete` によるプロンプト引数補完から着手し、ファイルシステム操作を持つサーバーを実装するタイミングでRootsを追加するのが現実的な順序です。Kuuの[AIエージェント運用管理サービス](/services/ai-ops/)では、MCPサーバーの設計・実装支援を提供しています。
+
+**エンタープライズの場合**: マルチテナント環境でRootsを扱う場合、テナントごとにRoot境界を厳密に隔離し、クロステナントのRoot参照が発生しない設計が必須です。Completionの候補生成に本番データを用いる際は、IAMスコープと連動した候補フィルタリングを実装します。大規模なMCPサーバー基盤の設計には、Kuuの[RDEサービス](/services/rde/)が対応しています。
+
+## 参考
+
+- [Roots——Model Context Protocol公式ドキュメント](https://modelcontextprotocol.io/docs/concepts/roots)
+- [Completion——MCP 2025-06-18仕様](https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/completion)
+
+## まとめ
+
+Rootsはクライアントがファイルシステムの操作境界をサーバーに明示する機構で、CompletionはサーバーがIDEライクな引数入力支援をクライアントに提供する機構です。どちらも2025-06-18仕様に正式収録されており、MCP実装を「コンテキストを理解するサーバー」として設計する上で重要な要素です。ケーパビリティ宣言から `roots/list` の同期、`completion/complete` のコンテキスト対応実装まで、本記事のチェックリストを順に確認することで設計漏れを防げます。
+
+MCPサーバーの設計・実装に関するご相談はKuuの[AIエージェント運用管理サービス](/services/ai-ops/)へお問い合わせください。
