@@ -1,0 +1,79 @@
+---
+title: "MCP 2026-07-28 RC：ステートレス化と移行手順"
+description: "2026年7月28日公開予定のMCP仕様RCはセッションを廃止しステートレス化。Sampling・Roots・Loggingを非推奨とし、Tasksを拡張に移動。サーバー実装者が対応すべき5つの移行手順を解説する。"
+date: "2026-07-11"
+lastModified: "2026-07-11"
+tags: ["MCP", "プロトコル", "AIエージェント", "移行"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/"
+  - "https://stacktr.ee/blog/mcp-2026-spec-changes"
+---
+
+2025年11月25日版を前提に実装したMCPサーバーは、2026年7月28日公開の新仕様で動作が保証されない。変更の核心は「セッションの廃止」——`Mcp-Session-Id` ヘッダーが消え、スティッキールーティングを前提とした設計が壊れる。正式公開まで17日、移行の判断を今始める必要がある。
+
+## なぜMCPはセッションを廃止したのか
+
+> MCP 2026-07-28 RCはセッションを廃止しステートレス化。ラウンドロビンLBのみで水平スケールでき、スティッキーセッションと共有セッションストアが不要になる。
+
+従来のMCPはステートフルな接続を前提としていた。クライアントは `initialize`/`initialized` ハンドシェイクを経て `Mcp-Session-Id` を取得し、以後のリクエストにそのIDを付与することで同一サーバーインスタンスへの接続を維持していた。この設計はロードバランサーにスティッキーセッション設定を要求し、水平スケールの障壁となっていた。
+
+2026-07-28 RC（SEP-2567・SEP-2575）はこのセッション概念をプロトコル層から除去する。プロトコルバージョン・クライアントID・ケイパビリティはリクエストごとの `_meta` フィールドで運ばれ、任意のサーバーインスタンスがどのリクエストにも応答できる。アプリケーションが複数呼び出しをまたいで状態を保つ必要がある場合は「明示的ハンドル」パターンを使う。サーバーが `basket_id` のような識別子を返し、モデルが後続の tool arguments に含めて渡す。状態がトランスポートに隠れずLLMから見えるようになる点が設計上の重要な変化だ。
+
+W3C Trace Context（`traceparent`・`tracestate`・`baggage`）が `_meta` で標準化されたため、このタイミングで分散トレーシングの実装も簡素化できる。
+
+## 2026-07-28 RCのブレーキングチェンジは何か
+
+> 変更は5軸：セッション廃止・server/discover追加・2ヘッダー必須・Tasks再設計・エラーコード変更。server/discover未実装の場合、クライアントはバージョン不一致でリジェクトする。
+
+| 変更 | 旧（2025-11-25） | 新（2026-07-28 RC） |
+|---|---|---|
+| セッション管理 | `Mcp-Session-Id` + ハンドシェイク | `_meta` フィールド内蔵 |
+| サーバー識別 | `initialize` レスポンス | `server/discover` RPC |
+| 必須ヘッダー | なし | `Mcp-Method`・`Mcp-Name` |
+| Tasksライフサイクル | blocking `tasks/result` | polling `tasks/get` |
+| リソース未発見エラー | `-32002` | `-32602`（標準JSON-RPC）|
+
+Streamable HTTP POSTには `Mcp-Method`（オペレーション名）と `Mcp-Name`（ルーティング識別子）の2ヘッダーが必須になる（SEP-2243）。APIゲートウェイやロードバランサーがリクエストボディを解析せずに操作種別でルーティングできるようにするための変更だ。
+
+Multi Round-Trip Requests（MRTR、SEP-2322）はSSEストリームを代替する。サーバーが追加入力を必要とする場合、`InputRequiredResult` と `inputRequests`・`requestState` を返す。クライアントは `inputResponses` と `requestState` を添付して元の呼び出しを再発行する。状態がすべてペイロードに含まれるため、ステートレスなまま複数ラウンドの対話を実現できる。
+
+## サーバー実装者が行うべき5つの移行手順とは
+
+> 優先は `server/discover` の実装と `_meta` からのケイパビリティ読み取りへの切り替えで、セッション依存ロジックの全削除が先決となる。
+
+1. **`_meta` でプロトコルバージョン・ケイパビリティを受け取る** — `initialize` ハンドシェイクと `Mcp-Session-Id` への依存をすべて除去する
+2. **`server/discover` RPCを実装する** — バージョン・ケイパビリティ・サーバーIDを返す必須エンドポイント。未実装だとクライアントが `UnsupportedProtocolVersionError` を返す
+3. **list系レスポンスにキャッシュメタデータを追加する** — `tools/list`・`prompts/list`・`resources/list` の結果に `ttlMs`（鮮度ヒント）と `cacheScope`（"public"/"private"）を付与する（SEP-2549）
+4. **Tasks APIを拡張版に移行する** — blocking `tasks/result` を `tasks/get` ポーリングに置き換え、`tasks/list` 呼び出しを削除する（2025-11-25版との非互換で即時対応が必要）
+5. **ゲートウェイ設定で `Mcp-Method`・`Mcp-Name` を透過させる** — インフラ側のフォワード設定を追加し、ロードバランサーが2ヘッダーでルーティングできるようにする
+
+Sampling・Roots・Logging は今回非推奨になるが削除は最短でも12ヶ月後のため移行は段階的に行える。Sampling を使っているサーバーはLLMプロバイダーAPIへの直接呼び出しに切り替えることが推奨される（[MCPサンプリングの設計詳細は既存記事](/blog/mcp-sampling-server-llm-request-design/)を参照）。HTTP+SSE transport も今回非推奨になるため、Streamable HTTP への移行を同時に進めるとよい。
+
+## ExtensionsフレームワークとMCP Appsの設計インパクトは何か
+
+> Extensionsは逆引きDNS IDと独立バージョン管理で仕様本体を安定させる分岐路。MCP Appsはサンドボックスiframe内のHTML UIをJSON-RPCの監査フローに統合する。
+
+**Extensionsフレームワーク**: `ClientCapabilities` と `ServerCapabilities` に `extensions` マップが追加された。逆引きDNS識別子・独立バージョン管理・専用リポジトリ体制のもと、新機能が仕様本体に取り込まれる前に本番利用できる公式の拡張路盤だ。Tasksもこの仕組みで管理される。Extensions対応の有無はケイパビリティネゴシエーション時に双方が申告し、未対応のクライアント・サーバーに影響を与えない設計になっている。
+
+**MCP Apps（SEP-1865）**: サーバーがサンドボックス化されたiframe内にHTMLインターフェースを配信できる。UIテンプレートはツール定義時に事前宣言し、ホストがキャッシュとセキュリティレビューを実施してからレンダリングする。UIアクションは通常のJSON-RPCと同じ監査・同意フローを経由するため、既存のガバナンス制御がUIレイヤーにも及ぶ点が重要だ。
+
+MCPプリミティブ（Tools・Resources・Prompts）の使い分けは[MCPプリミティブ選択ガイド](/blog/mcp-primitives-selection-guide/)で、OAuth認証設計は[MCP OAuthスコープ設計](/blog/mcp-security-oauth-scope-design/)で詳しく解説している。エージェント全体のアーキテクチャ設計は[エージェントハーネスアーキテクチャ](/blog/agent-harness-architecture/)も参照してほしい。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**: ホスト型MCPサービスやSaaSベースのMCPクライアントを利用している場合、Tier 1 SDK（7月28日対応予定）のアップデートで対応が完了する。社内に独自実装したMCPサーバーがある場合は上記5手順を優先で対応する。Sampling・Rootsは12ヶ月の猶予があるため移行の優先度は低い。[Kuuの運用管理サービス](/services/ai-ops/)では移行対応の技術支援も行っている。
+
+**エンタープライズ**: ステートレス化によりロードバランサーのスティッキーセッション設定を除去できる。`Mcp-Method`/`Mcp-Name` ヘッダーをAPIゲートウェイの転送ルールに追加し、分散トレーシングツールが `_meta` の Trace Context を取得できるよう設定を更新する。Tasks APIの旧版からの移行は即時対応が必要で、ポーリング設計に合わせてタイムアウトとリトライ戦略を見直す。複数チームに影響するMCPインフラの大規模刷新には [Kuu RDEサービス](/services/rde/) での技術支援も選択肢となる。
+
+## 参考
+
+- [The 2026-07-28 MCP Specification Release Candidate | Model Context Protocol Blog](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)
+- [MCP 2026-07-28 spec: what changed, what breaks · Stacktree](https://stacktr.ee/blog/mcp-2026-spec-changes)
+
+## まとめ
+
+MCP 2026-07-28 RCの最重要変更はセッションの廃止だ。`initialize` ハンドシェイクと `Mcp-Session-Id` が消え、ケイパビリティは `_meta` に、サーバー識別は `server/discover` に移った。Sampling・Roots・Logging は12ヶ月猶予付きで非推奨に、Tasksはポーリング型の拡張として再設計された。Streamable HTTP POSTには `Mcp-Method`・`Mcp-Name` の2ヘッダーが必須になり、インフラ側のゲートウェイ設定更新も必要だ。正式公開は7月28日——移行判断を今日始めるタイミングだ。MCPサーバーの移行対応やエージェントアーキテクチャの再設計については [Kuuの運用管理サービス](/services/ai-ops/) にご相談いただきたい。

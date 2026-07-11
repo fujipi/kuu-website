@@ -795,6 +795,22 @@
         "https://www.truefoundry.com/blog/rate-limiting-ai-agents-preventing-llm-api-exhaustion",
         "https://dev.to/waxell/ai-agent-circuit-breakers-the-reliability-pattern-production-teams-are-missing-5bpg"
       ]
+    },
+    {
+      "slug": "mcp-2026-stateless-spec-migration-guide",
+      "keyword": "MCP 2026-07-28 RC ステートレス化 セッション廃止 移行",
+      "title_hint": "MCP 2026-07-28 RC：ステートレス化と移行手順",
+      "persona": "MCPサーバーを実装・運用するバックエンドエンジニア・プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "MCP 2026-07-28 RCでサーバー実装者が対応すべき移行手順は何か",
+      "sources": [
+        "https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/",
+        "https://stacktr.ee/blog/mcp-2026-spec-changes"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
