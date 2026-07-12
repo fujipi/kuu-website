@@ -1,0 +1,172 @@
+---
+title: "Claudeサーバーツール設計——Web Search・Code Executionの組み込み方"
+description: "Anthropicが実行するWeb Search（$10/1,000件）・Code Executionの設計パターン。クライアント実装なしにリアルタイム検索とデータ処理をエージェントへ統合できます。"
+date: "2026-07-12"
+lastModified: "2026-07-12"
+tags: ["サーバーツール", "Web Search", "Code Execution", "エージェント設計"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "ClaudeのサーバーツールWeb Search・Code Executionはどう設計すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool"
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool"
+  - "https://platform.claude.com/docs/en/build-with-claude/batch-processing"
+  - "https://www.anthropic.com/engineering/advanced-tool-use"
+---
+
+本番エージェントに「最新のWeb情報を調べさせたい」「ユーザーデータをその場で集計させたい」と思ったとき、よくある実装はカスタムツールをクライアント側に組み込む設計です。しかしAnthropicが提供する**サーバーツール**を使えば、クライアント側の実行ループなしにこれらの機能をエージェントに追加できます。
+
+本稿では[エージェントガバナンス](/glossary/agent-governance/)の設計基盤として重要な、Web Search・Code Executionの2系統を中心に、実装パターンと設計上の判断基準を解説します。
+
+## Claudeのサーバーツールとは何か——クライアントツールとの違い
+
+> Claudeサーバーツールは Anthropicインフラ上で実行されるツール群で、Web Search（$10/1,000件）・Code Execution（Pythonサンドボックス）などをクライアント実装なしに利用できます。
+
+通常の[Function calling（クライアントツール）](/blog/function-calling-structured-output-tool-design/)では、Claudeがツール呼び出しを要求すると`stop_reason: "tool_use"`で応答が停止し、クライアント側でツールを実行してから結果を返すターン制のループが必要です。
+
+サーバーツールはこの構造が根本的に異なります。ツールがAnthropicのサーバー側で実行されるため、クライアントは実行ループを実装しなくて済みます。APIレスポンスには`type: "server_tool_use"`ブロックが含まれ、ツールの実行と結果の組み込みがサーバー内で完結します。
+
+```json
+{
+  "type": "server_tool_use",
+  "id": "srvtoolu_01WYG3ziw53XMcoyKL4XcZmE",
+  "name": "web_search",
+  "input": { "query": "2026年Q2 日本のEC市場規模" }
+}
+```
+
+現在提供されている主なサーバーツールの一覧です。
+
+| ツール | 用途 | 課金 |
+|---|---|---|
+| Web Search | リアルタイムWeb検索 | $10/1,000件 |
+| Web Fetch | 特定URL取得 | トークン課金のみ |
+| Code Execution | Python・Bashサンドボックス | 通常価格（Web Searchと併用時は無料） |
+| Files API | ファイル永続化 | ストレージ課金 |
+| MCP Connectors | Anthropicホスト型MCPサーバー | 個別設定 |
+
+クライアントツールとの使い分け基準はシンプルです。Web上の最新情報やコード実行が必要なら**サーバーツール**、社内データベースや自社APIへのアクセスが必要なら**クライアントツール**という切り分けが基本になります。
+
+## Web Searchツールはどう設計するか——リアルタイム検索の実装パターン
+
+> Web Searchツールは1リクエストあたり$10/1,000件で提供され、max_usesとdomain filteringでAPIから検索回数と対象ドメインを制御できます。
+
+Web Searchツールを有効化するには`tools`配列にツール定義を追加するだけです。2026年現在、バージョンが3つ存在します。
+
+- **`web_search_20250305`**: 基本的なWeb検索
+- **`web_search_20260209`**: dynamic filtering追加（Code Executionが検索結果を前処理）
+- **`web_search_20260318`**: `response_inclusion`パラメータ追加（中間ブロックを非表示にしてレスポンスを軽量化）
+
+```python
+response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=4096,
+    messages=[{"role": "user", "content": "主要競合他社の最新ニュースを調べて要約して"}],
+    tools=[{
+        "type": "web_search_20260318",
+        "name": "web_search",
+        "max_uses": 5,                               # 1リクエストあたりの検索上限
+        "allowed_domains": ["reuters.com", "nikkei.com"],  # 信頼ドメイン限定
+        "user_location": {
+            "type": "approximate",
+            "country": "JP",
+            "timezone": "Asia/Tokyo"
+        },
+        "response_inclusion": "excluded"             # 中間ブロックを非表示
+    }]
+)
+```
+
+**設計上の判断ポイントが3つあります。**
+
+**① max_usesのチューニング**: 単純な事実確認は1〜3件、比較分析や多エンティティ調査は10件以上に達します。レイテンシ重視のユースケースには`max_uses: 3`で上限を設け、リサーチエージェントには`15〜20`または無制限が現実的です。上限を超えるとレスポンス内に`max_uses_exceeded`エラーが埋め込まれますが、APIは200を返します。
+
+**② domain filteringの使い方**: `allowed_domains`と`blocked_domains`は排他的で同時指定はエラーになります。コンプライアンス上特定ドメインへのアクセスを禁じる場合は`blocked_domains`を使用し、信頼できる情報源のみに絞りたい場合は`allowed_domains`を使用します。
+
+**③ マルチターン会話の必須処理**: 検索結果ブロックに含まれる`encrypted_content`フィールドは後続ターンでアシスタントメッセージにそのまま含めて送り返す必要があります。省略または変更すると400バリデーションエラーが発生します。
+
+Web SearchはAmazon Bedrockでは現在利用できません。Bedrock依存の基盤を持つ場合は[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)でルーティングを切り分けるか、Claude APIへの並行接続を検討してください。
+
+## Code Executionツールをどう使うか——Pythonサンドボックスの設計
+
+> Code ExecutionツールはサンドボックスでPythonとBashを実行でき、web_search_20260209以降と組み合わせると追加課金なしで利用できます。
+
+Code Executionツールも3バージョンが提供されています。
+
+- **`code_execution_20250825`**: PythonとBash実行の基本版
+- **`code_execution_20260120`**: REPLセッション永続化とサンドボックス内からのプログラマティックなツール呼び出しを追加
+- **`code_execution_20260521`**: 各Pythonセルのwall-clock上限（90秒）をClaudeに認識させ、長時間処理の予算管理を可能に
+
+```python
+response = client.messages.create(
+    model="claude-sonnet-5",
+    max_tokens=8192,
+    messages=[{"role": "user", "content": "添付の売上CSVを分析して月次トレンドをグラフ化して"}],
+    tools=[
+        {"type": "code_execution_20260521", "name": "code_execution"}
+    ]
+)
+```
+
+**価格の最重要ポイント**: `web_search_20260209`以降または`web_fetch_20260209`以降のツールを同一リクエストに含める場合、**Code Executionは追加料金なし**です。Web Searchを使うエージェントにCode Executionを追加してもコストが増えません。
+
+**制限事項**:
+- Amazon BedrockとGoogle Cloudでは利用不可
+- 各Pythonセルのwall-clock上限は90秒（`code_execution_20260521`でClaudeが認識できる）
+- ZDR（Zero Data Retention）対象外
+
+実用ケースとして特に効果が高いのは、大量データの集計・変換・可視化です。データファイルをAPIリクエストに含め、Claudeが自律的にPandasやMatplotlibで処理する設計は、人手による定型作業の自動化に直結します。
+
+## Web Search × Code Executionの組み合わせで何が変わるか
+
+> web_search_20260209以降とCode Executionを同時に使うと、検索結果をコードで事前フィルタリングしてからコンテキストに渡すdynamic filteringが自動適用されます。
+
+`web_search_20260209`以降のWeb SearchとCode Executionを組み合わせると、**dynamic filtering**が自動的に動作します。
+
+通常のWeb Searchでは全検索結果がそのままClaudeのコンテキストウィンドウに入ります。dynamic filteringでは、ClaudeがCode Executionサンドボックス内でフィルタリングコードを生成・実行し、関連性の高いコンテンツだけをコンテキストに渡します。検索ヘビーなリクエストではトークン消費が大幅に削減されます。
+
+```python
+# dynamic filteringが自動適用される組み合わせ
+response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=8192,
+    tools=[
+        {
+            "type": "web_search_20260318",
+            "name": "web_search",
+            # allowed_callersのデフォルト: ["code_execution_20260120"]
+            # Direct検索のみにするなら: "allowed_callers": ["direct"]
+            "response_inclusion": "excluded"    # 中間の検索ブロックを非表示
+        },
+        {"type": "code_execution_20260521", "name": "code_execution"}
+    ],
+    messages=[{"role": "user", "content": "日本のSaaS市場の2026年Q2トレンドをリサーチして分析レポートを作成して"}]
+)
+```
+
+dynamic filteringを無効化してClaudeが直接検索する設計にする場合は`"allowed_callers": ["direct"]`を明示します。programmatic tool callingを未サポートのモデルでは、この設定が必須です（未設定だと400エラーになります）。
+
+バッチ処理との組み合わせも有効です。[Message Batches API](/blog/inference-cost-optimization-batch-cache-routing/)はWeb SearchとCode Executionをバッチ内でサポートしており、大量の調査・分析タスクをトークンコスト50%割引で処理できます（Web Searchの$10/1,000件課金はバッチ内でも同額）。また`pause_turn`ストップリーズンが返った場合は、そのアシスタントメッセージを変更なく次のリクエストに含めて継続します。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: まずWeb Searchを`max_uses: 3〜5`で試し、`usage.server_tool_use.web_search_requests`の実測値でコストを確認してください。検索コストが大きくなる場合は`allowed_domains`で信頼できる情報源に絞るか、[RAG vs ツール使用の設計](/blog/rag-vs-tool-use-agent-design/)を参考に社内ナレッジベースと外部検索を使い分けます。初期設計の支援は[Kuuのエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)にご相談ください。
+
+**エンタープライズの場合**: Web SearchはAmazon Bedrockで利用できないため、既存のBedrock基盤がある場合は[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)でClaude APIへのルーティングを分離する設計を検討してください。`blocked_domains`でコンプライアンス上アクセス不可のドメインを除外し、`user_location`でリージョン別検索結果を最適化します。複数チームへの統制的な展開は[KuuのRDEサービス](https://kuucorp.com/services/rde/)の支援範囲です。
+
+## 参考
+
+- [Web search tool — Claude API Docs（Anthropic公式）](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool)
+- [Code execution tool — Claude API Docs（Anthropic公式）](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool)
+- [Batch processing — Claude API Docs（Anthropic公式）](https://platform.claude.com/docs/en/build-with-claude/batch-processing)
+- [Introducing advanced tool use on the Claude Developer Platform（Anthropic Engineering）](https://www.anthropic.com/engineering/advanced-tool-use)
+
+## まとめ
+
+ClaudeのサーバーツールはAnthropicインフラで実行されるため、クライアント側の実行ループなしにWeb Search・Code Executionをエージェントに統合できます。
+
+設計の核心は3点です。①Web Searchは`max_uses`と`domain filtering`でコストと信頼性を制御する、②Code ExecutionはWeb Search（`web_search_20260209`以降）と同一リクエストに含めると追加料金なしで利用できる、③両ツールを組み合わせるとdynamic filteringが自動適用されトークン効率が大幅に向上する。
+
+クライアントツールとサーバーツールを適切に組み合わせるエージェント設計の支援については[Kuuのエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)にお問い合わせください。
