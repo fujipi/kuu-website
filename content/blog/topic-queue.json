@@ -811,6 +811,23 @@
         "https://stacktr.ee/blog/mcp-2026-spec-changes"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-chaos-engineering-fault-injection-resilience",
+      "keyword": "AIエージェント カオスエンジニアリング 障害注入 耐障害性",
+      "title_hint": "AIエージェントのカオスエンジニアリング——障害注入設計パターン",
+      "persona": "エンタープライズのプラットフォームエンジニア・SRE（エージェント基盤の耐障害性を設計する人）",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "AIエージェントのカオスエンジニアリングはどう設計・実施すればよいか",
+      "sources": [
+        "https://tianpan.co/blog/2026-04-12-chaos-engineering-ai-agents-injecting-failures-before-production",
+        "https://cordum.io/blog/ai-agent-chaos-engineering-playbook",
+        "https://arxiv.org/abs/2511.07865"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
