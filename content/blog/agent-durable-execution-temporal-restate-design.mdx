@@ -1,0 +1,123 @@
+---
+title: "AIエージェント耐久実行設計——Temporal・Restate活用パターン"
+description: "エージェントのクラッシュ・LLMタイムアウトを跨いで長期タスクを継続する耐久実行設計を解説。TemporalとRestateの比較、LLMコールをActivityに分離する手順、エンタープライズ本番パターンまで示します。"
+date: "2026-07-13"
+lastModified: "2026-07-13"
+tags: ["耐久実行", "Temporal", "エージェントアーキテクチャ", "長期タスク設計"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "architecture"
+tech_depth: "deep"
+target_query: "AIエージェントの長期タスクをクラッシュ後も継続させるにはどう設計すればよいか"
+sources:
+  - "https://zylos.ai/research/2026-02-17-durable-execution-ai-agents"
+  - "https://effloow.com/articles/temporal-ai-agents-durable-execution-guide-2026"
+  - "https://www.spheron.network/blog/ai-agent-workflow-orchestration-temporal-inngest-restate-gpu-cloud/"
+pillar: "ai-governance"
+---
+
+本番のAIエージェントが数十分のタスクを処理しているとき、LLMプロバイダーのレート制限、外部ツールのタイムアウト、インフラ障害のいずれかが起こる確率は時間と比例して高まる。ステートレス設計のエージェントはクラッシュした瞬間に全コンテキストを失い、最初からやり直すか中断するかしかない。コストとレイテンシの両面でそれは許容できない。
+
+2026年時点で、Temporal・Restate・LangGraph といった耐久実行フレームワークがエンタープライズのエージェント基盤に急速に採用されている。本記事は[エージェントアーキテクチャ](/ai-governance/)の文脈で、長期タスクを止めない設計の原則と実装パターンを解説する。
+
+## なぜ長期エージェントタスクに耐久実行が必要か
+
+> 長期エージェントタスクにはクラッシュや障害を跨ぐ実行継続が必要で、インメモリのステートレス設計では耐えられません。
+
+AIエージェントがタスクを処理するとき、LLMコールは非決定論的だ——同じプロンプトでも毎回微妙に異なる出力が返る。この非決定性に加え、ツール呼び出し、サブエージェント委譲、外部API依存が重なると、1時間のタスクが45分時点でクラッシュした際に全工程をやり直す設計は非現実的になる。
+
+「失敗前提の設計」が現在の標準だ。タスクを**冪等なステップに分解し、各ステップの完了を永続化する**ことで、障害後に未完了ステップだけ再実行できる。Amazon Bedrock AgentCoreが2026年3月に最大8時間の非同期エージェントワークロードに正式対応したことは、この設計方針の産業的確認ともいえる。
+
+Temporalは2026年2月に$300M調達・評価額$5Bを達成し、累計9.1兆回のアクション実行（うちAI系1.86兆回）を記録している。LangGraph、Pydantic AI、OpenAI Agents SDKも耐久実行をファーストクラス機能として採用した。
+
+## 2つのメカニズム——ジャーナル再生とDBチェックポイントはどう違うか
+
+> ジャーナル再生はステップ完了を記録してクラッシュ後にスキップ再生し、DBチェックポイントは各ノード後に全ステートを永続化します。
+
+耐久実行には2つの主要メカニズムがある。選択基準はワークフローの複雑さと既存インフラに依存する。
+
+**ジャーナル再生（Temporal / Restate）**
+
+ワークフロー関数全体を最初から再実行するが、ジャーナルに記録済みのステップはキャッシュ結果をそのまま返す。LLMの出力も「初回実行時の結果」としてジャーナルに保存されるため、クラッシュ後のリプレイでLLMを再呼び出しすることはない。未完了のステップから通常実行を再開する。複雑な制御フロー（条件分岐・並行処理）と長時間実行に強い。
+
+**DBチェックポイント（LangGraph / DBOS）**
+
+各ノードの完了後に状態をPostgreSQL等に永続化する。グラフ形状のワークフローに最適で、新規インフラを必要とせず既存データベースを活用できる。ステートがシリアライズ可能な構造になっている場合の実装コストが低い。
+
+## TemporalでエージェントLoopを設計するにはどうするか
+
+> TemporalではLLMコールをアクティビティに分離することで、クラッシュ時に再実行せず初回結果をそのまま再生できます。
+
+Temporalの核心は**Workflow（決定論的な制御フロー）とActivity（非決定論的な外部呼び出し）の分離**だ。エージェントLoopへの対応は次のようになる。
+
+- **LLMコール → Activity**: 再実行を防ぐ。初回の結果がジャーナルに記録され、リプレイ時はキャッシュから返す
+- **ツール実行 → Activity**: 冪等性を付与して再実行可能にするか、Temporalのexactly-once保証を使う
+- **制御フロー（ループ・分岐）→ Workflow関数内**: 決定論的なPythonコードで記述
+
+```python
+@workflow.defn
+class AgentWorkflow:
+    @workflow.run
+    async def run(self, task: str) -> str:
+        memory: list = []
+        while True:
+            llm_result = await workflow.execute_activity(
+                call_llm,
+                args=[task, memory],
+                schedule_to_close_timeout=timedelta(minutes=5),
+            )
+            if llm_result.is_done:
+                return llm_result.output
+            tool_result = await workflow.execute_activity(
+                execute_tool,
+                args=[llm_result.tool_call],
+                retry_policy=RetryPolicy(maximum_attempts=3),
+            )
+            memory.append({"llm": llm_result.text, "tool": tool_result})
+```
+
+クラッシュ時の動作: 新しいワーカーがジャーナルを再生 → 完了済みのActivityはスキップ（LLM再呼び出しなし） → 未完了のActivityから再開。LLMレート制限エラーは `RetryPolicy` の指数バックオフで自動リトライされる。
+
+## RestateはTemporalとどう違うか
+
+> Restateは同じジャーナル再生をPythonサービス内に組み込み、専用クラスタなしで耐久実行を実現します。
+
+RestateはTemporalと同じジャーナル再生メカニズムを採用しながら、より軽量なフットプリントで動作する。サービスとHTTPハンドラを記述するだけでRestateサーバーがジャーナルを管理し、クラッシュ後の再生を透過的に処理する。2025年末にCloudで一般提供（GA）となっている。
+
+| 比較軸 | Temporal | Restate |
+|---|---|---|
+| インフラ | 専用クラスタ（またはTemporal Cloud）が必要 | Restateサーバー（軽量） |
+| 適合ワークフロー | 複雑・長時間・高スループット | 既存マイクロサービス統合、エッジ |
+| 成熟度 | $5B評価、業界最大エコシステム | 2025年GA、急成長中 |
+
+**選択基準**: 専用基盤を持てるエンタープライズで複雑なマルチエージェントオーケストレーションが必要なら Temporal。既存マイクロサービスに耐久実行を後付けしたい場合やサーバーレス環境では Restate が軽量で扱いやすい。
+
+## エンタープライズ本番パターン——可観測性・コスト管理・チーム統制
+
+> 長期エージェント実行の本番基盤にはワークフロー可視化・実行コスト上限・チーム別クォータが必要です。
+
+**可観測性**
+
+TemporalのWeb UIでワークフロー実行履歴、Activity状態、リトライログを可視化する。[エージェント可観測性](/blog/agent-observability-tracing-instrumentation/)のトレース設計と連携させ、OpenTelemetryのスパンにワークフローIDとActivity実行IDを紐付けることで、LLMコールのトレースが長期タスク全体の文脈で参照可能になる。
+
+**コスト管理**
+
+長期タスクはLLMコールが積み重なるため、ActivityレベルでTokenUsageを計測し、ワークフロー全体のトークン上限を管理する。上限を超えたらワークフローのSignal/Cancelを発行して中断し、アラートを発火する。[AI FinOps](/blog/ai-finops-token-cost-instrumentation/)の計装と組み合わせて部門別コスト配賦に反映させる。
+
+**チーム統制**
+
+Temporal Namespaceでチーム別に実行を分離する。`concurrent-workflow-limit` などのクォータを設定し、単一チームの暴走が他チームに波及しない設計にする。サービス間のワークフロー呼び出しはA2Aプロトコルまたは内部サービスAPIを経由し、直接的なWorkflow IDの共有を避ける。
+
+大規模マルチエージェント環境での耐久実行基盤設計については、[KuuのRDEサービス](/services/rde/)が対応している。TemporalクラスタのSLA設計から、アクティビティのべき等性設計、コスト管理ダッシュボードの構築まで一貫して支援する。
+
+## 参考
+
+- [Durable Execution Patterns for AI Agents: Building Fault-Tolerant Autonomous Systems | Zylos Research](https://zylos.ai/research/2026-02-17-durable-execution-ai-agents)
+- [Temporal for AI Agents: Durable Execution Guide 2026 | Effloow](https://effloow.com/articles/temporal-ai-agents-durable-execution-guide-2026)
+- [AI Agent Workflow Orchestration on GPU Cloud: Temporal, Inngest, and Restate | Spheron Blog](https://www.spheron.network/blog/ai-agent-workflow-orchestration-temporal-inngest-restate-gpu-cloud/)
+
+## まとめ
+
+耐久実行は、エンタープライズのエージェント基盤を「単発実行」から「継続運用」へ変える設計転換点だ。ジャーナル再生かDBチェックポイントかを選び、LLMコールをActivityに分離し、クラッシュ後に自動再開できる構造にすることが基本形となる。
+
+エージェント実行基盤の設計・TemporalやRestateの導入支援については、[Kuu株式会社のRDEサービス](/services/rde/)にお問い合わせください。ワークフロー設計から本番監視、コスト管理体制の構築まで一貫して支援します。
