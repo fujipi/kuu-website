@@ -828,6 +828,25 @@
         "https://arxiv.org/abs/2511.07865"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-sdk-comparison-langgraph-strands-mastra-openai",
+      "keyword": "AIエージェントSDK比較 LangGraph Strands Mastra OpenAI 設計思想 選定",
+      "title_hint": "AIエージェントSDK比較2026——LangGraph・Strands・Mastraの設計思想と選定指針",
+      "persona": "マルチエージェント基盤を選定するプラットフォームエンジニア・バックエンドエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェントSDKはどれを選ぶべきか——LangGraph・Strands・Mastra・OpenAI SDK比較",
+      "sources": [
+        "https://aws.amazon.com/blogs/machine-learning/strands-agents-sdk-a-technical-deep-dive-into-agent-architectures-and-observability/",
+        "https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk/",
+        "https://qubittool.com/blog/ai-agent-framework-comparison-2026",
+        "https://mastra.ai/",
+        "https://toolbrain.net/blog/langgraph-review-2026/"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

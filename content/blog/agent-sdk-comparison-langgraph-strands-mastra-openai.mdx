@@ -1,0 +1,107 @@
+---
+title: "AIエージェントSDK比較2026——LangGraph・Strands・Mastraの設計思想と選定指針"
+description: "LangGraph・AWS Strands・Mastra・OpenAI Agents SDKを設計思想・状態管理・デプロイ戦略で比較。言語選択・クラウド環境・ユースケース複雑度の3軸で技術選定の判断基準を整理する2026年版ガイド。"
+date: "2026-07-14"
+lastModified: "2026-07-14"
+tags: ["AIエージェント", "LangGraph", "フレームワーク", "アーキテクチャ"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "intermediate"
+target_query: "AIエージェントSDKはどれを選ぶべきか——LangGraph・Strands・Mastra・OpenAI SDK比較"
+sources:
+  - "https://aws.amazon.com/blogs/machine-learning/strands-agents-sdk-a-technical-deep-dive-into-agent-architectures-and-observability/"
+  - "https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk/"
+  - "https://qubittool.com/blog/ai-agent-framework-comparison-2026"
+  - "https://mastra.ai/"
+  - "https://toolbrain.net/blog/langgraph-review-2026/"
+pillar: "ai-governance"
+---
+
+2026年に入り、AIエージェントの本番導入を検討するチームが必ず直面するのが「どのSDKで組むか」という選択だ。LangGraph・AWS Strands Agents・Mastra・OpenAI Agents SDK——それぞれが「エージェントオーケストレーション」を謳いながら、設計思想は根本的に異なる。誤った選定は後から高い移行コストを招く。[エージェントガバナンス](/glossary/agent-governance/)の観点からも、基盤SDKの選択は監査証跡・権限分離・オブザーバビリティの設計に直結する。
+
+## AIエージェントSDKとは何か——2026年の主要4フレームワーク
+
+> AIエージェントSDKはLLM呼び出し・ツール実行・状態管理・マルチエージェント協調を抽象化したライブラリ群だ。2026年時点の主流は「グラフ駆動型」「モデル駆動型」「フルスタック型」の3系統に収束しつつある。
+
+2026年時点で本番採用実績を持つ主要SDKは以下の4つだ。
+
+| SDK | 設計系統 | 対応言語 | 公開元 |
+|---|---|---|---|
+| LangGraph v0.4 | グラフ駆動型 | Python / TypeScript | LangChain, Inc. |
+| AWS Strands Agents 1.0 | モデル駆動型 | Python（TypeScript対応） | Amazon / AWS |
+| Mastra v1.0 | フルスタック型 | TypeScript | Mastra Inc. |
+| OpenAI Agents SDK | モデル駆動型 | Python | OpenAI |
+
+LangGraphは2026年初頭にCrewAIを抜いてGitHub Starsのエンタープライズ採用数首位に立った。Strands AgentsはPython SDK v1.0を2026年5月にリリースし、A2Aプロトコル対応とマルチエージェントオーケストレーションを同時追加した。MastraはTypeScriptファースト設計で2026年1月にv1.0を出荷し、週30万のnpmダウンロードを記録している。
+
+## 設計思想の違いをどう読み解くか——3つのアーキテクチャモデルとは何か
+
+> グラフ駆動型は開発者がワークフローを陽に制御し、モデル駆動型はLLM自身がツール選択・実行順を決め、フルスタック型はRAG・評価・メモリをすべて1パッケージで提供する。選定の第一歩は自チームがどの思想を受け入れられるかの判断だ。
+
+### グラフ駆動型：LangGraph v0.4
+
+LangGraphはワークフローを有向グラフ（DAG）として表現し、各ノードがLLM呼び出し・ツール実行・サブエージェントを担う。条件分岐エッジとチェックポイント機能が特徴で、2026年4月のv0.4でPostgres向け`PostgresSaver`が安定版になった。DeltaChannelの最適化によりスケール時のチェックポイントストレージ使用量を最大73,000分の1に削減できる。LangGraph Studioはグラフをビジュアル表示しながらステップ単位で再生・状態変数を検査できるため、複雑なフローのデバッグ効率が高い。
+
+- 最適シーン：承認フロー・監査証跡・ロールバックが必要な本番ワークフロー
+- 懸念点：「グラフ設計」という初期コストが高く、単純なReActループには過剰になりやすい
+
+### モデル駆動型：Strands Agents 1.0 / OpenAI Agents SDK
+
+Strandsは「LLM・システムプロンプト・ツール」の3要素だけを定義し、実行順序の決定をモデルに委ねる。開発者がオーケストレーションロジックをハードコードせずに済む分、プロトタイプから本番への移行が速い。4つのマルチエージェントパターン（単体・スウォーム・スーパーバイザー・ヒエラルキー）をサポートし、OpenTelemetry（OTEL）でトレースをそのまま出力する。
+
+OpenAI Agents SDKはハンドオフチェーンモデルを採用する——エージェントAがエージェントBへ制御を渡す逐次型だ。サポートパイプラインなど「担当者を次の人に回す」構造に自然にマッピングされる一方、並列実行はネイティブでは苦手だ。
+
+### フルスタック型：Mastra v1.0
+
+MastraはAgents・Workflows・RAG・Evals・Telemetryを1パッケージで提供するTypeScriptフレームワークだ。Zodによるエンドツーエンドの型安全と、Pinecone・Qdrant・pgvectorへのファーストクラスアダプターが特徴で、RAGパイプラインをゼロから構築する工数を3〜4週間節約できるとベンチマーク比較で報告されている。Bun・Deno・Cloudflare Workersにも単一コードでデプロイできる点が小規模チームに刺さっている。
+
+## 状態管理・オブザーバビリティ・デプロイ戦略はどう違うか
+
+> 状態管理は「LangGraphのチェックポイント型」「Strandsの手動連携型」「Mastraのストレージアダプター型」の3方式に分かれる。オブザーバビリティとデプロイ先もSDKごとに設計が大きく異なるため、本番運用前に3軸で必ず比較すること。
+
+| 軸 | LangGraph v0.4 | Strands 1.0 | Mastra v1.0 | OpenAI Agents SDK |
+|---|---|---|---|---|
+| 状態管理 | チェックポイント（SQLite/Postgres） | 開発者が手動実装（DynamoDB等） | Postgres/Upstashアダプター | セッション変数＋会話履歴 |
+| オブザーバビリティ | LangGraph Studio（ビジュアルUI） | OTEL→AWS X-Ray/CloudWatch | 組込みTelemetry | OpenAIダッシュボード |
+| デプロイ先 | セルフホスト / LangGraph Cloud | Lambda/Fargate/Bedrock AgentCore | Node.js互換環境全般 | OpenAIプラットフォーム |
+| ライセンス | MIT | Apache 2.0 | MIT | 独自 |
+
+StrandsがOTEL標準出力を採用しているため、AWS X-Ray以外のバックエンド（Jaeger・Grafana Tempo等）へも繋ぎ替えられる点がベンダーロックイン回避を優先するエンタープライズで評価されている。LangGraphのチェックポイントはPostgresに乗ることで人間による承認ステップを「状態として保存」できる——この特性が[ヒューマンインザループ設計](/blog/ai-agent-human-in-the-loop-design/)を必要とする業務に強みを発揮する。
+
+## どのSDKを選ぶべきか——技術選定の判断フロー
+
+> チームの主要言語・クラウド環境・ユースケース複雑度の3点で絞り込める。「TypeScriptかつフルスタック」ならMastra、「AWSかつモデル委任」ならStrands、「複雑な分岐と監査証跡」ならLangGraphが最短選択だ。
+
+```
+主要言語は？
+├─ TypeScript → Mastra（RAG/Evals/Workflow込み）
+└─ Python
+    ├─ AWSがメイン + 複雑なツール群 → Strands Agents
+    ├─ OpenAI APIに固定 + ハンドオフチェーン → OpenAI Agents SDK
+    └─ 複雑な分岐・承認フロー・監査証跡必須 → LangGraph
+```
+
+注意点として、Strandsは2026年7月時点でPythonが主軸（TypeScript SDKはv1.0到達も事例が少ない）、OpenAI Agents SDKはTypeScriptが「計画中」状態のため、多言語チームは選択肢が限られる。
+
+業務ロジックの複雑さも判断軸だ。条件分岐が5段階を超える・人間による承認ステップが3箇所以上あるワークフローは、グラフ設計を強制されるLangGraphのほうが長期的な保守性が高い。単純なReAct（推論→行動）ループならStrands/OpenAI SDKの方が記述量が少ない。モデルに高い自律性を与えてよい場合はモデル駆動型が、エージェントの挙動を厳密に制御したい場合はグラフ駆動型が向く。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB（中小企業）** では、運用人員が少ないため「最初から動く」ことが最優先だ。MastraはRAG・評価・ワークフローが1パッケージで揃い、セルフホストでも立ち上げやすい。StrandsをBedrock AgentCoreと組み合わせると、AWSが管理基盤を担うためエンジニアなしでも本番運用を維持できる。エージェント基盤の選定から運用まで外部パートナーと分担したい場合は[AIエージェント運用管理サービス](/services/ai-ops/)が起点になる。
+
+**エンタープライズ** では、IAM・VPC・SCIM連携・監査証跡がゼロから要求される。LangGraph CloudはSOC 2認定取得済みで、EUデータレジデンシー対応も公表されている。StrandsはBedrock AgentCore（マネージドランタイム）を経由することで、IAMベースの認可・Cognito認証・VPC内デプロイを宣言型で設定できる。大規模組織でのLLM利用統制の設計については[エンタープライズAI変革支援（RDE）](/services/rde/)を参照されたい。
+
+## 参考
+
+- [Strands Agents SDK: A technical deep dive into agent architectures and observability | AWS](https://aws.amazon.com/blogs/machine-learning/strands-agents-sdk-a-technical-deep-dive-into-agent-architectures-and-observability/)
+- [Introducing Strands Agents, an Open Source AI Agents SDK | AWS Open Source Blog](https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk/)
+- [2026 AI Agent Framework Showdown: LangGraph vs Strands vs OpenAI | QubitTool](https://qubittool.com/blog/ai-agent-framework-comparison-2026)
+- [TypeScript AI Framework for Agents and Apps | Mastra](https://mastra.ai/)
+- [LangGraph Review 2026: The Graph-Based Agent Framework Powering Enterprise AI](https://toolbrain.net/blog/langgraph-review-2026/)
+
+## まとめ
+
+AIエージェントSDKは2026年時点で「グラフ駆動型（LangGraph）」「モデル駆動型（Strands/OpenAI SDK）」「フルスタック型（Mastra）」の3系統に整理される。選定の起点は①チームの主要言語、②デプロイ先クラウド環境、③ワークフローの複雑度の3点だ。「まず動かす」ならMastra/Strands、「監査証跡と複雑な分岐」ならLangGraphが有力候補になる。
+
+SDKを選んだ後に課題になるのが、セキュリティポリシー・ログ管理・コスト配賦といった「ガバナンス基盤」の整備だ。Kuuはエージェントガバナンスの設計から運用まで一気通貫で支援する。まずは[AIエージェント運用管理サービス](/services/ai-ops/)の詳細からご確認ください。
