@@ -1,0 +1,176 @@
+---
+title: "MCPサーバーの本番運用設計——デプロイ・監視・バージョン管理の基本"
+description: "MCPサーバーを本番化するにはStreamable HTTP移行・YYYY-MM-DD形式バージョン管理・W3C Trace Context監視・OAuth 2.1認証の4点を整える。中小企業向けの段階的設計手順。"
+date: "2026-07-15"
+lastModified: "2026-07-15"
+tags: ["MCP", "プロトコル", "本番運用", "デプロイ"]
+author: "kuu-engineering"
+audience: "smb"
+track: "protocols"
+tech_depth: "intermediate"
+sources:
+  - "https://modelcontextprotocol.io/specification/versioning"
+  - "https://www.prefect.io/resources/best-mcp-deployment-platforms-enterprise-2026"
+  - "https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/"
+---
+
+MCPサーバーを手元で動かすのは難しくない。しかし実際に社内ツールへ接続してAIエージェントに使わせようとした途端、「バージョンが合わない」「クライアントが増えると接続できなくなる」「何が起きているか見えない」という問題が立て続けに現れる。実装の次に来る**本番運用の設計**こそが、AIエージェントの安定稼働を左右する。
+
+## MCPサーバーの本番化でつまずく3つのポイント
+
+> MCPサーバーは実装後にtransport選択・バージョン管理・可観測性の3点で運用が停止するケースが多い。
+
+**transport選択のミス**: stdioはサブプロセス起動でクライアントが1つに固定される。複数クライアントに対応するにはStreamable HTTPへの移行が必須で、この切り替えを後回しにすると設計全体の見直しを迫られる。
+
+**バージョン管理の不備**: MCPプロトコルは急速に進化している。クライアントとサーバーでサポートするプロトコルバージョンが食い違うと、initializeフェーズで接続拒否が起きる。バージョンネゴシエーションの仕組みを理解せずに運用すると、クライアントアップデートのたびに障害が発生する。
+
+**可観測性の欠如**: 「LLMがツールを呼んだか」「どのツールがエラーを返したか」「レイテンシはどれくらいか」——これが見えない状態では、本番障害の原因特定に何時間もかかる。
+
+## バージョンネゴシエーションはどう設計するか
+
+> MCP仕様はYYYY-MM-DD形式の日付で管理され、initializeフェーズでクライアントとサーバーが1つのバージョンに合意する。
+
+MCPのプロトコルバージョンは`2025-11-25`のような**日付文字列**で管理される。**後方互換の追加変更はバージョンを上げず、破壊的変更のみ新バージョンを宣言**するルールだ。これにより、古いクライアントが新しいサーバーに接続しても動作を維持しやすい設計になっている。
+
+バージョンネゴシエーションは接続の最初の`initialize`リクエストで行われる。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-11-25",
+    "clientInfo": { "name": "my-agent", "version": "1.0.0" }
+  }
+}
+```
+
+サーバーはサポートするバージョンの中から1つを選んでレスポンスする。合意できるバージョンがない場合、クライアントは接続を終了してユーザーにエラーを通知する。
+
+### 2026年時点での注意点
+
+- **サーバーは複数バージョンを同時サポートできる**: 古いクライアントと新しいクライアントが混在する環境では、サーバー側で複数バージョンへの対応を維持するとスムーズに移行できる
+- **2026-07-28 RC（最新仕様候補）**: セッションレス化が導入され、`Mcp-Session-Id`ヘッダーがプロトコルレベルから削除された。任意のリクエストをどのサーバーインスタンスにも振り分けられるようになり、スティッキールーティングが不要になる
+- **deprecated機能の移行期間**: 仕様上、deprecated機能は最低12ヶ月は仕様に残り、その後に削除対象になる。定期的に[仕様のrevisions](https://modelcontextprotocol.io/specification/versioning)を確認し、移行計画を事前に立てることが重要だ
+
+## Streamable HTTPで本番デプロイするにはどうすればよいか
+
+> 本番環境ではstdioを捨ててStreamable HTTPを選択し、コンテナ化してロードバランサー配下に置くのが基本設計です。
+
+### stdioとStreamable HTTPの使い分け
+
+| 項目 | stdio | Streamable HTTP |
+|---|---|---|
+| 接続数 | 1クライアント固定 | 複数クライアント対応 |
+| スケーリング | 不可 | ロードバランサー配下でスケール |
+| 認証 | OS権限に依存 | OAuth 2.0/2.1で標準化 |
+| 推奨用途 | ローカル開発・CI | 本番環境 |
+
+stdioは開発ツールとして便利だが、本番での多クライアント対応・認証・スケーリングには対応していない。本番化の第一歩はStreamable HTTPへの移行だ。
+
+### コンテナ化と基本デプロイ構成
+
+Streamable HTTPサーバーはDockerでコンテナ化し、ヘルスチェックエンドポイントを必ず実装する。
+
+```dockerfile
+FROM node:22-slim
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist/ ./dist/
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:3000/health || exit 1
+CMD ["node", "dist/server.js"]
+```
+
+ヘルスチェックはロードバランサーがルーティングの可否を判断するために使う。`/health`は外部依存（DBなど）を含まない軽量チェックとし、`/ready`で外部依存を含む起動確認を分けると管理しやすい。
+
+### ゼロダウンタイム更新
+
+MCPサーバーの更新時はブルーグリーンデプロイが有効だ。新バージョンを並行環境に立ち上げ、疎通確認後にロードバランサーを切り替える。問題が発生したら旧バージョンに即座に戻せる。最新RC（2026-07-28）のセッションレス設計が普及すると、インスタンスをまたいでリクエストを振り分けられるため、ローリングアップデートもより容易になる。
+
+[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)では、MCPサーバーのデプロイ設計から運用体制構築まで一貫してサポートしている。
+
+## 可観測性はどこから整えるか
+
+> W3C Trace ContextをMCPの`_meta`フィールドで伝播することで、OpenTelemetryのトレースにLLM呼び出しを統合できます。
+
+### 最低限のログ設計
+
+まず押さえるべきログ項目は以下の4つだ。
+
+1. **ツール呼び出しログ**: `tool_name`・`input`（PII除去後）・レイテンシ・成否
+2. **エラーログ**: エラーコード・スタックトレース・リクエストID
+3. **認証ログ**: クライアントID・スコープ・承認/拒否の結果
+4. **起動/停止ログ**: バージョン情報・設定サマリ
+
+### W3C Trace Context統合
+
+MCP 2025-11-25仕様では`_meta`フィールドにW3C Trace Contextの伝播が定義されている。
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "search_products",
+    "arguments": { "query": "在庫確認" },
+    "_meta": {
+      "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+      "tracestate": ""
+    }
+  }
+}
+```
+
+`traceparent`を受け取ったMCPサーバーは、自分が行う外部API呼び出しにもこのトレースIDを引き継ぐ。これにより、LLMがツールを呼び出してからDBアクセスまでの全スパンを1本のトレースツリーで可視化できる。
+
+### メトリクス設計
+
+最低限収集するメトリクスは以下の4つだ。
+
+- `mcp.tool.call.count`: ツール呼び出し回数（ツール別・クライアント別）
+- `mcp.tool.call.duration`: ツール実行レイテンシ（p50/p95/p99）
+- `mcp.tool.call.error.rate`: エラー率（ツール別）
+- `mcp.server.connection.count`: 同時接続数
+
+エラー率の急増やレイテンシの外れ値をアラートとして設定することで、LLMがツール呼び出しのリトライループに入っている状態をいち早く検知できる。
+
+## アクセス制御の最低ラインを決める
+
+> MCPのOAuth 2.0認証でスコープを設定することで、ツール単位のアクセス制限が実装できます。
+
+MCP仕様はOAuth 2.0/2.1ベースの認証を定義している。Streamable HTTP transportではHTTPヘッダーでBearerトークンを受け取り、スコープによってどのツールを呼び出せるかを制御する。
+
+```
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### 最小権限原則のスコープ設計
+
+ツールに対応するスコープを定義し、クライアントには必要最小限のスコープのみ付与する。
+
+```json
+{
+  "scopes": {
+    "tools:search_products": "商品検索ツールの呼び出し権限（読み取り）",
+    "tools:update_inventory": "在庫更新ツールの呼び出し権限（書き込み）",
+    "tools:admin": "全ツールの呼び出し権限（管理者専用）"
+  }
+}
+```
+
+書き込みや副作用を持つツール（`update_inventory`等）は専用スコープを分離し、読み取り専用スコープとは必ず別に管理する。これにより、参照系のAIエージェントが誤って書き込み操作を実行するリスクを構造的に排除できる。[エージェントガバナンス](/glossary/agent-governance/)の基本である最小権限の原則をMCPのスコープ設計に直接反映する形だ。
+
+## 参考
+
+- [Versioning — Model Context Protocol](https://modelcontextprotocol.io/specification/versioning)
+- [Best MCP Deployment Platforms for Enterprise 2026 — Prefect](https://www.prefect.io/resources/best-mcp-deployment-platforms-enterprise-2026)
+- [The 2026-07-28 MCP Specification Release Candidate — MCP Blog](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)
+
+## まとめ
+
+MCPサーバーの本番運用で押さえるべきポイントは4点だ。①stdioからStreamable HTTPに切り替えてコンテナ化する、②YYYY-MM-DD形式のプロトコルバージョンをinitializeで正しくネゴシエーションする、③W3C Trace ContextをMCPの`_meta`に伝播してOpenTelemetryに統合する、④OAuth 2.0スコープで最小権限のアクセス制御を実装する。この4点が整うと、LLMがMCPツールを呼び出す経路全体を計装・制御できる本番基盤が完成する。
+
+運用基盤の設計から[エージェントガバナンス](/glossary/agent-governance/)体制の整備まで、継続したサポートが必要な場合は[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)にご相談ください。
