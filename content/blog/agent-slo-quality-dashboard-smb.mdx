@@ -1,0 +1,95 @@
+---
+title: "AIエージェントSLO設計——品質ダッシュボードの実装"
+description: "AIエージェントにSLO/SLIを設定し、Langfuse・Heliconeで品質ダッシュボードを構築する具体手順。タスク完了率・ハルシネーション率・レイテンシを中小企業が低コストで計測・改善する方法を解説します。"
+date: "2026-07-15"
+lastModified: "2026-07-15"
+tags: ["エージェント評価", "SLO", "品質監視", "Langfuse"]
+author: "kuu-engineering"
+audience: "smb"
+track: "evaluation"
+tech_depth: "intermediate"
+target_query: "AIエージェントにSLOを設定して品質を継続監視するにはどうすればよいか"
+sources:
+  - "https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide"
+  - "https://renue.co.jp/posts/ai-agent-reliability-retry-circuit-breaker-slo-2026"
+  - "https://uptimerobot.com/knowledge-hub/monitoring/ai-agent-monitoring-best-practices-tools-and-metrics/"
+  - "https://www.buildmvpfast.com/blog/ai-agent-sla-uptime-accuracy-response-time-guarantee-2026"
+---
+
+エージェントを本番稼働させた後、「なんとなく動いている」状態が続いていないだろうか。HTTP 200を返していても、必要なステップを飛ばしたり、存在しない情報を返したりするエージェントは珍しくない。稼働率監視だけでは品質劣化は検出できない。
+
+## AIエージェントの品質は何で測るか
+
+> AIエージェントの品質は「タスク完了率・ハルシネーション率・ツール呼び出し精度・レイテンシ」の4軸で測る。稼働率監視は必要条件でも十分条件でもない。
+
+2026年のプロダクション事例が収束させた主要SLI（サービスレベル指標）は次の6つだ。
+
+| SLI | 説明 | SMBの初期目安 |
+|---|---|---|
+| タスク完了率 | 依頼タスクを最後まで完遂した割合 | ≥92% |
+| ハルシネーション率 | 虚偽・捏造回答の割合 | ≤3% |
+| ツール呼び出しエラー率 | ツール選択誤りや実行失敗の割合 | ≤5% |
+| エンドツーエンドレイテンシ | ツール呼び出しを含む総所要時間 | p95≤8秒 |
+| タスクあたりコスト | トークン＋ツール実行費用の合計 | 予算別に設定 |
+| ユーザー満足度 | 再試行率・フィードバックから算出 | ≥85%肯定的 |
+
+従来のWebシステムなら稼働率と応答時間だけ見れば十分だった。エージェントでは「処理は完了したが目的を果たさなかった」というケースが発生するため、行動レベルの指標が不可欠になる。
+
+## SLOはどう設計するか
+
+> SLO設計の正しい順序は「SLI定義 → エラーバジェット設定 → SLA公開」の3段階。外部向けSLAは計測基盤が安定してから設定する。
+
+**Step 1 — SLIを定義する**
+
+計測できる指標を選ぶ。「高精度」という抽象表現ではなく、「28日間窓でタスク完了率≥92%」のように条件を具体化する。最初は「タスク完了率」と「エンドツーエンドレイテンシ」の2指標に絞るのが現実的だ。
+
+**Step 2 — エラーバジェットを設定する**
+
+エラーバジェットとは「SLO達成率が下がる前に許容できる失敗の上限」だ。タスク完了率SLO 92%の場合、1ヶ月で8%の失敗が許容される。バジェットを超えたらリリースを止め、改善に集中するルールを事前に文書化しておく。このルールがないと、SLOは測定するだけの指標になってしまう。
+
+**Step 3 — SLAは後から公開する**
+
+顧客向けのSLA（契約上の品質保証）は計測基盤が3ヶ月以上安定してから設定する。計測できていないことを約束すると、改善より先にペナルティが発生する。
+
+## ダッシュボードのツールはどう選ぶか
+
+> Langfuse（OSS自己ホスト）またはHelicone（SaaSプロキシ）が中小企業のコストを最小化しつつ、トレース収集から品質スコアの可視化まで一体で提供する。
+
+2026年時点でSMBに採用されやすいスタックを整理する。
+
+**Langfuse**（OSS・自己ホスト可）
+
+トレース・評価スコア・ユーザーフィードバックを一元管理できるOSS基盤。Docker Composeで社内サーバーに立てられるため、データをクラウドに出したくないケースに向く。Python SDKを1行追加するだけでトレース収集が始まる。
+
+**Helicone**（SaaS・プロキシ方式）
+
+OpenAI・Anthropic APIのbaseURLをHeliconeに差し替えるだけで計測が開始する。設定コストが最も低く、ダッシュボードもすぐ使える。無料枠で月数千リクエストまで対応し、最初の検証フェーズに適している。
+
+**Arize Phoenix**（OSS）
+
+RAGパイプラインを含む複合構成の観測に特化。評価スコアとトレースの相関分析が得意で、[エージェントの可観測性計装](/blog/agent-observability-tracing-instrumentation/)と組み合わせて使いやすい。
+
+3ツールともOpenTelemetry GenAI標準に準拠しており、マルチエージェント構成でのエンドツーエンドトレースが可能だ。
+
+## グッドプットで品質を正確に見る
+
+> グッドプット（Goodput）とは「全SLOを同時に満たすリクエスト数」。スループットだけを指標にすると品質劣化が数値に現れない。
+
+「1秒500リクエスト処理できている」状態でも、そのうち30%がレイテンシSLOを超えているなら実際のグッドプットは350 RPSだ。グッドプットを主指標にすると、エンジニアは「完了数を増やす」ではなく「SLOを同時に満たす数を増やす」という正しいインセンティブを持てる。
+
+プロダクション評価でよく指摘されるのが「ベンチマーク評価と本番評価の乖離」だ。クリーンな入力・安定したAPI前提のベンチマーク環境と、曖昧なリクエスト・レートリミット・フォールバック処理が発生する本番環境では平均37%の乖離が報告されている。本番で発生した失敗ケースは必ず[回帰テストのゴールデンデータセット](/blog/agent-regression-test-golden-dataset/)に追加し、このギャップを縮めるサイクルを確立することが品質改善の核心だ。
+
+[エージェント評価のKPI設計](/blog/ai-agent-evaluation-kpi/)でビジネス指標を整理した上で、本記事のSLO/SLI設計と組み合わせることで、技術指標とビジネス指標を両輪で管理できる体制が整う。
+
+## 参考
+
+- [LLM Agent Evaluation Complete Guide 2026 (Confident AI)](https://www.confident-ai.com/blog/llm-agent-evaluation-complete-guide)
+- [AIエージェント信頼性設計の7パターン｜SLO/SLI実装ガイド 2026年版 (renue.co.jp)](https://renue.co.jp/posts/ai-agent-reliability-retry-circuit-breaker-slo-2026)
+- [AI Agent Monitoring Best Practices 2026 (UptimeRobot)](https://uptimerobot.com/knowledge-hub/monitoring/ai-agent-monitoring-best-practices-tools-and-metrics/)
+- [AI Agent SLAs: Uptime, Accuracy, and Response Time Guarantees (buildmvpfast.com)](https://www.buildmvpfast.com/blog/ai-agent-sla-uptime-accuracy-response-time-guarantee-2026)
+
+## まとめ
+
+AIエージェントの品質管理は、稼働率監視から「タスク完了率・ハルシネーション率・レイテンシ」を軸にしたSLO設計へ移行する必要がある。Langfuse（OSS）またはHelicone（SaaS）を使えば、中小企業でも低コストでトレース収集と品質ダッシュボードを構築できる。最初のSLIは2指標に絞り、エラーバジェットを設定し、計測が安定してから外部SLAを公開するという順序が品質改善への近道だ。
+
+SLO設計から品質ダッシュボードの構築・継続的な評価サイクルの整備まで一気通貫で支援するKuuの[AIエージェント運用管理サービス（AI-Ops）](/services/ai-ops/)へ、まずは相談からはじめてほしい。
