@@ -188,6 +188,15 @@
       "industry": "ペットサービス・トリミングサロン",
       "use_case": "顧客カルテ管理・予約受付・失客防止フォローの補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "day-service-elderly-care-agent",
+      "keyword": "通所介護 デイサービス 業務日誌 送迎 月次請求 AIエージェント 自動化",
+      "title_hint": "通所介護（デイサービス）の記録・送迎・請求をAIエージェントに——管理者の多重業務をこう減らす",
+      "persona": "通所介護事業所の管理者兼生活相談員",
+      "industry": "通所介護・デイサービス",
+      "use_case": "業務日誌・個別計画・送迎調整・月次請求の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
