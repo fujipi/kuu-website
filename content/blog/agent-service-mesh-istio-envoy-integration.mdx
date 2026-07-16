@@ -1,0 +1,88 @@
+---
+title: "AIエージェント基盤のサービスメッシュ統合——Istio Ambient Mode・agentgateway設計指針"
+description: "Istio Ambient Mode・agentgatewayを使い、AIエージェント基盤にL7トラフィック制御と観測性を確立する。KubeCon EU 2026発表の機能と設計指針を解説。"
+date: "2026-07-16"
+lastModified: "2026-07-16"
+tags: ["サービスメッシュ", "Istio", "AIエージェント", "Kubernetes"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://www.cncf.io/announcements/2026/03/25/istio-brings-future-ready-service-mesh-to-the-ai-era-with-new-ambient-multicluster-gateway-api-inference-extension-and-more/"
+  - "https://istio.io/latest/docs/ops/deployment/architecture/"
+  - "https://www.infoq.com/news/2026/04/istio-ai-multicluster/"
+---
+
+GenAIワークロードをKubernetesで動かす組織は2026年時点で66%に達する一方、AIワークロードのデイリーデプロイを達成している組織は7%に留まる（CNCF調査）。この乖離の主因は、エージェントが生み出す予測困難なトラフィックパターン——可変推論レイテンシ・連鎖的なマルチサービス呼び出し・コンテキストウィンドウによるペイロードサイズの激変——に対して、既存のネットワーク基盤が追いついていないことだ。
+
+サービスメッシュは、[AIプラットフォームエンジニアリング](/blog/ai-platform-engineering-internal-infrastructure/)の文脈でこの問題を解消するインフラ層になる。Kubernetes内サービス間通信にL7の可視性・ポリシー適用・mTLSを注入することで、エージェント間の認証・認可・観測性をアプリケーションコードから切り離せる。KubeCon EU 2026ではIstioがAmbient Multicluster Beta・Gateway API Inference Extension Beta・agentgateway実験的統合の3機能を同時に発表し、AIエージェント基盤としての実用性が大きく前進した。大規模なエージェント基盤の設計については[Kuuのエンタープライズ向けRDEサービス](https://kuucorp.com/services/rde/)でも対応している。
+
+## エージェントトラフィックはなぜ特殊なのか
+
+> AIエージェントのトラフィックは連鎖的なLLM呼び出しと可変ペイロードによって従来のマイクロサービスより予測が難しく、L7インテリジェンスを持つサービスメッシュが必要になる。
+
+従来のマイクロサービスはペイロードサイズが概ね予測可能で、サーキットブレーカーの閾値も安定的に設定できた。一方、AIエージェントのツール呼び出し（Function calling）や[A2Aプロトコル](/blog/a2a-protocol-agent-interop-design/)によるサブエージェント委譲は次の特性を持つ：
+
+- **連鎖呼び出し（Chain-of-Thought）**: 1リクエストが数十のLLM呼び出しと外部ツール実行に展開される
+- **サイズ変動**: コンテキストウィンドウのトークン量に応じてペイロードが数バイトから数MBに変動する
+- **非同期ストリーミング**: SSE/WebSocketで長時間接続が維持される（[ストリーミング設計](/blog/claude-streaming-api-design-ttft/)参照）
+
+L4のロードバランサーやNATゲートウェイではこれらの特性を制御しきれず、L7を解析できるサービスメッシュが必要になる。
+
+## Ambient Mode——サイドカーレスアーキテクチャでオーバーヘッドを削減する
+
+> Istio Ambient ModeはL4（ztunnel）とL7（waypoint proxy）を分離し、サイドカーを廃してリソース消費を70%以上削減する。エージェントPodへのサイドカー注入なしにmTLSと観測性を確立できる。
+
+Istio 1.x系のサイドカーモデルは各Podに1つEnvoyコンテナを注入するため、エージェントPodが数十台規模になるとリソース消費が線形に増加した。KubeCon EU 2026でBetaに昇格したAmbient Multiclusterはサイドカーレス設計を複数クラスタに拡張する。
+
+**Ambient ModeのL4/L7分離設計**：
+
+- **ztunnel（L4層）**: 各ノードに1つのみ配置し、全PodのmTLSを一括処理。サイドカー比70%以上のリソース削減を実現
+- **waypoint proxy（L7層）**: L7ポリシー（認可・レート制限・リトライ）が必要なサービスにのみ追加。Envoyベースでエージェントの連鎖呼び出しフローを解析可能
+
+エージェント基盤への実装では、サブエージェント（実行エージェント）群はztunnelのみでmTLSを確立し、オーケストレータ（プランナーエージェント）にのみwaypoint proxyを付与してL7ポリシーを適用する層別設計が実用的だ。[エージェントの可観測性](/blog/agent-observability-tracing-instrumentation/)パイプラインとの連携も、Ambient Modeなら既存のトレーシング設定をPod単位でなくサービス単位に集約できる。
+
+## Gateway API Inference Extension——LLM推論トラフィックをL7でルーティングする
+
+> Gateway API Inference ExtensionはKubernetes Gateway APIにLLM推論専用のルーティングルールを追加し、モデル別・優先度別のトラフィック振り分けとコスト制御を宣言的に記述できる。
+
+KubeCon EU 2026でBetaに昇格したGateway API Inference Extensionは、`InferencePool`と`InferenceModel`というカスタムリソースを追加する。特に重要なのが`criticality`フィールドで、トラフィック輻輳時の優先度を3段階で宣言できる：
+
+```yaml
+apiVersion: inference.networking.x-k8s.io/v1alpha2
+kind: InferenceModel
+metadata:
+  name: agent-production-workflow
+spec:
+  modelName: "claude-sonnet-5"
+  poolRef:
+    name: llm-inference-pool
+  criticality: Critical     # Critical / Standard / Sheddable
+```
+
+本番エージェントワークフローを`Critical`、バッチ評価パイプラインを`Sheddable`に設定することで、クラスタが輻輳した際に本番トラフィックを優先的に保護できる。[LLMゲートウェイ設計](/blog/llm-gateway-routing-rate-limiting/)でアプリケーション層に実装してきたモデルルーティングをKubernetesネイティブに表現する選択肢として機能する。
+
+## Agentgatewayによるエージェント間通信の制御
+
+> Agentgatewayは、MCPとA2Aプロトコルのエージェント間通信を認識するIstioデータプレーン拡張で、エージェントのリクエストを透過的にルーティング・監査する。
+
+KubeCon EU 2026でIstioデータプレーンに実験的統合されたagentgateway（元Solo.ioプロジェクト、現Linux Foundation管理）は、AI固有のプロトコルを認識するプロキシとして動作する。MCPサーバーへの接続要求や[A2Aプロトコル](/blog/a2a-protocol-agent-interop-design/)によるタスク委譲を透過的にインターセプトし、次の制御を提供する：
+
+- **ツール呼び出しのL7可視性**: MCPのtool callとA2Aのtask delegateをプロキシ層でロギングし、[エージェントの可観測性](/blog/agent-observability-tracing-instrumentation/)パイプラインにスパンを供給
+- **認証トークンの検証**: A2AのOAuth認証フローやMCPのスコープをゲートウェイで検証し、エージェントサービス側の実装負荷を軽減（[MCP OAuth設計](/blog/mcp-security-oauth-scope-design/)参照）
+- **動的トラフィック制御**: エージェントの連鎖呼び出しによる突発的なトラフィック増加をレート制限・キューイングで緩和
+
+Istioのztunnelと組み合わせることで、エージェント固有のL7制御とクラスタ全体のゼロトラストmTLSを同一のコントロールプレーン（istiod）で管理できる。
+
+## 参考
+
+- [Istio Brings Future Ready Service Mesh to the AI Era — CNCF](https://www.cncf.io/announcements/2026/03/25/istio-brings-future-ready-service-mesh-to-the-ai-era-with-new-ambient-multicluster-gateway-api-inference-extension-and-more/)
+- [Istio Architecture — istio.io](https://istio.io/latest/docs/ops/deployment/architecture/)
+- [Istio Evolves for the AI Era with Multicluster, Ambient Mode, and Inference Capabilities — InfoQ](https://www.infoq.com/news/2026/04/istio-ai-multicluster/)
+
+## まとめ
+
+AIエージェント基盤のサービスメッシュ統合は、Ambient ModeによるmTLS自動化・Gateway API Inference ExtensionによるLLM推論ルーティング・agentgatewayによるエージェント間通信の可視化という3層で構成される。いずれもKubernetes宣言的APIで管理できるため、既存のGitOpsワークフローに統合しやすい。
+
+エンタープライズ規模でのAIエージェント基盤設計やKubernetes統合について相談したい場合は、[Kuuのエンタープライズ向けRDEサービス](https://kuucorp.com/services/rde/)からご連絡ください。
