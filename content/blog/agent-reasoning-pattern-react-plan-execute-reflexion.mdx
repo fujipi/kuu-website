@@ -1,0 +1,109 @@
+---
+title: "ReAct・Plan-Execute・Reflexion——エージェント推論パターンの選択基準"
+description: "AIエージェントの推論パターンには逐次推論のReAct・事前計画のPlan-and-Execute・自己批評のReflexionがある。3パターンの仕組みとトレードオフを設計観点で整理し、タスク特性に合わせた選択基準を示す。"
+date: "2026-07-16"
+lastModified: "2026-07-16"
+tags: ["エージェントアーキテクチャ", "ReAct", "Plan-and-Execute", "Reflexion"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "deep"
+sources:
+  - "https://servicesground.com/blog/agentic-reasoning-patterns/"
+  - "https://theaiengineer.substack.com/p/the-4-single-agent-patterns"
+  - "https://www.anthropic.com/engineering/building-effective-agents"
+  - "https://arxiv.org/pdf/2509.08646"
+---
+
+AIエージェントの推論ループを設計するとき、「どのパターンを選ぶか」という問いへの回答が本番品質を決定する。逐次推論のReActは使い始めが容易だが、複数ステップの依存関係が深くなると判断精度が落ちる。Plan-and-ExecuteとReflexionは補完関係にあるが、両者を無計画に組み合わせると推論コストが倍増する。パターン選択の誤りが、動いているように見えて精度が出ないエージェントを生む。
+
+## AIエージェントの推論パターンとは何か
+
+> 推論パターンは思考・行動・観察のループ構造を定義する設計単位で、選択がエージェントのコスト・精度・レイテンシを直接決定します。
+
+現在の実装で主流となるのはReAct・Plan-and-Execute・Reflexionの3系統だ。それぞれが「計画と実行の分離度」「自己修正能力」「コスト効率」の軸で異なるトレードオフを持つ。単一エージェントの内部ループとして選択することも、マルチエージェント構成の各ノードに割り当てることもできる。
+
+パターンを選ぶ前に確認すべき問いは次の3点だ。(1) タスクのステップ数は実行前に確定できるか？ (2) 失敗時の再試行コストは許容できるか？ (3) 中間ステップの出力を人間がレビューする必要があるか？ これらへの答えがパターン選択の起点になる。なおAnthropicは「Building Effective Agents」で「シンプルな構成を起点に、複雑さは計測後に追加せよ」と繰り返し強調しており、本稿の選択フローもこの原則に従う。
+
+## ReActパターンとは何か
+
+> ReActは推論・行動・観察を1ステップずつ繰り返す最小ループです。ツール数5以下の動的タスクに適したデフォルト選択肢です。
+
+ReActループの構造は「Thought → Action → Observation」の繰り返しだ。モデルは「次に何をすべきか」を思考し（Thought）、ツールを呼び出し（Action）、その結果を観察して（Observation）次の思考へ進む。最終回答を生成するか最大ステップ数に達した時点でループを終了する。2022年のYao et al.論文に端を発し、LangGraphのprebuilt ReActエージェントやClaude Tool Useのデフォルトagentic loopに実装されている。
+
+**長所**: 実装が最も単純で、既存のLLMフレームワークにほぼゼロ設定で乗れる。タスク途中での状態変化（外部イベント、ツールのエラー）に柔軟に対応できる。コンテキストを蓄積しながらリアルタイムに方針転換するインタラクティブな対話型エージェントに特に向く。
+
+**短所**: 各ステップで「短期的な視野」だけで判断するため、10ステップを超える長いタスクでは誤った方向へ徐々に逸脱する「計画ドリフト」が起きやすい。再計画のたびにLLM呼び出しが増え、長尺タスクではコストが線形増加する。
+
+**適合タスク**: 問い合わせ応答・Web検索・要約など、ツール数が5以下で手順が実行中に変わり得る動的タスク。会話コンテキストを維持しながらリアルタイムに判断を変えたい対話型エージェント。
+
+## Plan-and-Executeパターンとは何か
+
+> 全ステップを事前計画し安価なExecutorに実行を委譲する二層構造です。長尺・構造化タスクでコストと精度を両立する設計です。
+
+構成は「Planner LLM → Executor LLM（逐次 or 並列）→ Replanner（オプション）」の二層だ。Plannerは高能力モデルを使ってタスク全体を計画し、ExecutorはClaude Haiku等の低コストモデルに差し替えられる。この「能力の二段構え」がコスト効率の源泉だ。ステップ間の依存関係が複雑なタスクでは、Plannerが全依存関係を把握した上で実行順を最適化できるため、ReActの「短期視野」問題が解消される。
+
+**長所**: 計画フェーズで全依存関係を可視化できるため、ヒューマンインザループ承認を計画書単位で実現しやすい。Executorを並列起動するFan-out設計と相性が良く（[エージェントの並列実行](/blog/agent-parallel-execution-fan-out-map-reduce/)参照）、スループット向上にも寄与する。
+
+**短所**: 実行中に外部状態が変化した場合、当初の計画が陳腐化する「計画−現実の乖離」が発生する。Replannerを追加しない限り、予期せぬツールエラーへの対応力がReActより低い。また、タスクの手順が事前に確定できない動的シナリオには不向きだ。
+
+**適合タスク**: レポート自動生成・コードリファクタリング・データパイプラインの実行など、ステップ数と依存関係が実行前に確定できる長尺タスク。
+
+## Reflexionパターンとは何か
+
+> Reflexionは生成・批評・再試行を繰り返す自己修正ループで、コード生成タスクでPass@1を80%から91%に改善した手法です。
+
+ループ構造は「Actor → Evaluator（批評LLM）→ Reflective memory → Actor（再試行）」だ。Evaluatorは合格基準を持つ別のLLM（または同一モデルに批評役のシステムプロンプト）であり、合否判定と批評文を出力する。批評文はエピソードメモリに保存され、次の試行のコンテキストとして注入される。この「言語による強化学習」が精度改善の核心だ。
+
+ReWOO（Reasoning Without Observation）やLATS（Language Agent Tree Search）はReflexionの派生・強化版として位置づけられる。LATSはモンテカルロ木探索を組み合わせることでHotpotQAのExact Matchでも最高精度を示したが、計算コストは最も高い。
+
+**長所**: ReActやPlan-and-Executeでは難しい「品質の継続的改善」を組み込みで持つ。ソフトウェア生成・文章最適化・コード検証のように正解の品質基準が明確なドメインで精度が高い。評価基準を変えるだけで多様なタスクに適用できる汎用性がある。
+
+**短所**: 1タスクにつきLLM呼び出しが最低3回（生成・批評・再生成）になる。同一タスクで複数試行するとコストが線形増加するため、無限ループのリスクがあり最大試行回数のガードレールが必須だ。品質基準が曖昧なタスクでは批評精度が低下し、効果が得られない。
+
+**適合タスク**: コード生成・テスト自動化・翻訳品質の向上など、合否基準を機械的に定義できる出力最適化タスク。
+
+## 3パターンの比較と選択フロー
+
+> 動的タスクはReAct、長尺構造化タスクはPlan-and-Execute、品質向上タスクはReflexionを起点に選択します。
+
+以下の選択フローを起点に使うとよい。
+
+1. **タスクのツール数が5以下で手順が動的に変わりうるか？** → はい → **ReAct**
+2. **ステップ数が6以上かつ手順が事前に確定できるか？** → はい → **Plan-and-Execute**
+3. **出力の品質基準を定量評価できるか？** → はい → **Reflexion**（ReActまたはPlan-and-Executeのラッパーとして追加）
+4. **いずれも当てはまらない複雑タスク** → Plan-and-Execute + Reflexionのハイブリッド、またはLATSを検討
+
+| | ReAct | Plan-and-Execute | Reflexion |
+|---|---|---|---|
+| 計画タイミング | 逐次（各ステップ） | 事前 | 事後（批評） |
+| LLM呼び出し/タスク | N（ステップ数） | 1（Planner）＋N（Executor） | 最低3＋ |
+| 外部状態変化への対応 | ◎ | △（Replanner要） | ◎ |
+| 人間承認との親和性 | △ | ◎（計画書で一括） | △ |
+| コスト効率（小タスク） | ◎ | ○ | △ |
+| コスト効率（大タスク） | △ | ◎ | △ |
+
+パターンを組み合わせる場合の注意点として、ReAct単体からReAct+Reflexionへの段階的拡張は自然だが、Plan-and-Execute+Reflexionのフルスタックは設計の複雑さが増す。まずReActで動かし、品質不足またはドリフトを計測してから次のパターンへ移行する「起動コスト最小化」の原則を推奨する。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+> 規模に関わらずReActが最初の選択です。SMBはそのまま運用し、エンタープライズは計画書への人間承認フローを追加して統制を確保します。
+
+### SMBが最初に取るべき選択
+
+PoC段階はReAct一択だ。LangGraphのprebuilt ReActエージェントやClaude Tool UseのデフォルトAgentic loopでゼロから構築でき、インフラ追加なしに始められる。コスト感覚をつかんだ後、特定タスクの精度が不足していればReflexionをラッパーとして追加する。Plan-and-Executeは外部ツールのスキャフォールディングが必要で、SMBでは導入コストが高くなりがちだ。[Kuuのエージェント運用管理サービス（/services/ai-ops/）](/services/ai-ops/)では、パターン選択から初期設計の伴走支援を提供している。
+
+### エンタープライズが整備すべき統制
+
+大規模展開ではPlan-and-Executeの計画書を人間承認フローに組み込むことでコンプライアンスと監査対応を両立できる。[ヒューマンインザループの設計](/blog/ai-agent-human-in-the-loop-design/)と組み合わせることで、計画フェーズでのリスクレビューを実装しやすい。Reflexionの自己批評ログを監査証跡として保持するとモデル出力の品質トレーサビリティが向上する。エンタープライズのエージェント基盤設計はKuuの[RDEサービス（/services/rde/）](/services/rde/)で伴走支援を行う。
+
+## 参考
+
+- [Agentic Reasoning Patterns (2026): ReAct, Reflexion, Plan-Execute & ToT Compared](https://servicesground.com/blog/agentic-reasoning-patterns/)
+- [ReAct vs Plan-and-Execute vs ReWOO vs Reflexion](https://theaiengineer.substack.com/p/the-4-single-agent-patterns)
+- [Building Effective Agents — Anthropic Engineering](https://www.anthropic.com/engineering/building-effective-agents)
+- [Architecting Resilient LLM Agents: Secure Plan-then-Execute Implementations](https://arxiv.org/pdf/2509.08646)
+
+## まとめ
+
+ReAct・Plan-and-Execute・Reflexionの3パターンは「計画と実行の分離度」と「コスト効率」のトレードオフで使い分ける。最初のデフォルトはReActで十分で、長尺タスクにはPlan-and-Execute、品質保証にはReflexionを段階的に追加する。パターンを無用に組み合わせるより、シンプルな構成で計測を繰り返す方が実装精度は上がる。エージェント推論パターンの設計支援・本番統制まで一気通貫で取り組みたい場合は、ぜひ[Kuuにご相談ください](/services/ai-ops/)。
