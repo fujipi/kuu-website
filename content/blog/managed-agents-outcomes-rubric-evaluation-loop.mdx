@@ -1,0 +1,194 @@
+---
+title: "Managed Agents Outcomes——ルーブリック駆動の評価・改訂ループ"
+description: "Managed Agents OutcomesでルーブリックとAI採点エージェントを組み合わせて品質ゲートを実装する設計パターン。引用検証・DCFモデル・コンプライアンス審査など複数基準タスクで有効。"
+date: "2026-07-17"
+lastModified: "2026-07-17"
+tags: ["Managed Agents", "評価ループ", "ルーブリック", "エージェント評価"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "evaluation"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/managed-agents/define-outcomes"
+  - "https://platform.claude.com/cookbook/managed-agents-cma-verify-with-outcome-grader"
+pillar: "ai-governance"
+---
+
+本番のエージェントワークフローで最も難しいのは「出力の品質をどう保証するか」という問いです。プロンプト改善やモデル変更をいくら重ねても、多基準の成果物——財務モデル・調査ブリーフ・コンプライアンス文書——が本当に要件を満たしているかを自動で判定するのは難しい。Anthropic が2026年5月の Code with Claude カンファレンスで公開した **[Managed Agents](/glossary/managed-agents/) Outcomes** は、ルーブリックを定義するだけで採点エージェントが独立して評価し、合格まで自動で改訂ループを回す品質制御機構です。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)の評価設計に連動しています。評価の可観測性については[エージェント可観測性の設計](/blog/agent-observability-tracing-instrumentation/)も参照してください。
+
+## Outcomesとは何か——採点エージェントが独立して評価する理由
+
+> OutcomesはルーブリックとAI採点エージェントで品質ゲートを構成し、合格まで自動改訂するManaged Agentsの仕組みです。
+
+Outcomesの中心にあるのは**採点エージェントの独立性**です。セッションに `user.define_outcome` イベントを送ると、ハーネスが次の流れを実行します。
+
+1. **作業エージェントへのタスク指示** — `description` フィールドの内容をエージェントに渡す
+2. **採点エージェントのプロビジョニング** — ルーブリックを読み込んだ独立したコンテキストウィンドウを作成
+3. **評価・改訂サイクルの制御** — `needs_revision` を受け取るたびに採点フィードバックを作業エージェントに渡し、再実行する
+
+採点エージェントは作業エージェントの思考過程にアクセスできません。見えるのは最終成果物だけです。これにより、作業エージェントが「採点者に合わせて説明を調整する」という抜け道を塞ぎます。Anthropicの内部テストでは、Outcomesの導入だけでタスク成功率が+10ポイント向上しています（モデル・プロンプトの変更なし）。
+
+### 基本実装
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+BETAS = ["managed-agents-2026-04-01"]
+
+# セッション作成（エージェントと環境は事前作成済み）
+session = client.beta.sessions.create(
+    agent={"type": "agent", "id": agent_id, "version": agent_version},
+    environment_id=env_id,
+    betas=BETAS,
+)
+
+# Outcomes の起動
+client.beta.sessions.events.send(
+    session.id,
+    betas=BETAS,
+    events=[
+        {
+            "type": "user.define_outcome",
+            "description": "Costco の DCF モデルを .xlsx で作成する",
+            "rubric": {"type": "text", "content": RUBRIC},
+            "max_iterations": 5,  # 省略時デフォルト 3、最大 20
+        }
+    ],
+)
+```
+
+## 効果的なルーブリックはどう書くか
+
+> 「データが良好に見える」ではなく「価格列に数値が入っている」と書く——具体性が採点精度を決めます。
+
+ルーブリックの品質が採点エージェントの判定精度を左右します。採点エージェントは各基準を独立して評価するため、曖昧な記述は「通過」と判定されやすいです。
+
+### 強いルーブリックの原則
+
+| 原則 | 悪い例 | 良い例 |
+|------|--------|--------|
+| **具体的に測定可能** | 「需要費用の影響を記述する」 | 「需要費用を $/kW 数値または総運用コスト比率で定量化する」 |
+| **証拠を要求する** | 「出典を確認する」 | 「URL をフェッチし、引用文字列が該当箇所に存在することを確認する」 |
+| **抜け道を塞ぐ** | 「公式データを使う」 | 「10-K または 10-Q のみ使用。プレスリリース・8-K Exhibit 99.1 は不可」 |
+| **フィードバック形式を指定** | なし | 「不合格基準ごとに具体的な修正ステップを箇条書きで記述すること」 |
+
+### DCF モデル用ルーブリック例
+
+```markdown
+# DCF モデル評価ルーブリック
+
+## 収益予測
+- 過去5期の売上高データを使用している
+- 5年以上の予測を含む
+- 成長率の前提が明示されている
+
+## 割引率
+- WACC が計算されており、前提（ベータ・リスクフリーレート・負債コスト）が記載されている
+
+## 出力品質
+- すべての数値が1つの .xlsx ファイルにまとまっている
+- WACC と最終年度成長率の感度分析を含む
+
+## 引用チェック（すべての [n] に対して実施）
+- URL をフェッチし、404・ペイウォールの場合は DEAD とマーク
+- 引用した文字列が該当ページに存在することを確認する
+- プレスリリース・ミラーサイト・要約記事を証拠として使用しない
+```
+
+### ルーブリックの Files API 管理
+
+本番運用では、ルーブリックを Files API でアップロードして複数セッションで再利用します。コンプライアンスチームがルーブリックをバージョン管理するフローとも相性が良いです。
+
+```python
+from pathlib import Path
+
+rubric_file = client.beta.files.upload(file=Path("rubric.md"))
+# 以後は file_id で参照する
+# {"type": "file", "file_id": rubric_file.id}
+```
+
+## grade-and-revise ループはどう実装するか
+
+> `result` が `satisfied` になるまでストリームを監視し、各イテレーションの採点結果を記録します。
+
+### イベントストリームの監視
+
+```python
+with client.beta.sessions.events.stream(session.id, betas=BETAS) as stream:
+    for ev in stream:
+        match ev.type:
+            case "span.outcome_evaluation_start":
+                print(f"採点開始（イテレーション {ev.iteration}）")
+
+            case "span.outcome_evaluation_end":
+                print(f"結果: {ev.result}")
+                print(f"採点説明: {ev.explanation}")
+
+                if ev.result in {"satisfied", "failed", "max_iterations_reached"}:
+                    break
+```
+
+### `result` の種類と対応
+
+| result | 意味 | 対応 |
+|--------|------|------|
+| `satisfied` | 全基準を満たした | セッションが `idle` に移行。成果物を取得する |
+| `needs_revision` | 基準未達。フィードバックを渡して再実行 | 自動継続（コード側の対応不要） |
+| `max_iterations_reached` | 上限に達した | 最終成果物を取得してログを記録。ルーブリックの曖昧さを見直す |
+| `failed` | ルーブリックが成果物に適用できない | description と rubric の矛盾を修正して再試行する |
+| `interrupted` | `user.interrupt` を送信して中断 | 新しい `user.define_outcome` で別 Outcome を起動できる |
+
+### 成果物の取得
+
+セッション終了後、エージェントが `/mnt/session/outputs/` に書き込んだファイルは Files API 経由で取得します。
+
+```python
+files = client.beta.files.list(
+    scope_id=session.id,
+    betas=["managed-agents-2026-04-01"],
+)
+for file in files.data:
+    content = client.beta.files.download(file.id)
+    content.write_to_file(f"./outputs/{file.filename}")
+```
+
+## 本番設計で何に注意すべきか
+
+> イテレーション数とルーブリック精度はトレードオフ。関連する複数基準を1つの Outcome に束ねてコストを削減します。
+
+### Outcomes が向くタスクと向かないタスク
+
+| 向くタスク | 向かないタスク |
+|-----------|--------------|
+| 引用検証（URL フェッチ・文字列照合） | 主観的な創作・デザイン評価 |
+| カバレッジチェックリスト（調査レポート・コードレビュー） | 測定基準のないタスク |
+| コンプライアンス・精度確認（財務報告・法的文書） | 単発の簡易タスク（採点オーバーヘッドが割に合わない） |
+| 多基準の品質ゲート | イテレーション改善が期待できない固定出力タスク |
+
+### エンタープライズ運用の設計ポイント
+
+**ルーブリックの中央管理**: Files API でルーブリックを管理し、コンプライアンスチームがバージョン管理するフローを整備します。`rubric_file_id` をインフラコードで管理することで、ポリシー変更をセッション起動コードに伝播できます。
+
+**Outcomes の連鎖**: `span.outcome_evaluation_end` を受けて次の `user.define_outcome` を送ることで、複数フェーズのワークフローを実装できます。例として「調査フェーズ（事実確認ルーブリック）→ドラフトフェーズ（構成・引用ルーブリック）」の二段階品質ゲートが実現します。
+
+**監査ログ**: `outcome_id` と `iteration` を構造化ログに記録し、品質ゲート通過の証跡を保存します。[エージェントの監査ログ設計](/blog/ai-agent-audit-log-management/)の原則と組み合わせることで、コンプライアンス審査に耐えられるトレースが整います。
+
+**コスト管理**: 採点エージェントは毎イテレーション独立したコンテキストで動きます。`max_iterations: 3`（デフォルト）から始め、達成率とコストを見ながら調整します。同じセッションで複数の関連チェックを1つのルーブリックに束ねることでコスト効率を改善できます。
+
+大規模な文書自動化・コンプライアンス審査など Outcomes の導入を検討する場合は、[Kuu の RDE（Reinvention Deployed Engineering）サービス](/services/rde/)で設計支援を提供しています。
+
+## 参考
+
+- [Define outcomes — Claude Platform Docs](https://platform.claude.com/docs/en/managed-agents/define-outcomes)
+- [Outcomes Grader Cookbook — Claude Platform](https://platform.claude.com/cookbook/managed-agents-cma-verify-with-outcome-grader)
+
+## まとめ
+
+Managed Agents Outcomes は「品質をコードで定義する」という設計転換です。ルーブリックで合格基準を明示し、独立した採点エージェントに判定させることで、人間のレビューを介さずに多基準の品質ゲートを自動化できます。
+
+実装の核心は「測定可能な基準を書く」「証拠を要求する」「抜け道を塞ぐ」の3点です。財務モデル・調査レポート・コンプライアンス文書など、合格基準を明文化できるタスクから試し、`max_iterations` とルーブリック精度を本番データでチューニングしていくアプローチが現実的です。
+
+Outcomes の本番導入や評価ループの設計を検討している場合は、[Kuu にお問い合わせください](/services/rde/)。
