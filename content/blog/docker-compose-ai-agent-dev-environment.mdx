@@ -1,0 +1,102 @@
+---
+title: "AIエージェント開発環境をDocker Composeで構築する"
+description: "Docker Composeを使うとAIエージェント開発環境全体をcompose.yaml1ファイルで管理できます。Model Runner・MCPゲートウェイ統合と4パターンの実践的な設計手順を解説します。"
+date: "2026-07-18"
+lastModified: "2026-07-18"
+tags: ["Docker Compose", "AIエージェント", "開発環境", "MCP"]
+author: "kuu-engineering"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+sources:
+  - "https://docs.docker.com/guides/agentic-ai/"
+  - "https://www.docker.com/blog/build-ai-agents-with-docker-compose/"
+  - "https://dev.to/klement_gunndu/containerize-your-ai-agent-stack-with-docker-compose-4-patterns-that-work-4ln9"
+pillar: "ai-governance"
+---
+
+AIエージェントを動かすスタックは複雑だ。ローカルLLMサーバー、ベクトルデータベース、[MCPサーバー](/glossary/mcp/)、エージェントアプリという複数のコンポーネントを個別にセットアップすると「自分のマシンでは動くのに本番では動かない」問題が繰り返される。新しいメンバーが加わるたびに半日以上の環境構築作業が発生し、開発速度が停滞する。Docker Composeは、このスタック全体を単一ファイルで宣言し`docker compose up`1コマンドで再現可能な環境を構築できる標準ツールだ。
+
+## AIエージェント開発環境が複雑になる理由とは？
+
+> LLM・MCP・ベクトルDBを個別に管理する構成が、AIエージェント開発環境の再現性を損ない複雑化を招く。
+
+AIエージェント開発には次のコンポーネントの連携が必要だ。
+
+- **LLMサーバー**: OllamaやvLLMでローカルモデルを起動
+- **ベクトルDB**: QdrantやPgvectorでRAGパイプラインを構成
+- **MCPサーバー**: 外部ツール接続用プロセスを個別に起動
+- **エージェントアプリ**: LangChain・CrewAI等のフレームワーク
+
+これらを個別管理するとバージョン差異による環境不整合が頻発する。開発・ステージング・本番で環境が食い違えば、デバッグコストが跳ね上がる。さらにMCPサーバーの設定を変えるたびに手順書を更新し直す非効率が生まれる。マネージドサービスかセルフホストかの選択については[エージェント基盤の選定ガイド](/blog/agent-platform-managed-vs-selfhost-decision-smb/)も参照してほしい。
+
+## Docker Composeでスタック全体を管理する仕組みとは？
+
+> Docker ComposeはLLM・MCP・エージェントを単一のcompose.yamlで宣言し、`docker compose up`で全サービスを再現可能に起動できる構成管理ツールだ。
+
+[Dockerが公式に提供するAIエージェント向け機能](https://docs.docker.com/guides/agentic-ai/)がこの問題を解決する。
+
+**Docker Model Runner**はLLMをローカルで実行するコンポーネントで、OpenAI互換APIを自動公開する。`models`ブロックにモデル名を宣言するだけで、`docker compose up`時に自動ダウンロードと起動が行われ、エンドポイントURLは環境変数として自動注入される。
+
+```yaml
+models:
+  llm:
+    model: ai/llama3.2
+
+services:
+  agent:
+    image: my-agent:latest
+    environment:
+      MODEL_URL: ${MODEL_URL}  # Model Runnerが自動注入
+    depends_on:
+      llm:
+        condition: service_healthy
+```
+
+**Docker MCPゲートウェイ**は、複数のMCPサーバーへのアクセスをブローカーとして集約する。エージェントアプリはゲートウェイの1エンドポイントに接続するだけで、背後のMCPサーバーを設定ファイルで追加・変更できる。ツール統合がコードではなく設定として扱われるため、エージェントのリビルドなしに機能を拡張できる。[MCPサーバーの実装方法](/blog/mcp-server-implementation-tool-design/)と組み合わせると効果的だ。
+
+## 4つのCompose設計パターンとは何か？
+
+> AIエージェントのDocker Compose構成は「モデルランナー」「GPU管理」「MCPゲートウェイ」「マルチエージェント」の4パターンで大半のユースケースを網羅できる。
+
+[実践的な4パターン](https://dev.to/klement_gunndu/containerize-your-ai-agent-stack-with-docker-compose-4-patterns-that-work-4ln9)を以下に整理する。
+
+**パターン1: モデルランナー統合**
+`models`ブロックでLLMを宣言し、エンドポイントURLを環境変数として自動注入する。新メンバーがリポジトリをクローンすれば同一モデルバージョンの推論環境が再現される。ローカルLLM開発の基本パターンだ。
+
+**パターン2: GPUリソース管理**
+`deploy.resources.reservations.devices`でGPUアクセスを宣言する。`capabilities: [gpu]`の明示と`start_period: 120s`のヘルスチェック猶予期間が必須だ。GPU非搭載マシンではCPU推論に自動フォールバックする構成も組める。
+
+**パターン3: MCPゲートウェイによるツール接続**
+Docker MCPゲートウェイコンテナをサービスとして追加し、必要なMCPサーバーを設定ファイルに列挙する。ツールの追加・変更はエージェントのリビルド不要で設定変更だけで完結する。
+
+**パターン4: マルチエージェントオーケストレーション**
+リサーチ・コーダー・レビューといった役割ごとに専用エージェントサービスを定義し、Redisキューと中央Orchestratorサービスで協調させる。各エージェントに適切なモデルサイズを割り当てることでコストと品質のバランスが取れる。
+
+[Kuu株式会社のAI運用管理サービス](/services/ai-ops/)では、このようなDockerベースのAIエージェント基盤設計と開発環境整備を支援している。
+
+## ローカルから本番環境へシームレスに移行する
+
+> Docker ComposeのAIスタックはCloud RunやAzure Container Appsへ1コマンドで移行でき、「ローカルでのみ動く」問題を根本的に解消できる。
+
+Dockerはローカル開発のcompose.yamlを本番環境へそのまま展開できる仕組みを提供している。`gcloud run compose up`でGoogle Cloud Runへ、`az containerapp compose up`でAzure Container Appsへデプロイできる。
+
+移行時の環境差異を防ぐ設計の要点は3点だ。
+
+1. **APIキーの条件切り替え**: 環境変数でAPIキーの有無を検出し、存在すれば外部API（AnthropicやOpenAI）、なければDocker Model Runnerへ自動ルーティングする
+2. **シークレットのマウント管理**: APIキーはDockerシークレット（`secrets:`ブロック）でマウントし、イメージには含めない
+3. **ヘルスチェックの統一**: 全サービスに`healthcheck`を定義し、`depends_on`の`condition: service_healthy`で起動順序を保証する
+
+これら3点を徹底することで、開発・ステージング・本番で同じcompose.yamlが動く再現性の高い環境が実現する。
+
+## 参考
+
+- [Docker公式ガイド: Agentic AI applications with Docker](https://docs.docker.com/guides/agentic-ai/)
+- [Docker Blog: Docker Brings Compose to the AI Agent Era](https://www.docker.com/blog/build-ai-agents-with-docker-compose/)
+- [DEV Community: Containerize Your AI Agent Stack With Docker Compose: 4 Patterns That Work](https://dev.to/klement_gunndu/containerize-your-ai-agent-stack-with-docker-compose-4-patterns-that-work-4ln9)
+
+## まとめ
+
+AIエージェント開発環境の複雑さは、Docker ComposeによるLLM・MCP・エージェントの統合管理で解消できる。Model Runnerによるローカル推論の自動セットアップ、MCPゲートウェイによるツール統合の宣言化、マルチエージェント協調の設定管理という4パターンを組み合わせれば、新メンバーのオンボーディング時間を大幅に削減し、本番環境への再現性を確保できる。
+
+AIエージェント基盤の設計・開発環境整備について、[Kuu株式会社のAI運用管理サービス](/services/ai-ops/)にお問い合わせいただきたい。
