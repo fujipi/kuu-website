@@ -1,0 +1,108 @@
+---
+title: "Claude Fable 5 のエンタープライズエージェント設計指針"
+description: "Claude Fable 5（claude-fable-5）は長時間自律実行向けの最上位モデルで入力 $10/M。エンタープライズ実装のモデルルーティング・安全フォールバック・コスト設計パターンを解説する。"
+date: "2026-07-18"
+lastModified: "2026-07-18"
+tags: ["Claude Fable 5", "AIエージェント", "エンタープライズ", "モデル選定"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5"
+  - "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+  - "https://www.anthropic.com/claude/fable"
+  - "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
+---
+
+エンタープライズのエージェント基盤において、モデル選定は「最も賢いモデルをすべてに使う」から「タスク特性に応じてモデルを切り替える」設計へと移行している。2026年6月に公開された Claude Fable 5 は、この選択に新たな選択肢を加えた。1M トークンコンテキストと多日間自律実行という設計目標は大企業の長時間ワークフローに直接対応するが、$10/M 入力トークンという価格帯はすべてのリクエストに適用するコストではない。本稿では Fable 5 の技術仕様と安全分類器機構を整理し、エンタープライズルーティング設計の実装指針を示す。
+
+## Claude Fable 5 の設計思想とスペック
+
+> Fable 5 は 1M トークンと多日間自律実行に特化した Anthropic の最上位エージェントモデルです。
+
+Anthropic が「Mythos クラス」と位置付ける Fable 5 は、ソフトウェアエンジニアリング・財務分析・長文書理解の各ベンチマークで他モデルを大幅に上回る。FrontierBench（Cognition のコーディング最上位評価）でトップスコアを記録し、長時間の解析タスクを対象とした社内ベンチマークでは初めて 90% 超えを達成した。
+
+主要スペックは次の通りだ。
+
+- **コンテキストウィンドウ**: 1M トークン（デフォルト）
+- **最大出力トークン**: 128k／リクエスト
+- **価格**: 入力 $10/M・出力 $50/M トークン（Opus 4.8 比 2×）
+- **利用可能なプラットフォーム**: Anthropic API・Amazon Bedrock・Google Cloud・Azure（2026年6月9日同時公開）
+
+Fable 5 の核心設計は「Claude Code や Claude Managed Agents のようなエージェントハーネスで数日間稼働し続けること」にある。段階的な計画立案・サブエージェントへの委譲・自己検証ループを人間の介入なしに継続する能力は、従来モデルと一線を画す。ビジョン能力も強化されており、PDF・図面・スプレッドシートに埋め込まれた図表を解析できるため、財務・法務・建設分野の文書処理ワークフローへの組み込みが実用的になった。
+
+## 長時間エージェントのコンテキスト設計
+
+> 1M コンテキストは構造化注入（リポジトリマップ・関連ソース・チェックポイント）で真価を発揮します。
+
+1M トークンの容量は大きいが、コンテキストエンジニアリングの設計原則が崩れるわけではない。大量情報を無差別に注入すると「Lost in the middle」問題が拡大し、コンテキスト中央部の情報への注意が低下する。エンタープライズ実装で有効な構造化注入パターンを 3 層で整理する。
+
+1. **リポジトリマップ層**: ファイルツリーとモジュール依存グラフを冒頭に配置し、Fable 5 が参照先を特定できる索引を与える
+2. **フォーカスコンテキスト層**: タスクに直接関連するソースファイル・テスト・設計仕様をリポジトリマップの直後に注入する
+3. **チェックポイント記録層**: 完了済みフェーズのサマリ・差分・検証結果を追記していく。長時間実行で状態を復元する際のアンカーとなる
+
+多日間ジョブでは、フェーズ区切りごとにコンテキストを外部ストレージ（S3・Azure Blob 等）に保存し、障害時に再開できる設計を採用する。[Durable Execution](/blog/agent-durable-execution-temporal-restate-design/)（Temporal・Restate）と組み合わせることで、LLM 呼び出し失敗からの自動リカバリが実現できる。コンテキスト圧縮戦略については[エージェントのコンテキスト圧縮設計](/blog/agent-context-compression-session-management/)も参照されたい。
+
+## 安全分類器とフォールバック設計
+
+> Fable 5 の安全分類器は 5% 未満のリクエストを Opus 4.8 に委譲し、HTTP 200 で返します。
+
+Claude Fable 5 には Anthropic 固有の安全分類器が内蔵されており、以下のカテゴリに該当すると判断されたリクエストは Opus 4.8 へのフォールバックルートで処理される。
+
+- **サイバーセキュリティ**: エクスプロイト開発・攻撃的操作・脆弱性発見（ペネトレーションテストツールの文脈も含む）
+- **生物・化学**: 医療ワークフローの薬量記述など一見無害なリクエストも対象になる場合がある
+- **大規模蒸留試行**: Anthropic の分類器がモデル蒸留と判断するリクエスト
+
+エンジニアリング観点での重要な挙動を整理する。
+
+- フォールバックは **HTTP 200** で返る（エラーではなく通常レスポンス）
+- `stop_reason` フィールドに `"refusal"` が設定される
+- どの分類器が拒否したかが応答に含まれる
+- フォールバック時の課金は **Opus 4.8 レート**（入力 $5/M）で計上される
+
+`stop_reason: "refusal"` を検知・集計する[可観測性基盤](/blog/agent-observability-tracing-instrumentation/)を設け、フォールバック率とパターンを定期分析することが重要だ。ペネトレーションテストや医療情報処理のユースケースでは、リクエストの文脈（認証されたセキュリティ調査・医療機関ワークフロー等）を明示したシステムプロンプト設計が誤検知を低減する有効な手段となる。
+
+## エンタープライズモデルルーティング戦略
+
+> 長時間ジョブを Fable 5 に、定常トラフィックを Opus 4.8 に振り分けるルーティング設計が最適解です。
+
+Fable 5 の $50/M 出力トークン価格は、全リクエストへの適用を現実的でなくする。エンタープライズで実績のある分離パターンは次の通りだ。
+
+**タスク難易度による分岐**
+
+- **Fable 5**: 長時間自律コーディング（大規模リファクタリング・マイグレーション）、複合文書解析（PDF を横断した財務/法務分析）、マルチエージェントの計画フェーズ調整ノード
+- **Opus 4.8**: 定常会話・中程度の複雑さのコーディング・シングルターン質問応答
+- **Haiku 4.5**: 大量の分類・抽出・構造化出力生成など低複雑度バッチ処理
+
+[LLM ゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)に難易度分類ロジックを組み込み、タスクの所要フェーズ数・推定実行時間・過去成功率を入力として Fable 5 / Opus 4.8 を動的に選択する。以下は簡易的なルーティング実装の例だ。
+
+```python
+def route_model(task: AgentTask) -> str:
+    if task.estimated_phases > 5 or task.horizon_hours > 4:
+        return "claude-fable-5"
+    if task.complexity_score >= 0.7:
+        return "claude-opus-4-8"
+    return "claude-haiku-4-5-20251001"
+```
+
+コスト計装上の注意として、Fable 5 の安全フォールバックは Opus 4.8 レートで課金されるため、[AI FinOps](/blog/ai-finops-token-cost-instrumentation/) の計装では `model_id` ではなく実際の課金レートを追跡する仕組みを設けること。部門別の Fable 5 コスト配賦は、フォールバック分を正確に按分してはじめて信頼できる数値になる。
+
+Kuu の [RDE サービス](/services/rde/)では、Fable 5 を含む最新モデルのエンタープライズ統合設計と LLM ゲートウェイルーティング基盤の構築を支援している。
+
+## 参考
+
+- [Claude Fable 5 and Claude Mythos 5 — Anthropic](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+- [Introducing Claude Fable 5 and Claude Mythos 5 — Platform Docs](https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5)
+- [Claude Fable — Anthropic](https://www.anthropic.com/claude/fable)
+- [Prompting Claude Fable 5 — Platform Docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5)
+
+## まとめ
+
+Claude Fable 5 は「すべてのタスクに使う最高のモデル」ではなく、「長時間自律ジョブ専用の最上位層」として設計されたモデルだ。1M コンテキスト・多日間エージェント実行・安全分類器フォールバックというスペックを前提に、エンタープライズ実装では 3 つの設計判断が核心になる。
+
+1. **コンテキスト構造化**: 索引・フォーカス・チェックポイントの 3 層を設計する
+2. **フォールバック監視**: `stop_reason: "refusal"` を追跡し、システムプロンプトで誤検知を低減する
+3. **モデルルーティング**: タスク難易度を基準に Fable 5 / Opus 4.8 / Haiku を使い分け、コストと性能のバランスを確保する
+
+Fable 5 の統合でエージェント基盤の設計を見直す場合は、Kuu の [RDE サービス](/services/rde/)にお問い合わせいただきたい。長時間エージェントワークフローの設計から本番運用まで、エンタープライズ要件に即した実装支援を行っている。

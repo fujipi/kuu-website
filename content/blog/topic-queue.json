@@ -847,6 +847,24 @@
         "https://toolbrain.net/blog/langgraph-review-2026/"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-fable-5-enterprise-agent-design",
+      "keyword": "Claude Fable 5 エンタープライズ エージェント 設計指針",
+      "title_hint": "Claude Fable 5 のエンタープライズエージェント設計指針——1Mコンテキストと長時間自律実行の実装パターン",
+      "persona": "エンタープライズのプラットフォームエンジニア・LLMゲートウェイ設計を担うアーキテクト",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "model-capability",
+      "tech_depth": "deep",
+      "target_query": "Claude Fable 5はエンタープライズエージェント基盤でどう使えばよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5",
+        "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+        "https://www.anthropic.com/claude/fable",
+        "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
