@@ -1,0 +1,118 @@
+---
+title: "WebMCPとは——ブラウザ・エージェントプロトコルの仕様と実装"
+description: "2025年8月策定のWebMCPは、ブラウザタブ内でAIエージェントがツールを直接呼び出すW3C仕様。MCPとの違い・document.modelContext API設計・段階的実装戦略を整理する。"
+date: "2026-07-19"
+lastModified: "2026-07-19"
+tags: ["WebMCP", "プロトコル", "AIエージェント", "ブラウザ"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://github.com/webmachinelearning/webmcp"
+  - "https://particula.tech/blog/webmcp-explained-browser-native-agent-protocol"
+  - "https://dev.to/alexmercedcoder/the-state-of-agentic-ai-standards-in-2026-mcp-a2a-webmcp-osi-and-the-protocol-stack-taking-3o2l"
+pillar: "ai-governance"
+---
+
+MCPサーバーで自社ツールをAIエージェントに接続するアーキテクチャが普及した2026年、「認証済みWebアプリにエージェントをどう接続するか」という問いが次のフロンティアになっている。スクレイピングでDOMを解析するアプローチは脆弱で、ページのHTML構造が変わると即座に壊れる。この問題を根本から解決しようとするのが **WebMCP（Web Model Context Protocol）** だ。GoogleとMicrosoftが共同提案し、W3C Web Machine Learning Community Groupが仕様化を進めるWebMCPは、Webページ自身がエージェントに対してツールを宣言するブラウザネイティブな標準である。[MCP](/glossary/mcp/)と似た名称を持つが設計思想は根本的に異なり、混同したまま実装に入ると設計の齟齬が生じる。[エージェントガバナンス](/ai-governance/)の観点からも、ブラウザ認証を継承するプロトコルの信頼モデルを正確に理解することが重要だ。
+
+## WebMCPとは何か——W3CコミュニティグループのブラウザAI標準
+
+> WebMCPは2025年8月にW3C CGが初版を公開したブラウザ内エージェントAPI規格で、Webページが`document.modelContext`経由でAIエージェントに操作可能なツールを宣言します。
+
+WebMCPの出発点は「エージェントがWebページを操作する手段を、DOM解析やスクレイピングではなく、ページ自身が明示的に定義した構造化インタフェースで提供する」というアイデアだ。W3C Web Machine Learning Community Group（WebML CG）が2025年8月13日に初版を公開し、Google・Microsoftの2社がエディタを務めている。
+
+2026年3月にChrome 146がフラグ`enable-webmcp-testing`付きでプロトタイプ実装をリリースした。Microsoft Edge 147は先行して正式サポートし、Chrome 149ではOrigin Trialが開始されている。現時点では大部分のユーザー環境でフラグ付き機能だが、2026年後半にChromeがデフォルト有効化する見通しだ。普及のボトルネックはパブリッシャー側のオプトインとエージェントクライアント側の対応実装であり、大規模普及は2027年中盤と予測されている。
+
+## MCPとWebMCPはどう異なるか
+
+> MCPはバックエンドでOAuth 2.1認証を行うサーバーサイドプロトコルです。WebMCPはブラウザタブ内で動作しユーザーの既存セッションを継承するため、別途サーバー構築なしに認証済みWebアプリのツールを公開できます。
+
+2つのプロトコルは設計思想の根本から異なる。
+
+| 項目 | MCP | WebMCP |
+|------|-----|--------|
+| 動作場所 | バックエンドサーバー | ユーザーのブラウザタブ |
+| 認証 | OAuth 2.1 + PKCE（別フロー必要） | ブラウザの既存Cookieセッションを継承 |
+| プロトコル | JSON-RPC over HTTP/SSE | `document.modelContext` Browser API |
+| ツール定義者 | サーバーオペレーター | Webページ（JavaScript） |
+| 主な用途 | DB・API・ファイルシステム連携 | 認証済みWebアプリの操作・データ取得 |
+
+MCPは「自分がコントロールするサーバーと自分がプロビジョニングするセッション」を前提とする。WebMCPは逆に、ユーザーがすでにログイン済みのWebアプリに対してエージェントが操作を加えるシナリオを扱う。ECサイトのカート更新、SaaSダッシュボードのエクスポート、社内業務システムへの入力——「ユーザーがすでにセッションを保持しているアプリ」こそがWebMCPの対象領域だ。
+
+[A2Aプロトコル](/glossary/a2a-protocol/)と組み合わせると、エージェント間委譲（A2A）→バックエンドツール連携（MCP）→フロントエンドWebアプリ操作（WebMCP）という3層の役割分担が明確になる。プロトコルスタック全体の設計については「[A2AプロトコルとMCPの使い分け](/blog/a2a-protocol-agent-interop-design/)」も参照してほしい。
+
+## document.modelContext APIの設計要点
+
+> `document.modelContext.registerTool()`はname・description・inputSchema・executeの4要素でブラウザ内ツールを定義します。inputSchemaの型定義とexposedToによるオリジン制限が品質とセキュリティの要です。
+
+ツール公開の最小実装を示す。
+
+```javascript
+await document.modelContext.registerTool({
+  name: "search-products",
+  description: "商品カタログを全文検索する。キーワードとカテゴリで絞り込み可能。",
+  inputSchema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "検索キーワード"
+      },
+      category: {
+        type: "string",
+        enum: ["electronics", "clothing", "food"],
+        description: "絞り込みカテゴリ（省略可）"
+      }
+    },
+    required: ["query"]
+  },
+  execute: async ({ query, category }) => {
+    const results = await fetchProducts(query, category);
+    return { products: results, count: results.length };
+  }
+}, {
+  exposedTo: ["https://agent.example.com"]  // 信頼するエージェントオリジンを指定
+});
+```
+
+4要素のうち`description`はエージェントがツールを選択する際の判断根拠になる。MCPのTool定義と同様に「どんな場面で使うか」を自然言語で記述すると選択精度が上がる。`inputSchema`はJSON Schema準拠であり、`required`を省略するとエージェントが必須パラメータを欠いたまま呼び出すリスクがある。
+
+`exposedTo`オプションはデフォルトで同一オリジンのみへのツール公開を制限する。外部エージェントに開放する場合はURLのallowlistで明示する。iframe内のWebMCPは`allow="tools"`属性がなければ`NotAllowedError`で拒否される。仕様はW3C CGドラフト段階のため、`typeof document.modelContext !== "undefined"`でfeature-detectしてから呼び出す実装が必須だ。
+
+## セキュリティモデルと段階的実装戦略
+
+> WebMCPはブラウザが仲介者としてツール呼び出しをメディエートします。仕様が発展途上のため、状態変更を伴う操作より先に読み取り専用ツールを実装して動作を安定させる段階的戦略が推奨されます。
+
+ブラウザベンダー（Chrome/Edge）が呼び出しを仲介するため、`exposedTo`で許可していないオリジンからの呼び出しはブラウザレベルで拒否される。これはサーバーサイドMCPのOAuth 2.1モデルとは信頼の起点が異なり、ブラウザベンダーへの依存が強まる点に注意が必要だ。
+
+実装は2段階で進めることが推奨されている。
+
+**即時実装（フラグ付きで開始可）:**
+- 検索・在庫確認・コンテンツ取得など読み取り専用操作
+- 誤呼び出しが起きてもデータ変更が生じないアクション
+
+**仕様安定後に追加:**
+- チェックアウト・支払い・アカウント変更など状態変更操作
+- 認証フローに触れる操作
+
+「Ship Now / Wait for Stability」と呼ばれるこの戦略は、仕様変更に伴うリグレッションリスクを低リスクなユースケースで吸収しながら段階的に本番適用していくアプローチだ。[プロンプトインジェクション](/blog/prompt-injection-layered-defense-architecture/)対策と同様、まず影響範囲を最小にした実装からスタートする原則と一致する。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB（中小企業）:** 自社ECや社内システムにWebMCPを導入する際は、まず読み取り専用のツール（検索・在庫参照）から実装を始めると安全だ。Edge 147で正式サポートが確認できており、`exposedTo`で信頼するエージェントのオリジンを明示的に制限する。AIエージェントの運用設計と[Kuu AI-Ops](/services/ai-ops/)への相談が第一歩になる。
+
+**エンタープライズ:** 社内SaaSやイントラネットへの展開では、ツール定義のバージョン管理、`exposedTo` allowlistのゼロトラスト原則への適合、呼び出しログの集中管理が必要になる。複数チームが同一ページのツールを利用するマルチエージェント構成では、呼び出し元エージェントの識別とアクセス制御ポリシーの体系的な設計が欠かせない。エンタープライズ規模のエージェント基盤ガバナンス構築は[Kuu RDE](/services/rde/)が担当する。
+
+## 参考
+
+- [WebMCP仕様 — W3C Web Machine Learning Community Group（GitHub）](https://github.com/webmachinelearning/webmcp)
+- [WebMCP Explained: Browser-Native Agent Protocol（Particula Tech）](https://particula.tech/blog/webmcp-explained-browser-native-agent-protocol)
+- [The State of Agentic AI Standards in 2026: MCP, A2A, WebMCP, OSI（DEV Community）](https://dev.to/alexmercedcoder/the-state-of-agentic-ai-standards-in-2026-mcp-a2a-webmcp-osi-and-the-protocol-stack-taking-3o2l)
+
+## まとめ
+
+WebMCPは[MCP](/glossary/mcp/)の代替ではなく、バックエンドツール連携と認証済みWebフロントエンド操作を明確に役割分担する補完プロトコルだ。2026年後半にChromeがデフォルト有効化する見込みで、Webアプリ開発者にとって準備期間は短い。まず読み取り専用の`registerTool`実装から始め、`exposedTo`で信頼オリジンを制限した上で、仕様の安定化に合わせて段階的に機能を拡張する戦略が現実的だ。
+
+エージェントが認証済みWebシステムと連携するアーキテクチャ設計については[Kuu AI-Ops](/services/ai-ops/)へ、エンタープライズ規模のマルチエージェント統制基盤構築は[Kuu RDE](/services/rde/)へ相談してほしい。
