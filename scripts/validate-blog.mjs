@@ -103,6 +103,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"context-engineering-token-budget-design",
 			"agent-context-compression-session-management",
 		],
+		// Claude Fable 5（1Mコンテキスト・長時間自律実行・モデルルーティング）と Claude Opus 4.8（Adaptive Thinking移行・effortパラメータ・ミッドターン指示更新）: 別モデルの設計指針で正当な併存
+		[
+			"claude-fable-5-enterprise-agent-design",
+			"claude-opus48-enterprise-agentic-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

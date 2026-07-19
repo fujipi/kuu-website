@@ -1,0 +1,149 @@
+---
+title: "Claude Opus 4.8のエンタープライズエージェント設計——Adaptive ThinkingとFast mode実装"
+description: "Claude Opus 4.8（claude-opus-4-8）はAdaptive ThinkingとeffortパラメータへのAPIレベル移行を強制する。エンタープライズ設計の変更点と実装パターンを解説する。"
+date: "2026-07-19"
+lastModified: "2026-07-19"
+tags: ["Claude Opus 4.8", "AIエージェント", "エンタープライズ", "Adaptive Thinking"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude Opus 4.8 はエンタープライズのエージェント設計でどう設計すべきか"
+sources:
+  - "https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8"
+  - "https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking"
+  - "https://www.anthropic.com/news/claude-opus-4-8"
+pillar: "ai-governance"
+---
+
+Opus 4.7 向けに整備したコードが `claude-opus-4-8` で一斉に 400 エラーを返す——多くのプラットフォームエンジニアが Claude Opus 4.8 の初日に遭遇した現象です。`thinking: {type: "enabled", budget_tokens: N}` は Opus 4.8 では拒否されます。これは API の破壊的変更であり、同時に長期エージェントの設計パラダイムを転換する契機でもあります。[エージェントガバナンス](/glossary/agent-governance/)の観点からは、この強制移行が品質とコストのトレードオフ設計を後付けではなく最初から埋め込む機会です。
+
+Kuuの[Reinvention Deployed Engineering（RDE）サービス](https://kuucorp.com/services/rde/)では、Opus 4.8 への移行を含むエンタープライズエージェント基盤の再設計を支援しています。
+
+## Claude Opus 4.8 はエンタープライズエージェントに何を変えたか
+
+> Opus 4.8 はAdaptive Thinking・ミッドターン指示更新・Fast modeの3機能で、長期自律エージェントの設計前提を塗り替えます。
+
+Anthropic が 2026 年 5 月 28 日にリリースした Claude Opus 4.8（API ID: `claude-opus-4-8`）は、複雑なエージェントコーディングとエンタープライズワークフロー向けに設計された標準最上位モデルです。コンテキストウィンドウは 1M トークン、最大出力は 128K トークン、価格は Opus 4.7 と同一（入力 $5/M・出力 $25/M トークン）です。
+
+新機能を 3 点整理します。
+
+**Adaptive Thinking（移行必須）**: Opus 4.8 では `thinking: {type: "enabled", budget_tokens: N}` が 400 エラーを返し、`thinking: {type: "adaptive"}` が唯一の thinking モードです。Adaptive Thinking は各 turn の複雑度をモデルが評価し、推論が必要な turn だけ拡張思考を発動します。ツール呼び出し間のインターリーブ思考も自動的に有効化されるため、[サブエージェント・オーケストレーション](/blog/subagent-orchestration-design-patterns/)での各ステップ前後の自律推論が強化されます。
+
+**ミッドターン・システムメッセージ（キャッシュ保持）**: `messages` 配列内でユーザーターンの直後に `role: "system"` を挿入できるようになりました。長期エージェントループ中に指示を更新してもそれ以前の会話履歴のプロンプトキャッシュヒットが維持され、入力コストを削減できます。プロンプトキャッシュの最小長も Opus 4.7 の 2,048 トークンから 1,024 トークンに短縮されました。
+
+**Fast mode（リサーチプレビュー）**: `speed: "fast"` フィールドと `fast-mode-2026-02-01` ベータヘッダーを付与すると最大 2.5 倍の出力トークン/秒を得られます（価格: 入力 $10/M・出力 $50/M）。
+
+また Refusal stop details として `stop_details` オブジェクトが公開され、拒否種別によるフォールバックルーティング設計も可能になっています。
+
+## Adaptive Thinkingとeffortパラメータはどう設計するか
+
+> Adaptive Thinking は `effort` パラメータで推論深度を制御し、エージェントループの各ステップで最適なコスト・レイテンシを実現します。
+
+`effort` パラメータ（`output_config.effort`）は推論量のソフトガイドとして機能します。Opus 4.8 のデフォルトは `high` です。
+
+| effort | 推論挙動 | 主な用途 |
+|---|---|---|
+| `low` | 単純クエリではスキップ | 高頻度軽量ステップ（ルーティング・分類） |
+| `medium` | 状況に応じて中程度 | ドキュメント要約・ツール呼び出しシーケンス |
+| `high`（デフォルト） | ほぼ常に思考 | 標準的な複雑推論 |
+| `xhigh` | 常に深い探索 | 設計決定・アーキテクチャ分析 |
+| `max` | 制約なしの深探索 | 最重要ステップ（コスト最優先でない場合のみ） |
+
+エンタープライズのマルチステップエージェントでは、ステップごとに `effort` を変えることでインテリジェンスとコストを最適配分できます。
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+
+# 計画ステップ: 複雑な問題分解には xhigh
+plan_response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=8000,
+    thinking={"type": "adaptive"},
+    output_config={"effort": "xhigh"},
+    messages=[{"role": "user", "content": plan_prompt}],
+)
+
+# 実行ステップ: 個別ツール呼び出しには medium
+exec_response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=4000,
+    thinking={"type": "adaptive"},
+    output_config={"effort": "medium"},
+    messages=[{"role": "user", "content": exec_prompt}],
+)
+
+# 検証ステップ: 出力品質確認には high
+verify_response = client.messages.create(
+    model="claude-opus-4-8",
+    max_tokens=4000,
+    thinking={"type": "adaptive"},
+    output_config={"effort": "high"},
+    messages=[{"role": "user", "content": verify_prompt}],
+)
+```
+
+重要な注意点として、Opus 4.7 から Opus 4.8 では `effort` レベルのトークン割り当てが再較正されています。`xhigh` は特に Opus 4.7 と比べて大幅に多いトークンを消費します。既存コードで effort レベルを明示指定していた場合、コストと遅延を必ず再ベースライン測定してから本番適用してください。[AI FinOps の観点でのトークンコスト計装](/blog/ai-finops-token-cost-instrumentation/)と組み合わせた設計を推奨します。
+
+`thinking.display` は Opus 4.8 では `"omitted"` がデフォルトです（Opus 4.6 では `"summarized"` がデフォルトだった点に注意）。思考内容をデバッグや可観測性のために確認したい場合は明示的に `"summarized"` を指定します。
+
+## ミッドターン・システムメッセージとキャッシュ設計はどう変えるか
+
+> ミッドターン・システムメッセージはキャッシュを保持しながら実行指示を動的に更新でき、長期エージェントループのコストを大幅に削減します。
+
+従来の設計では、長期エージェントループ中に指示を変更するにはシステムプロンプトを全文再送するか、新しいセッションを開始するかの二択でした。どちらもキャッシュを破壊し、入力コストが増大します。
+
+Opus 4.8 のミッドターン・システムメッセージはこの制約を解消します。`messages` 配列内でユーザーターンの直後に `role: "system"` エントリを挿入すると、それ以前の会話履歴のキャッシュヒットを維持しながら新しい指示を適用できます。
+
+エンタープライズ長期エージェントでの典型的な活用パターンを示します。
+
+- **フェーズ切り替え**: 調査フェーズから実装フェーズへの移行時に実行コンテキストを更新
+- **コンテキスト注入**: ツール呼び出し結果を踏まえた追加制約・制限の付与
+- **安全ガードレールの強化**: 特定の高リスク操作前のリスク警告・承認要件の追加
+
+また、プロンプトキャッシュの最小長が 1,024 トークンに短縮されたことで、短いシステムプロンプトを持つエージェントでも初回リクエストからキャッシュを活用できます。[プロンプトキャッシュとエージェント設計](/blog/prompt-caching-agent-design-context-reuse/)の詳細はリンク先をご覧ください。なお、ミッドターン・システムメッセージには挿入位置のルール（placement rules）があります。メッセージ配列内での適切な配置については公式ドキュメントを参照してください。
+
+## 長期エージェントのコンパクション対策とFast mode活用
+
+> コンパクション後の軌道維持改善とFast modeの選択的適用が、エンタープライズ規模の長期エージェント設計の新基軸です。
+
+Opus 4.8 では長期エージェントの耐障害性に関わる改善が 2 点加わっています。
+
+**コンパクション回復の強化**: 長期エージェントループではコンテキストウィンドウの圧縮（コンパクション）が必然的に発生します。Opus 4.7 ではコンパクション後に長期タスクの目標から逸脱するケースが報告されていましたが、Opus 4.8 では長文エージェントトレースのコンパクション後の軌道維持が改善されています。[エージェントのサーキットブレーカー設計](/blog/agent-graceful-degradation-circuit-breaker/)と組み合わせることで、コンパクション前後での自動フォールバック・再試行フローを整備できます。
+
+**ツール呼び出しの安定性向上**: 必須のツール呼び出しをスキップする問題が改善されました。複雑なワークフローでの信頼性が向上し、[エージェントのカオスエンジニアリング](/blog/agent-chaos-engineering-fault-injection-resilience/)での障害注入テストでも安定した結果が得られやすくなっています。
+
+**Fast mode の設計指針**: Fast mode（`speed: "fast"` + `fast-mode-2026-02-01` ベータヘッダー）は最大 2.5 倍の出力トークン/秒を提供しますが、価格は標準の 2 倍（入力 $10/M・出力 $50/M）です。全ステップへの適用は避け、以下のステップに限定するのが合理的です。
+
+- ユーザー対面の同期ステップ（レイテンシが UX に直結）
+- ストリーミング出力でユーザーの体感速度を改善したい場面
+- 大規模な評価・ラベリングパイプラインで処理時間がボトルネックの場合
+
+## Opus 4.7 から Opus 4.8 への移行チェックリスト
+
+> `budget_tokens`廃止・effortレベル再較正・`thinking.display`デフォルト変更の3点が、Opus 4.7コードの Opus 4.8 移行で必ず確認すべき設計変更です。
+
+移行時に対応が必要な主要項目を示します。
+
+- `thinking: {type: "enabled", budget_tokens: N}` → `thinking: {type: "adaptive"}` + `output_config: {effort: "high"}` に変更（必須：未変更では 400 エラー）
+- `temperature`, `top_p`, `top_k` の非デフォルト値は 400 エラーになるため削除（Opus 4.7 と同じ制約）
+- `effort` レベルのトークン割り当てが再較正。`xhigh` は特に Opus 4.7 より大幅に消費量が増大するため、コストと遅延を再測定する
+- `thinking.display` のデフォルトが `"summarized"` から `"omitted"` に変更。thinking ブロックの内容を可観測性のために確認する場合は明示的に `thinking: {type: "adaptive", display: "summarized"}` を設定する
+- プロンプトキャッシュ最小長が 1,024 トークンに短縮。以前キャッシュできなかった短いシステムプロンプトがキャッシュを活用できることを確認する
+- Refusal 処理に `stop_details.category` フィールドを利用し、拒否種別によるフォールバックルーティングを実装する
+
+移行コードの自動更新には Anthropic の Claude API Skill（Claude Code 上）が対応しています。また、[エージェントの評価・観測基盤](/blog/agent-observability-tracing-instrumentation/)を整備し、移行前後で品質とコストの変化をトレースすることを強く推奨します。
+
+## 参考
+
+- [What's new in Claude Opus 4.8（Anthropic Platform Docs）](https://platform.claude.com/docs/en/about-claude/models/whats-new-claude-4-8)
+- [Adaptive thinking（Anthropic Platform Docs）](https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking)
+- [Introducing Claude Opus 4.8（Anthropic）](https://www.anthropic.com/news/claude-opus-4-8)
+
+## まとめ
+
+Claude Opus 4.8 の設計変更は API 互換性破壊にとどまらず、エンタープライズエージェントにおける「思考コスト設計」のパラダイムを転換します。`budget_tokens` の廃止は Adaptive Thinking への全面移行を意味し、`effort` パラメータでステップごとにインテリジェンスとコストを最適化する設計が標準になります。ミッドターン・システムメッセージはキャッシュを保持しながら動的に指示を更新でき、長期エージェントの制御性を高めます。Fast mode はレイテンシ重視のステップへの選択的適用で最大の効果を発揮します。コンパクション対策・ツール呼び出し安定性の向上と組み合わせることで、本番環境の長期自律エージェントが従来より少ない中断で複雑タスクを完遂できます。
+
+Claude Opus 4.8 への移行設計や大規模エンタープライズエージェント基盤の構築については、Kuuの[Reinvention Deployed Engineering（RDE）サービス](https://kuucorp.com/services/rde/)へご相談ください。
