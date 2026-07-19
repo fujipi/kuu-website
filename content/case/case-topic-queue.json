@@ -197,6 +197,15 @@
       "industry": "通所介護・デイサービス",
       "use_case": "業務日誌・個別計画・送迎調整・月次請求の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "painting-contractor-estimate-agent",
+      "keyword": "外壁塗装 塗装業 見積書作成 施工写真整理 施工報告書 AIエージェント 自動化",
+      "title_hint": "外壁塗装業の見積書・施工記録をAIエージェントに——現場の事務をこう減らす",
+      "persona": "外壁塗装会社の代表・営業責任者",
+      "industry": "外壁塗装業・塗装工事業",
+      "use_case": "見積書作成・施工写真整理・施工報告書のドラフト自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
