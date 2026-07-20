@@ -865,6 +865,23 @@
         "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
       ],
       "status": "published"
+    },
+    {
+      "slug": "model-routing-dynamic-selection-design",
+      "keyword": "モデルルーティング 動的モデル選択 設計",
+      "title_hint": "動的モデル選択の設計——3種のルーティングパターンと実装指針",
+      "persona": "マルチエージェント基盤でモデルルーティングを設計するプラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "エージェント基盤でモデルを動的にルーティング・選択するにはどう設計すればよいか",
+      "sources": [
+        "https://arxiv.org/html/2603.04445v2",
+        "https://www.digitalapplied.com/blog/llm-model-routing-2026-cost-quality-optimization-engineering-guide",
+        "https://arxiv.org/pdf/2605.14241"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
