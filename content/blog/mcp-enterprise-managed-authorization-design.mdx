@@ -1,0 +1,88 @@
+---
+title: "MCPエンタープライズ認証設計——EMAとゼロタッチSSOの実装"
+description: "2026年6月安定化のEnterprise-Managed Authorization（EMA）でMCPゼロタッチSSOを実現する設計を解説。Origin検証・JWT化・Okta連携のエンタープライズ設計判断を整理する。"
+date: "2026-07-20"
+lastModified: "2026-07-20"
+tags: ["MCP", "OAuth 2.1", "エンタープライズ認証", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/"
+  - "https://modelcontextprotocol.io/specification/2025-11-25/basic/transports"
+  - "https://auth0.com/blog/mcp-streamable-http/"
+  - "https://workos.com/blog/everything-your-team-needs-to-know-about-mcp-in-2026"
+pillar: "ai-governance"
+---
+
+MCPサーバーへのアクセスを従業員数百人にロールアウトするとき、個人OAuth同意フローは即座に破綻する。管理者が一元管理できず、退職者のトークンが残留し、監査ログが各MCPサーバーに散逸する。2026年6月に安定版となったEnterprise-Managed Authorization（EMA）と、その前提となるStreamable HTTPのセキュリティモデルが、この問題を構造的に解決する設計の軸になる。
+
+[MCP（Model Context Protocol）](/glossary/mcp/)の個人OAuth同意フローの詳細は[MCPサーバーのOAuth 2.1認可フロー設計](/blog/mcp-security-oauth-scope-design/)で解説している。本稿はその上位レイヤー——エンタープライズ規模での一括管理と[エージェントガバナンス](/glossary/agent-governance/)基盤としての設計に焦点を当てる。
+
+## MCPの認証課題はなぜエンタープライズで特に深刻なのか
+
+> MCP OAuth 2.1はDCR・RFC 8707・RFC 9728の三要件を同時に課す。標準OAuthプロバイダーでは満たせない実装ギャップが生じ、個人同意モデルは組織規模で使うほどガバナンス負荷が増大する。
+
+MCPの認可仕様はOAuth 2.1 with PKCEを必須とするが、一般的なOAuth 2.0実装に比べて三つの追加要件が重なる。
+
+**Dynamic Client Registration（DCR）**: MCPクライアントは事前登録なしに動的登録する。エンタープライズでは承認済みクライアントリストとDCRを組み合わせるポリシー制御が必要になる。
+
+**RFC 8707 Resource Indicators**: アクセストークンに対象MCPサーバーURLを紐付け、トークンの横流し（トークンリプレイ攻撃）を防ぐ。異なるMCPサーバー間でのトークン再利用を構造的に遮断する。
+
+**RFC 9728 Protected Resource Metadata**: MCPサーバー自身が認可サーバーの場所・スコープ定義・鍵情報をメタデータとして公開し、クライアントが自動発見できるようにする。
+
+2026年5月時点で公開MCPサーバーのOAuth 2.1実装率は約8.5%にとどまる。エンタープライズ側でOAuth 2.1要件への適合を調達条件に含める動きが加速している。
+
+## Streamable HTTPがセキュリティモデルをどう変えたか
+
+> Streamable HTTPは全JSON-RPCリクエストをHTTP POSTで完結させ、既存の認証ミドルウェア・WAF・ALBをそのまま適用できる。旧SSEで発生していたURLへのトークン埋め込みが構造的に不要になった。
+
+2024-11-05仕様のSSEトランスポートでは、初期ハンドシェイク時にブラウザAPIの制約でAuthorizationヘッダーを付加しにくく、トークンをURLパラメータに置く実装が生まれやすかった。Streamable HTTPでは各JSON-RPCメッセージが独立したHTTP POSTになるため、Authorizationヘッダーを全リクエストで付加でき、Bearerトークンが通信経路に露出しない。
+
+エンタープライズ展開で重要な三つの仕様ポイントがある。
+
+**Origin検証の義務化**: サーバーはOriginヘッダーをすべての着信接続で検証し、不正な場合はHTTP 403を返すことが仕様で義務付けられている。DNSリバインディング攻撃への最低防御ラインだ。ローカル実行環境ではlocalhost（127.0.0.1）バインドも必須とされる。
+
+**MCP-Session-IdのJWT化**: セッションIDは暗号的にセキュアなUUIDまたはJWTを推奨する。JWTをセッションIDとして使うことで、アクセストークンのスコープとセッション固有のユーザー情報を単一のバリデーションパスで確認できる。SOCチームが監査ログからセッション帰属を即座に特定できるメリットもある。
+
+**ALBでのスティッキーセッション不要**: 旧SSEの常時接続モデルでは接続固定が実質的に必要だった。Streamable HTTPはステートレスなHTTPリクエストになるため、AWS Application Load BalancerやCloud Load Balancingが通常の負荷分散で機能する。スケールアウト時のアーキテクチャ制約がなくなる。
+
+## Enterprise-Managed Authorization（EMA）の仕組みはどうなっているか
+
+> EMAはIDPが発行するID-JAG JWTをMCPサーバーが直接受け入れ、管理者が組織全体への一括プロビジョニングを実現する。従業員は初回SSOで自動的にMCPサーバーへのアクセスを取得する。
+
+EMAは2026年6月18日に安定版となったMCPの拡張仕様（ext-auth）だ。AnthropicはClaude・Claude Code・CoworkのすべてにEMAを実装し、OktaはCross App Access（XAA）として対応する。VS Codeも同時期に対応し、Asana・Atlassian・Canva・Figma・Linear・SupabaseがEMA対応MCPサーバーとして参加している。Slackは対応作業中だ。
+
+**認可フローの変化**: 従来の個人OAuthでは各ユーザーが各MCPサーバーの承認画面を踏む。EMAでは管理者がIDPコンソールでMCPサーバーへのアクセスを組織全体に有効化し、グループ・ロールポリシーに基づいて配布する。
+
+**ID-JAGの技術メカニズム**: クライアントはSSO時にIDPからIdentity Assertion JWT Authorization Grant（ID-JAG）トークンを取得し、MCPサーバーの認可サーバーに提示してアクセストークンと交換する。MCPサーバー側でIDPへの個別セッション確立が不要になり、組織のSAML/OIDCドメインポリシーが自動的に継承される。
+
+**監査の集約**: 個人OAuthでは認可イベントが各MCPサーバーのログに散在する。EMAではIDPの監査ログに集約されるため、SOCチームが単一の基盤でMCPアクセスを把握できる。ISO 42001対応や監査対応の工数削減にも寄与する。
+
+## エンタープライズ展開で押さえる設計判断ポイント
+
+> EMA対応IDP確認・RFC 8707適合テスト・Session-Id JWT化の三点がエンタープライズMCP基盤の設計チェックリストの核になる。
+
+**IDPの互換性確認**: 現時点でEMAに最初に対応したIDPはOkta（Cross App Access）だ。Entra IDやPingIdentityとの対応は進展中のため、導入前に一次情報で最新状況を確認する必要がある。OAuthプロバイダーとしてはWorkOS・Stytch・Auth0 by OktaがMCP互換の実装として挙げられる。
+
+**RFC 8707適合テスト**: RFC 8707対応を名乗るサービスでも実装粒度が異なる。テナント導入前に、MCPサーバーAに発行されたアクセストークンがMCPサーバーBでHTTP 401を返すことをインテグレーションテストで確認する。
+
+**Session-Idライフサイクル管理**: JWTセッションIDを使う場合、有効期限・ローテーション・失効（revocation）をアプリ層で管理する。IDPのアクセストークン有効期限とMCPセッションの有効期限が乖離するとセキュリティウィンドウが開く点に注意が必要だ。
+
+**バックワードコンパティビリティ対応**: 旧SSEトランスポートを使うMCPサーバーとStreamable HTTP対応サーバーが混在する環境では、クライアントでフォールバック検出ロジックを実装する。MCP仕様はPOSTでInitializeRequestが失敗した場合にGETでSSEストリームを試みるフォールバックを定義している。
+
+[Kuuのエンタープライズ向けRDEサービス](/services/rde/)では、EMA実装・Okta連携設計・LLMゲートウェイとのMCP統合・マルチテナントMCP基盤の構築を支援している。OAuth 2.1対応MCPサーバーの選定基準整備から監査ログ集約基盤まで、一貫してサポートする。
+
+## 参考
+
+- [Enterprise-Managed Authorization: Zero-touch OAuth for MCP | Model Context Protocol Blog](https://blog.modelcontextprotocol.io/posts/enterprise-managed-auth/)
+- [Transports - Model Context Protocol Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+- [Why MCP's Move Away from Server Sent Events Simplifies Security | Auth0 Blog](https://auth0.com/blog/mcp-streamable-http/)
+- [Everything your team needs to know about MCP in 2026 | WorkOS](https://workos.com/blog/everything-your-team-needs-to-know-about-mcp-in-2026)
+
+## まとめ
+
+MCPのエンタープライズ認証設計は二層に分かれる。個人OAuth同意フローを設計する下位レイヤー（OAuth 2.1・RFC 8707・DCR）と、それを管理者が一元管理するためのEMAという上位レイヤーだ。Streamable HTTPへの移行でセキュリティインフラとの親和性は高まったが、EMA対応IDPとMCPサーバーの選定・Session-Id JWT化・RFC 8707適合テストまでを設計の射程に含めなければ、スケール時にガバナンスが崩れる。
+
+MCP基盤のエンタープライズ展開を検討している場合は、[Kuu株式会社のRDEサービス](/services/rde/)にご相談ください。認証設計からLLMゲートウェイ統合・監査基盤の構築まで、一貫してサポートします。
