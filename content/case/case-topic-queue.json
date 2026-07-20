@@ -206,6 +206,15 @@
       "industry": "外壁塗装業・塗装工事業",
       "use_case": "見積書作成・施工写真整理・施工報告書のドラフト自動化",
       "status": "published"
+    },
+    {
+      "slug": "music-school-lesson-agent",
+      "keyword": "音楽教室 楽器スクール 体験フォロー 振替管理 月謝集計 AIエージェント 自動化",
+      "title_hint": "音楽教室の体験・振替・月謝管理をAIエージェントに——講師の事務をこう減らす",
+      "persona": "音楽教室・楽器スクールのオーナー兼講師",
+      "industry": "音楽教室・楽器スクール",
+      "use_case": "体験申込・振替管理・月謝集計・発表会準備の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
