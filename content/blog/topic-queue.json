@@ -882,6 +882,24 @@
         "https://arxiv.org/pdf/2605.14241"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-llm-model-selection-guide-2026",
+      "keyword": "LLM モデル選定 エージェント タスク 2026",
+      "title_hint": "エージェントのLLM選定ガイド2026——モデル比較と用途別判断基準",
+      "persona": "マルチエージェント基盤を設計するプラットフォームエンジニア・バックエンドエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェントでどのLLMモデルを選ぶべきか——用途別比較と判断基準2026",
+      "sources": [
+        "https://www.anthropic.com/news/claude-fable-5-mythos-5",
+        "https://www.vellum.ai/blog/claude-fable-5-and-mythos-5-benchmarks-explained",
+        "https://tech-insider.org/claude-vs-chatgpt-vs-gemini-2026/",
+        "https://iternal.ai/llm-selection-guide"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

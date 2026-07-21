@@ -1,0 +1,96 @@
+---
+title: "エージェントのLLM選定ガイド2026——モデル比較と用途別判断基準"
+description: "Claude Fable 5・GPT-5.5・Gemini 3.1 Proをツール精度・コスト・コンテキスト長で比較。AIエージェントの用途別最適モデルとタスクルーティング設計の要点を解説します。"
+date: "2026-07-21"
+lastModified: "2026-07-21"
+tags: ["LLMモデル選定", "AIエージェント", "Claude Fable 5", "モデル比較"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "intermediate"
+target_query: "AIエージェントでどのLLMモデルを選ぶべきか——用途別比較と判断基準2026"
+sources:
+  - "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+  - "https://www.vellum.ai/blog/claude-fable-5-and-mythos-5-benchmarks-explained"
+  - "https://tech-insider.org/claude-vs-chatgpt-vs-gemini-2026/"
+  - "https://iternal.ai/llm-selection-guide"
+---
+
+エージェントが複数のツール呼び出しを連鎖させる設計では、LLMモデルの選択が品質・コスト・レイテンシのすべてを左右します。1回の自律タスクが数十ステップに及ぶ場合、モデルの精度差が累積して最終出力の品質に直接影響します。2026年7月時点で主要フロンティアモデルはClaude Fable 5・GPT-5.5・Gemini 3.1 Proの3系統に集約されており、用途別の使い分けとタスクルーティング設計が本番エージェントの標準形となっています。
+
+## 選定ミスのコストはなぜ高いか
+
+> エージェントはツール呼び出しを多段階で連鎖させるため、モデルの選択ミスは精度低下・コスト超過・レイテンシ悪化の3つを同時に引き起こします。
+
+シングルターンのチャットとは異なり、エージェントは1タスクを完了するまでに同一モデルを10〜50回呼び出すことがあります。入力コストが2倍の差であっても、ステップ数が多いと総コストは数倍に拡大します。ツール呼び出し精度が低いモデルを選ぶと、不正確な関数引数によるエラーループが発生し、リトライコストとレイテンシが指数的に悪化します。
+
+一方、過剰に高性能なモデルを単純なルーティングタスクにも使い続けると、コスト効率が著しく低下します。2026年の本番エージェントでは「タスクの複雑度に応じたモデルの使い分け」が必須の設計判断です。
+
+## LLM選定の3軸——ツール精度・コスト・コンテキスト長
+
+> AIエージェントのLLM選定は、ツール呼び出し精度・コスト効率・コンテキスト長保持の3軸で評価するのが実務上の基本です。
+
+**1. ツール呼び出し精度**
+
+エージェントが外部API・コード実行・ファイルアクセスを正確に呼び出せるかを測る指標です。評価基準としてBFCL v4（Berkeley Function Calling Leaderboard）が業界標準として定着しています。コーディングエージェントではSWE-bench ProやSWE-bench Verifiedも重要な参考値となります。
+
+**2. コスト効率（$/Mトークン）**
+
+2026年7月時点の目安: Gemini 3.1 Proは約$2/M入力トークンと最も低コストで、Claude Fable 5・GPT-5.5は約$5/M前後と約2.5倍の差があります。多ステップエージェントではコスト差が累積するため、タスク複雑度別に最適モデルを割り当てるルーティング設計が有効です。
+
+**3. コンテキスト長**
+
+長期タスク・大規模コードベース・RAGパイプラインでは、コンテキスト長が設計上の制約となります。Claude Fable 5は100万トークン入力に対応しており、GPT-5.5・Gemini 3.1 Proも同等クラスのウィンドウを持ちます。
+
+## 2026年の主要モデル比較はどうなっているか
+
+> 2026年7月時点ではClaudeが複雑なコーディング・分析、GPT-5.5がマルチモーダル、Gemini 3.1 Proが大量処理・長コンテキストでそれぞれ優位を持ちます。
+
+| モデル | 主な強み | SWE-bench Verified | 入力コスト目安 |
+|---|---|---|---|
+| Claude Fable 5 | コーディング・長期分析・自律エージェント | 95.0% | 約$5/M |
+| Claude Opus 4.8 | 高精度推論・コーディング | — | 約$15/M |
+| GPT-5.5 | computer use・マルチモーダル・汎用 | 88.7% | 約$5/M |
+| Gemini 3.1 Pro | 高ボリューム・長コンテキスト・科学推論 | 80.6% | 約$2/M |
+| DeepSeek V4 | 低コスト・標準タスク | — | 数分の1〜 |
+
+**Claude Fable 5** は2026年6月9日にAnthropicがリリースしたMythosクラスの最上位モデルです。SWE-bench Verified 95.0%・SWE-bench Pro 80.3%という業界最高水準のコーディング性能を持ち、100万トークンのコンテキストウィンドウで長期・多段階の自律タスクに対応します。複雑な分析・コード生成・長時間実行エージェントに特に適しています。
+
+**GPT-5.5** はOpenAIのコンピューターuse機能との統合が優れており、スクリーン操作を伴うエージェントや汎用マルチモーダルタスクに向いています。SWE-bench Verified 88.7%と高精度で、汎用エージェントの主力モデルとして広く採用されています。
+
+**Gemini 3.1 Pro** は約$2/M入力トークンという価格優位性と、GPQA Diamond 94.3%という科学推論スコアが強みです。大量処理・高ボリュームのRAG検索エージェント・日次バッチパイプラインで特にコスト効率を発揮します。
+
+## タスクルーティング設計のポイントはどこか
+
+> 単一モデルへの固定運用より、タスク複雑度に応じてモデルをルーティングする構成が2026年の本番エージェント設計の標準形です。
+
+2026年時点での実装パターンは「タスク複雑度ルーター（コンプレキシティルーター）」です。エージェントオーケストレーター層が受け取ったタスクを難易度別に判定し、最適なモデルにディスパッチします。
+
+**典型的な3層ルーティング**:
+
+1. **高複雑度タスク**（コード生成・長文分析・マルチステップ計画）→ Claude Fable 5
+2. **中複雑度タスク**（テキスト変換・中程度の推論・フォーム入力）→ GPT-5.5 または Gemini 3.1 Pro
+3. **低複雑度タスク**（分類・構造化抽出・ルーティング判定）→ Gemini 3.1 Flash・DeepSeek V4 などの高速低コストモデル
+
+タスクルーターの実装詳細については[動的モデル選択の設計パターン](/blog/model-routing-dynamic-selection-design/)も参照してください。コスト配賦の計測には[AI FinOps入門](/blog/ai-finops-token-cost-instrumentation/)が参考になります。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB（中小企業）**: まず単一モデル（Claude Fable 5またはGPT-5.5）から始め、コスト実績を計測してからルーティングを検討するのが現実的です。段階的な導入設計は[AIオペレーションサービス](https://kuucorp.com/services/ai-ops/)でサポートしています。
+
+**エンタープライズ**: 複数プロバイダーへの分散調達によるベンダーリスク低減と、AI FinOpsによるモデル別コスト配賦・部門チャージバックが必要です。LLMゲートウェイを介したモデル統制や大規模ルーティング設計については[RDEサービス](https://kuucorp.com/services/rde/)での対応が適しています。
+
+## 参考
+
+- [Claude Fable 5 and Mythos 5 — Anthropic](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+- [Claude Fable 5 & Claude Mythos 5 Full Benchmark Breakdown — Vellum AI](https://www.vellum.ai/blog/claude-fable-5-and-mythos-5-benchmarks-explained)
+- [Claude vs ChatGPT vs Gemini 2026 — Tech Insider](https://tech-insider.org/claude-vs-chatgpt-vs-gemini-2026/)
+- [LLM Comparison 2026: 30+ Models Benchmarked — iternal.ai](https://iternal.ai/llm-selection-guide)
+
+## まとめ
+
+2026年のエージェントLLM選定は、単一モデルへの固定運用から「タスク複雑度に応じたルーティング」への転換期にあります。Claude Fable 5は複雑なコーディング・長期分析に、GPT-5.5はマルチモーダル・computer useに、Gemini 3.1 Proは高ボリューム・長コンテキストに適しています。
+
+選定の出発点はツール呼び出し精度・コスト・コンテキスト長の3軸です。この3軸を評価基準として現在のタスク特性を棚卸しすることで、最適なモデル構成が見えてきます。
+
+Kuu株式会社では、モデル選定からルーティング設計・コスト計測まで一貫してサポートしています。詳細は[AIオペレーションサービス](https://kuucorp.com/services/ai-ops/)からお問い合わせください。
