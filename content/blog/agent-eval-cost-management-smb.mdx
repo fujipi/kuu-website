@@ -1,0 +1,191 @@
+---
+title: "エージェント評価コストを抑える——judge 選択とサンプリング設計"
+description: "AIエージェントのevalコストはjudgeモデルとサンプリング率で大半が決まります。Claude Haiku 4.5を採用し本番10%・CI全件の設計で、月数千円以下で継続評価を回す実装手順を解説します。"
+date: "2026-07-22"
+lastModified: "2026-07-22"
+tags: ["エージェント評価", "コスト管理", "LLM-as-judge", "サンプリング設計"]
+author: "kuu-engineering"
+audience: "smb"
+track: "evaluation"
+tech_depth: "intermediate"
+target_query: "AIエージェントの評価（eval）をコストを抑えながら継続的に実施するにはどうすればよいか"
+sources:
+  - "https://arxiv.org/html/2604.13717"
+  - "https://arxiv.org/pdf/2602.15481"
+  - "https://www.metacto.com/blogs/anthropic-api-pricing-a-full-breakdown-of-costs-and-integration"
+pillar: "ai-governance"
+---
+
+「エージェントに eval を入れたら月のAPI請求が跳ね上がった」——AIエージェントの品質管理を始めようとして、コストに驚いてやめてしまう事例は珍しくありません。しかし評価コストを適切に設計すれば、中小規模チームでも月数千円程度で継続的な品質監視を実現できます。judge モデルの選択とサンプリング率の設定が、コストの大半を左右します。
+
+## エージェント評価コストが高くなる原因は何か
+
+> evalコストの8割はjudgeモデルの選択と評価対象件数で決まります。フロンティアモデルで本番全件を採点し続けると月10万円規模になることがあります。
+
+eval を初めて導入したチームが陥りやすいのが「高性能モデルで全件採点」というパターンです。エージェントが月10万件の応答を生成し、Sonnet クラスのモデルで全件を judge すると、以下のようなコストが発生します。
+
+**入出力トークン数の概算（1件の評価）**
+
+| 項目 | トークン数 |
+|---|---|
+| 評価プロンプト（ルーブリック + 会話履歴） | 2,000〜3,000 |
+| judge の採点出力（スコア + 理由） | 300〜500 |
+
+Sonnet クラス（約$3.00/百万入力トークン）で1件2,500入力・400出力と仮定すると:
+- 入力: 2,500 × $3.00 / 1,000,000 = $0.0075
+- 出力: 400 × $15.00 / 1,000,000 = $0.006
+- 合計: 1件あたり約$0.014（2円）
+
+月10万件を全件評価すると約$1,400（21万円）。これは明らかに過剰です。コスト管理の核心は「どのモデルで」「何件を」採点するかの設計にあります。
+
+## コスト効率の高い judge モデルはどれか
+
+> Claude Haiku 4.5（$1.00/$5.00 per million tokens）はフロンティアモデルの1/5以下のコストで、定型ルーブリック評価では同等の判定精度が得られます。
+
+judge 用途に特化すれば、フロンティアモデルと小型モデルの精度差は小さくなります。arxiv の論文「On Cost-Effective LLM-as-a-Judge Improvement Techniques」では、タスク固有のルーブリックを注入したミニクラスモデルが、より大きなモデルと同等の判定精度（85.8%）を約1/4のコストで達成することが示されています。
+
+**Claude Haiku 4.5（2026年7月時点）の特徴**
+
+- 入力: $1.00 / 100万トークン
+- 出力: $5.00 / 100万トークン
+- 定型採点（正確性・ツール選択・出力フォーマット）に最適
+- 複雑な倫理判断や多段階推論には向かない
+
+同じ条件（2,500入力・400出力）でHaiku 4.5を使うと:
+- 入力: 2,500 × $1.00 / 1,000,000 = $0.0025
+- 出力: 400 × $5.00 / 1,000,000 = $0.002
+- 合計: 1件あたり約$0.0045（0.7円）
+
+Sonnet クラスと比較して約1/3のコストになります。ただし判断が難しいケース（曖昧な応答・境界事例）については Sonnet を使う2段階評価が有効です。
+
+### judge を2段階に分ける設計
+
+```python
+def judge_response(exchange, rubric):
+    # まず Haiku で採点
+    score = haiku_judge(exchange, rubric)
+
+    # スコアが境界値（0.3〜0.7）の場合のみ Sonnet で再採点
+    if 0.3 <= score <= 0.7:
+        score = sonnet_judge(exchange, rubric)
+
+    return score
+```
+
+境界値ケースは全体の15〜25%程度です。この設計により、Sonnet 呼び出しを全体の2割以下に抑えながら精度を維持できます。
+
+## 本番トラフィックのサンプリング率をどう決めるか
+
+> 本番evalは10〜20%のサンプリング、CIテストは100%の全件採点が費用対効果を最大化する設計の基本です。
+
+全件を採点する必要はありません。目的別に採点対象を分ける「2層サンプリング」が標準的な設計です。
+
+**本番トラフィック（オンライン評価）**
+
+本番からのサンプリングは10〜20%を目安とします。ランダムサンプリングではなく、**層別サンプリング**が推奨されます。
+
+```python
+def should_evaluate(interaction):
+    # エラーや低スコア応答は100%評価
+    if interaction.has_error or interaction.user_rating < 3:
+        return True
+
+    # 新しいツール呼び出しパターンは100%評価
+    if interaction.uses_new_tool:
+        return True
+
+    # それ以外は10%サンプリング
+    return random.random() < 0.10
+```
+
+**CIテスト（オフライン評価）**
+
+CI パイプラインに組み込む回帰テストは、ゴールデンデータセット全件を評価します。件数は50〜200件程度に絞り、コストを予測可能に保ちます。
+
+```yaml
+# .github/workflows/eval.yml（抜粋）
+- name: Run eval suite
+  run: |
+    python eval_runner.py \
+      --dataset golden_dataset.jsonl \  # 100件のゴールデンデータ
+      --judge haiku-4-5                 # コスト優先モデル
+      --threshold 0.80                  # 合格ライン
+```
+
+**月次コスト試算（Haiku 4.5 judge 使用時）**
+
+| 評価区分 | 件数/月 | 1件コスト | 月次コスト |
+|---|---|---|---|
+| 本番サンプリング（10%） | 1,000 | $0.0045 | $4.50（675円） |
+| CI回帰テスト（100件×週2回） | 800 | $0.0045 | $3.60（540円） |
+| 境界値再採点（Sonnet、20%） | 360 | $0.014 | $5.04（756円） |
+| **合計** | 2,160 | — | **$13.14（約2,000円）** |
+
+月2,000〜3,000円で継続評価が回る計算になります。本番トラフィックが月10万件規模でも、サンプリングによってコストはほぼ変わりません。
+
+## 評価コストを Langfuse でどう可視化するか
+
+> Langfuse の Cost フィールドにjudge呼び出しのトークンコストを記録すると、週次でevalにいくら使ったかをダッシュボードで追跡できます。
+
+Langfuse（OSS版・無料枠あり）は eval 実行のトレースと費用を一元管理できます。judge 呼び出し後に `update_generation` でコストを記録します。
+
+```python
+import langfuse
+
+client = langfuse.Langfuse()
+
+def run_eval_with_cost_tracking(exchange, rubric, trace_id):
+    generation = client.generation(
+        name="haiku-judge",
+        trace_id=trace_id,
+        model="claude-haiku-4-5-20251001",
+    )
+
+    result = haiku_judge(exchange, rubric)
+
+    generation.end(
+        usage={
+            "input": result.input_tokens,
+            "output": result.output_tokens,
+        },
+        output=result.score,
+    )
+    return result.score
+```
+
+Langfuse の Generations ビューで `model="claude-haiku-4-5-20251001"` でフィルタリングすると、eval にかかったトークン量と推定コストが集計されます。週次でSlackに通知する場合は Langfuse の API から集計値を取得して投稿するシンプルなスクリプトで十分です。
+
+### 月次予算アラートの設定例
+
+```python
+# 週次コスト確認スクリプト
+def check_eval_budget():
+    weekly_cost = get_langfuse_eval_cost(days=7)
+    monthly_projection = weekly_cost * 4.3
+
+    if monthly_projection > BUDGET_JPY / USD_RATE:
+        send_slack_alert(
+            f"⚠️ eval月次見込み: ¥{monthly_projection * USD_RATE:.0f} "
+            f"（予算¥{BUDGET_JPY}に対して{monthly_projection*USD_RATE/BUDGET_JPY*100:.0f}%）"
+        )
+```
+
+`BUDGET_JPY` に月次eval予算（例: 5000円）を設定しておくと、予算超過の傾向を早期に検知できます。
+
+## 参考
+
+- [On Cost-Effective LLM-as-a-Judge Improvement Techniques](https://arxiv.org/html/2604.13717)
+- [LLM-as-Judge on a Budget](https://arxiv.org/pdf/2602.15481)
+- [Anthropic Claude API Pricing: Every Model, Token Rate, And Cost Lever](https://www.metacto.com/blogs/anthropic-api-pricing-a-full-breakdown-of-costs-and-integration)
+
+## まとめ
+
+エージェント評価のコストは設計次第で大きく変わります。重要なポイントを整理します。
+
+1. **judge モデルは Haiku クラスを基本に**: 定型ルーブリック採点なら Haiku 4.5 でフロンティアモデルの1/3以下のコストで同等精度が得られる
+2. **境界値のみ Sonnet で再採点**: 全体の2割以下に絞ることでコストを抑えながら精度を確保
+3. **本番は10〜20%の層別サンプリング**: エラーや新パターンを優先し、残りはランダム10%
+4. **CI は100件程度のゴールデンデータで全件評価**: 件数を絞ることでコストを予測可能に
+5. **Langfuse でコストを可視化**: 週次の傾向把握と月次予算アラートを設定
+
+この設計で、月数千円の予算内で継続的な品質監視の基盤が整います。エージェントの品質管理体制の構築について、Kuu株式会社の[エージェントAI運用管理サービス](/services/ai-ops/)でサポートしています。まずはお気軽にご相談ください。

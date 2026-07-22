@@ -108,6 +108,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-fable-5-enterprise-agent-design",
 			"claude-opus48-enterprise-agentic-design",
 		],
+		// オンライン評価（本番トラフィックサンプリング設計方法論・both/deep）vs eval コスト管理（judge選択・予算制御・smb/intermediate）: 設計方法論 vs 予算管理で正当な併存
+		[
+			"online-evaluation-production-traffic-sampling",
+			"agent-eval-cost-management-smb",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
