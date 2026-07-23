@@ -1,0 +1,174 @@
+---
+title: "MCPクライアント実装——TypeScript SDK v2 接続から呼び出し設計まで"
+description: "MCPクライアントをTypeScript SDK v2で実装する方法を解説。3トランスポートの選択基準、capability negotiation、tools/list→callの実行フロー、通知処理を仕様ベースで整理する。"
+date: "2026-07-23"
+lastModified: "2026-07-23"
+tags: ["MCP", "プロトコル", "TypeScript", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://modelcontextprotocol.io/docs/concepts/architecture"
+  - "https://ts.sdk.modelcontextprotocol.io/v2/"
+  - "https://github.com/modelcontextprotocol/typescript-sdk"
+pillar: "ai-governance"
+---
+
+MCPサーバーの実装記事は増えてきたが、**そのサーバーに接続するホスト（AIアプリケーション）をどう実装するか**は情報が少ない。TypeScript SDK v2ではClientクラスとトランスポートが完全に分離され、インポートパスも変わった。接続ライフサイクル・capability negotiation・通知ハンドリングの3点を理解せずに実装すると、サーバー側でツールが追加・変更されてもクライアントが古い定義を持ち続けるといった不整合が生じる。
+
+本記事は[MCP（Model Context Protocol）](/glossary/mcp/)のクライアント／ホスト実装を担うバックエンドエンジニア向けに、2026年7月現在の公式仕様とTypeScript SDK v2の構造に基づいて整理したものです。サーバー側の実装は[MCPサーバー実装ガイド](/blog/mcp-server-implementation-tool-design/)を参照してください。
+
+## ホスト・クライアント・サーバーの構造はどうなっているか
+
+> MCPホストは接続するサーバー1つにつき1つのClientインスタンスを生成するAIアプリで、VS CodeやClaude Codeがその実例です。
+
+MCP仕様では3つの役割を区別します。**MCPホスト**（AIアプリ本体）は複数のサーバーへの接続を管理し、各接続に対して1つの**MCPクライアント**インスタンスを生成します。**MCPサーバー**はTools・Resources・Promptsを公開するプログラムです。
+
+例えばVS CodeがSentry MCPサーバーとFilesystem MCPサーバーに接続する場合、VS Codeは2つの独立したClientインスタンスを保持します。ローカルプロセスのサーバーはStdioトランスポートで、リモートサーバーはStreamable HTTPトランスポートで接続します。
+
+自前のAIアプリにMCPホスト機能を組み込むということは、「どのサーバーに接続するかを管理し、LLMにツール一覧を渡し、LLMのツール呼び出しを適切なサーバーにルーティングする」ロジックを実装することです。
+
+## TypeScript SDK v2 でClientを初期化する方法
+
+> SDK v2は`@modelcontextprotocol/client`パッケージに分離され、`new Client({name, version})`→`client.connect(transport)`の2ステップで接続が確立します。
+
+SDK v2からインポートパスが変わりました。v1では`@modelcontextprotocol/sdk`から全てをインポートしていましたが、v2では`@modelcontextprotocol/client`と`@modelcontextprotocol/server`に分離されています。zod v3.25以降がpeer dependencyとして必要です。
+
+```typescript
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+
+const client = new Client({
+  name: "my-host-app",
+  version: "1.0.0"
+});
+
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["./my-mcp-server.js"]
+});
+
+await client.connect(transport);
+// この時点でcapability negotiationが完了している
+```
+
+`client.connect()`は内部でinitializeリクエストを送信し、サーバーからのinitialize responseを受け取り、`notifications/initialized`を送信するまでの一連のライフサイクルを自動処理します。能力ネゴシエーション後に失敗した場合は例外がスローされるため、try-catchで接続失敗を検知できます。
+
+## 3つのトランスポートはどう選ぶべきか
+
+> ローカルプロセスはStdio、リモートサーバーはStreamableHTTP、同一プロセス内テストはInMemoryが基本選定です。
+
+| トランスポート | 典型用途 | 特徴 |
+|---|---|---|
+| **StdioClientTransport** | ローカルMCPサーバー | ネットワーク不要・低レイテンシ。`command`と`args`でサーバープロセスを起動 |
+| **StreamableHTTPClientTransport** | リモートMCPサーバー | HTTP POST + SSEのストリーミング。Bearer Tokenで認証可能 |
+| **InMemoryTransport** | 同一プロセスのテスト | `createLinkedPair()`でClientとServerを直結。ネットワーク・プロセス起動不要 |
+
+StreamableHTTPトランスポートでリモート接続する場合はURLをコンストラクタに渡します。
+
+```typescript
+import { StreamableHTTPClientTransport }
+  from "@modelcontextprotocol/client/streamableHttp";
+
+const transport = new StreamableHTTPClientTransport(
+  new URL("https://api.example.com/mcp"),
+  {
+    requestInit: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    }
+  }
+);
+await client.connect(transport);
+```
+
+InMemoryTransportはユニットテストで非常に便利です。ネットワークもサブプロセスも立ち上げずに、ClientとServerを同一プロセスでリンクして動作を検証できます。
+
+```typescript
+import { InMemoryTransport } from "@modelcontextprotocol/client/inMemory";
+import { McpServer } from "@modelcontextprotocol/server";
+
+const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+const client = new Client({ name: "test-client", version: "1.0.0" });
+const server = new McpServer({ name: "test-server", version: "1.0.0" });
+
+await Promise.all([
+  client.connect(clientTransport),
+  server.connect(serverTransport)
+]);
+```
+
+## capability negotiationとプリミティブ探索の実装
+
+> `client.connect()`完了後に`client.listTools()`を呼ぶとサーバーが公開するツール一覧が取得でき、そのinputSchemaをそのままAnthropicのMessages APIのtools定義に変換できます。
+
+初期化ハンドシェイクでは、クライアントが自身のcapabilities（`elicitation`・`sampling`のサポート有無等）を宣言し、サーバーから`tools`・`resources`・`prompts`の各capabilityが返ります。接続後はlistメソッドで各プリミティブを探索し、callで実行します。
+
+```typescript
+// ツール一覧の取得と実行
+const { tools } = await client.listTools();
+// tools: Array<{name, title, description, inputSchema}>
+
+const result = await client.callTool({
+  name: "search_products",
+  arguments: { query: "ワイヤレスイヤホン", limit: 10 }
+});
+// result.content: ContentBlock[] (TextContent / ImageContent 等)
+
+// リソースの読み込み
+const { resources } = await client.listResources();
+const { contents } = await client.readResource({ uri: resources[0].uri });
+
+// プロンプトの取得
+const { prompts } = await client.listPrompts();
+const prompt = await client.getPrompt({
+  name: prompts[0].name,
+  arguments: { topic: "エラーハンドリング" }
+});
+```
+
+`tools[].inputSchema`はJSON Schema形式で返るため、Anthropic Messages APIの`tools`配列にほぼそのまま渡せます。複数のMCPサーバーから取得したツール一覧を統合する際は、名前衝突に注意してください。
+
+## 通知処理とツールレジストリ更新の設計
+
+> サーバーから`notifications/tools/list_changed`が届いた際にtools/listを再取得しなければ、LLMは古いツール定義で動き続けます。
+
+MCPはstateful protocolです。サーバーがツールを動的に追加・削除する場合、`notifications/tools/list_changed`通知をクライアントに送信します。これを受け取ったクライアントはtools/listを再取得してホストのツールレジストリを更新する必要があります。通知ハンドラは`client.connect()`より前に登録します。
+
+```typescript
+import { ToolListChangedNotificationSchema }
+  from "@modelcontextprotocol/client";
+
+// 通知ハンドラの登録（connect前に設定すること）
+client.setNotificationHandler(
+  ToolListChangedNotificationSchema,
+  async () => {
+    const { tools } = await client.listTools();
+    host.updateToolRegistry(serverId, tools);
+  }
+);
+
+await client.connect(transport);
+```
+
+同様に`resources/list_changed`・`prompts/list_changed`にも対応する設計が必要です。通知が届くのは、サーバーが初期化レスポンスで`"tools": {"listChanged": true}`を宣言した場合に限ります。これを宣言しないサーバーに対しては、一定間隔のポーリングにフォールバックする設計にします。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMB向け**: 接続するMCPサーバーは2〜5本程度が現実的です。全サーバーをStdio（ローカルプロセス）で管理し、`InMemoryTransport`で単体テストを整備するシンプルな構成から始めましょう。ツールレジストリの更新ログを[エージェントガバナンス](/glossary/agent-governance/)の観点から監査ログに残すことも運用安定性を高めます。MCPクライアント実装を含む運用基盤の設計支援は[Kuuにご相談ください](/services/ai-ops/)。
+
+**エンタープライズ向け**: 複数チームが異なるMCPサーバーを提供・消費する大規模環境では、StreamableHTTPトランスポートとOAuth 2.0認証を組み合わせ、LLMゲートウェイ経由でClientコネクションをプールする設計が必要です。サーバーごとのtokenスコープとcapabilityをポリシーエンジンで統制する体制構築は[エンタープライズ向けRDE](/services/rde/)で支援しています。
+
+## 参考
+
+- [Architecture overview — Model Context Protocol](https://modelcontextprotocol.io/docs/concepts/architecture)
+- [MCP TypeScript SDK v2 ドキュメント](https://ts.sdk.modelcontextprotocol.io/v2/)
+- [modelcontextprotocol/typescript-sdk — GitHub](https://github.com/modelcontextprotocol/typescript-sdk)
+
+## まとめ
+
+MCPクライアントの実装で押さえるべきは3点です。**①トランスポート選択**（ローカル=Stdio、リモート=StreamableHTTP、テスト=InMemory）、**②接続ライフサイクルの理解**（`client.connect()`がcapability negotiationまで一括処理する）、**③通知ハンドリング**（`tools/list_changed`等を受けてレジストリを更新する設計）。
+
+2026年7月現在、TypeScript SDK v2は2026-07-28 spec RCに対応中で、安定リリースは同仕様の正式リリースと同時期が予定されています。MCPクライアント実装の設計レビューや複数サーバー接続を管理するホストアーキテクチャの設計支援は[Kuuにご相談ください](/services/ai-ops/)。
