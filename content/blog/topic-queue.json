@@ -900,6 +900,23 @@
         "https://iternal.ai/llm-selection-guide"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-saas-integration-design-smb",
+      "keyword": "エージェント SaaS統合 設計 中小企業 Slack Gmail kintone",
+      "title_hint": "AIエージェントのSaaS統合設計——Slack・Gmail・kintone接続3パターン",
+      "persona": "社内SaaSをAIエージェントから操作したい中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "architecture",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェントと既存SaaSツールはどう統合設計するか",
+      "sources": [
+        "https://eastondev.com/blog/en/posts/ai/20260430-ai-agent-toolchain/",
+        "https://truto.one/blog/mapping-ai-agent-patterns-to-integration-platforms-2026-tutorial/",
+        "https://modelcontextprotocol.io/docs/concepts/tools"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
