@@ -215,6 +215,15 @@
       "industry": "音楽教室・楽器スクール",
       "use_case": "体験申込・振替管理・月謝集計・発表会準備の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "printing-estimate-proofing-agent",
+      "keyword": "印刷会社 見積書 校正フォロー 入稿管理 AIエージェント 属人化解消",
+      "title_hint": "印刷会社の見積・校正をAIエージェントに——属人化をこう解消する",
+      "persona": "印刷会社の営業責任者・制作進行担当",
+      "industry": "印刷業",
+      "use_case": "見積書作成・校正確認フォロー・入稿データ管理の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
