@@ -1,0 +1,133 @@
+---
+title: "エージェントの冪等性——at-least-once実行設計"
+description: "LLMエージェントのツール実行に冪等性キーを組み込む設計手順。at-least-onceとexactly-onceの使い分け、24時間キャッシュウィンドウ、セマンティック重複排除の実装パターンを解説します。"
+date: "2026-07-24"
+lastModified: "2026-07-24"
+tags: ["エージェントアーキテクチャ", "冪等性", "at-least-once", "分散システム"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "architecture"
+tech_depth: "deep"
+target_query: "LLMエージェントのツール実行で重複副作用を防ぐ冪等性設計はどうすればよいか"
+sources:
+  - "https://tianpan.co/blog/2026-04-19-llm-agents-event-stream-idempotency"
+  - "https://tianpan.co/blog/2026-04-20-idempotency-llm-pipelines"
+  - "https://mightybot.ai/blog/fault-tolerant-ai-agent-pipelines/"
+  - "https://www.agentpatterns.ai/agent-design/idempotent-agent-operations/"
+pillar: "ai-governance"
+---
+
+エージェントが外部APIを呼び出す最中にタイムアウトが発生した——再試行を実行する。これは正しい動作です。しかし、その「再試行」が発注済みの注文を二重に送信したり、同一顧客へのメールを重複送信したりした場合、被害は本番環境に直撃します。
+
+LLMエージェントは、従来の分散システムより冪等性設計が難しい。LLMはツール呼び出しパラメータを非決定論的に生成するため、同一の意図でも異なるリクエストボディが生成される場合があります。この問題は主要なエージェントSDK（LangGraph、OpenAI Agents SDK、CrewAI等）のいずれも2026年前半時点でビルトイン対応していません（PADISO研究、2026年）。
+
+本記事は[エージェントガバナンス](/ai-governance/)の信頼性設計として、エンタープライズ環境でLLMエージェントの冪等性を確保する実装パターンを解説します。
+
+## なぜエージェントに冪等性設計が必要か
+
+> LLMエージェントは同じツールを複数回実行しやすく、冪等性がなければ重複発注・重複メール等の副作用が本番で発生します。
+
+エージェントがツールを再実行するのは、次の4つのケースが代表的です。
+
+1. **LLMの文脈切れ（Context Truncation）**: 長時間実行中にコンテキストが圧縮され、完了済みのツール呼び出しを「未実行」と誤認して再発行する
+2. **ネットワークタイムアウト**: ツール呼び出しがタイムアウトして成否不明のまま再試行される
+3. **オーケストレーター再起動**: ノード障害後に同一タスクが別ワーカーで再開する
+4. **ヒューマン承認ループ**: 人間による確認待ち中にオーケストレーターがリトライをスケジュールし直す
+
+小売業のあるケースでは、調達エージェントが重複注文リクエストをERPに流し続けた結果、誰も気づかないまま在庫過剰が発生しました（AgentPatterns.ai、2026年）。冪等性設計は後付けではなく、ツールAPI設計の段階で組み込む必要があります。
+
+## at-least-once と exactly-once の違い
+
+> at-least-onceは同一操作の再実行を許容し、exactly-onceは副作用を必ず1回に限定します。LLMエージェントへの適用は従来より複雑です。
+
+従来の分散メッセージングでは、**at-least-once**（少なくとも1回配信）と**exactly-once**（厳密に1回）の意味論は処理の冪等性で解決できました。しかしLLMエージェントには固有の問題があります。
+
+LLMは同じ入力に対して決定論的な出力を保証しません。再試行時に「振込先口座番号を決定するLLM」が異なる判断を下す可能性があります。TianPan.co（2026年）はこれを「冪等性危機（Idempotency Crisis）」と呼び、「イベントIDが同一でも、LLMの判断を再実行すれば異なる結果になりうる」と指摘しています。
+
+設計上の解は**判断と実行の分離**です。
+
+- **判断フェーズ**: LLMが何をすべきか（どの口座に送金するか）を決定する
+- **実行フェーズ**: 判断結果をステートストアに永続化し、ツールの実行（送金API呼び出し）はべき等に行う
+
+判断フェーズの結果（LLMの決定）を同一トランザクション内でステートストアに保存した後、ツール実行を行います。再試行時はLLMを再実行せず、保存済みの判断を読み出して実行だけ繰り返します。
+
+## 冪等性キーの設計パターン
+
+> 冪等性キーは入力パラメータのサブセットから決定論的に生成し、24時間ウィンドウで重複を検出します。
+
+冪等性キー（idempotency key）はツール呼び出しの「意図」を一意に識別するハッシュ値です。
+
+```python
+def compute_idempotency_key(
+    session_id: str,
+    tool_name: str,
+    key_params: dict,           # 冪等性に関係するパラメータのみ
+) -> str:
+    import hashlib, json
+    payload = {
+        "session": session_id,
+        "tool": tool_name,
+        "params": key_params,   # タイムスタンプ等は除外する
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode()
+    ).hexdigest()
+```
+
+**キーフィールドの選定原則**:
+- タイムスタンプや乱数は含めない（再試行ごとにキーが変わる）
+- 「誰が」「何を」「どこに」という業務的同一性を表すフィールドを使う
+- 例：invoice_id + amount + payee_account で「この請求書の支払い」を一意化する
+
+ツール実行前にキャッシュストア（RedisやDynamoDB）を検索し、同一キーが24時間ウィンドウ内に存在すれば前回の結果を返却して実行をスキップします。24時間は一般的なデフォルトですが、業務要件に応じて72時間や1週間に延長できます（MightyBot、2026年）。
+
+### read-before-write パターン
+
+副作用のある書き込み操作では「確認してから実行（check before act）」を徹底します。
+
+```python
+async def create_order(order_id: str, items: list) -> dict:
+    # 1. 既存確認（read）
+    existing = await order_store.get(order_id)
+    if existing:
+        return existing          # 冪等に返す
+    
+    # 2. 実行（write）
+    result = await payment_api.charge(order_id, items)
+    
+    # 3. 永続化（同一トランザクション）
+    await order_store.set(order_id, result)
+    return result
+```
+
+「確認」と「実行」の間に競合状態（TOCTOU）が発生するリスクには、楽観的ロック（バージョン番号）またはデータベースの一意制約（order_idにUNIQUE制約）で対処します。
+
+## セマンティック重複排除とイベントストリーム処理
+
+> コンテンツハッシュだけでは不足で、ツール呼び出しをエンベディングで比較するセマンティック重複排除が必要です。
+
+LLMが同一意図に対して異なるパラメータ文字列を生成する問題には、コンテンツハッシュだけでは対応できません。例えば「東京本社への書類配送」を表すaddressフィールドが `"東京都千代田区"` と `"千代田区（東京）"` で異なる場合、ハッシュは一致しません。
+
+**セマンティック重複排除**では、ツール呼び出し全体をエンベディングに変換し、ベクトルストアに対してコサイン類似度検索を実行します。閾値（例：0.97以上）を超えた既存エントリが見つかれば重複とみなして実行をスキップします。
+
+イベントストリーム（Kafka等）経由でエージェントを駆動するアーキテクチャでは、**イベントIDと論理複合キー（customerId:orderId:actionType等）** の両方を管理します。
+
+- **イベントID**: 同一メッセージの重複配信を検出する
+- **論理複合キー**: 同一「業務操作」が異なるメッセージで再送された場合も検出する
+
+処理済みイベントIDをステートストアに保存し、次回受信時に「LLMを再実行する前に確認する」という順序を厳守します（TianPan.co、2026年）。
+
+エンタープライズのエージェント基盤に冪等性設計を組み込む際は、Kuuの[RDEサービス](/services/rde/)にご相談ください。
+
+## 参考
+
+- [The Idempotency Crisis: LLM Agents as Event Stream Consumers | TianPan.co](https://tianpan.co/blog/2026-04-19-llm-agents-event-stream-idempotency)
+- [Idempotency Is Not Optional in LLM Pipelines | TianPan.co](https://tianpan.co/blog/2026-04-20-idempotency-llm-pipelines)
+- [Designing Fault-Tolerant AI Agent Pipelines | MightyBot](https://mightybot.ai/blog/fault-tolerant-ai-agent-pipelines/)
+- [Idempotent Agent Operations: Safe to Retry | AgentPatterns.ai](https://www.agentpatterns.ai/agent-design/idempotent-agent-operations/)
+
+## まとめ
+
+エージェントの冪等性設計は3層で構成します。**判断と実行の分離**でLLMの非決定性を切り離し、**冪等性キー**でツール呼び出しの重複を検出し、**セマンティック重複排除**でハッシュ不一致の意図的重複にも対応する。主要なエージェントSDKがこれをビルトイン提供していない現在、この設計はアーキテクト自身が組み込む必要があります。
+
+[サーキットブレーカー設計](/blog/agent-graceful-degradation-circuit-breaker/)と組み合わせることで、障害隔離と冪等再試行の両方を備えた耐障害性エージェント基盤が完成します。Kuuの[RDEサービス](/services/rde/)では、この設計層の実装を支援します。
