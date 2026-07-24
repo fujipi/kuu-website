@@ -113,6 +113,7 @@ sections.push(`## Browse (アーカイブ・検索)
 - サイト内全文検索: ${SITE}/blog/ ・ ${SITE}/case/ の各一覧ページ上部の検索窓から利用できます
 - 技術トラック別ブログ一覧: ${SITE}/blog/track/architecture/ ほか protocols / security / evaluation / platform-infra / governance-tech / model-capability
 - 業種別ユースケース一覧: ${SITE}/case/industry/healthcare/ ほか業種別
+- フィード（最新20件・全文）: Blog ${SITE}/feed.xml ・ ${SITE}/atom.xml ・ ${SITE}/feed.json ／ Case ${SITE}/feed-case.xml ・ ${SITE}/atom-case.xml ・ ${SITE}/feed-case.json
 `);
 
 const allPillars = [

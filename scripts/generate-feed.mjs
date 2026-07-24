@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Build RSS 2.0, Atom 1.0, and JSON Feed from content/blog/*.mdx
- * Writes to public/feed.xml, public/atom.xml, public/feed.json
+ * Build RSS 2.0, Atom 1.0, and JSON Feed from content/blog/*.mdx and content/case/*.mdx
+ * Writes to public/{feed,atom}.xml, public/feed.json (blog) and
+ * public/{feed-case,atom-case}.xml, public/feed-case.json (case).
  * Runs as part of postbuild; no runtime deps beyond gray-matter.
  *
  * 全文配信: src/lib/mdToHtml.ts を Node の type stripping で直接 import する
@@ -15,7 +16,6 @@ import path from "node:path";
 import matter from "gray-matter";
 
 const ROOT = process.cwd();
-const BLOG_DIR = path.join(ROOT, "content/blog");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const OUT_DIR_NEXT = path.join(ROOT, "out");
 const SITE = "https://kuucorp.com";
@@ -42,8 +42,6 @@ function writeBoth(relPath, contents) {
 	}
 }
 const SITE_NAME = "Kuu株式会社";
-const SITE_DESC =
-	"AIエージェントガバナンス専門会社Kuu株式会社の公式ブログ。AX/DX戦略、Managed Agents、中小企業のAI導入実践を発信。";
 
 const xmlEscape = (s = "") =>
 	s
@@ -64,37 +62,59 @@ function contentHtml(markdown) {
 		.replace(/src="\//g, `src="${SITE}/`);
 }
 
-const posts = fs
-	.readdirSync(BLOG_DIR)
-	.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
-	.map((f) => {
-		const slug = f.replace(/\.(mdx|md)$/, "");
-		const raw = fs.readFileSync(path.join(BLOG_DIR, f), "utf-8");
-		const { data, content } = matter(raw);
-		return {
-			slug,
-			title: data.title ?? slug,
-			description: data.description ?? "",
-			date: data.date ?? new Date().toISOString().slice(0, 10),
-			lastModified:
-				data.lastModified ?? data.date ?? new Date().toISOString().slice(0, 10),
-			tags: Array.isArray(data.tags) ? data.tags : [],
-			author: data.author ?? "Kuu株式会社編集部",
-			content,
-		};
-	})
-	.sort((a, b) => (a.date < b.date ? 1 : -1))
-	.slice(0, FEED_LIMIT);
+function loadPosts(contentDir, defaultAuthor) {
+	return fs
+		.readdirSync(path.join(ROOT, contentDir))
+		.filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+		.map((f) => {
+			const slug = f.replace(/\.(mdx|md)$/, "");
+			const raw = fs.readFileSync(path.join(ROOT, contentDir, f), "utf-8");
+			const { data, content } = matter(raw);
+			return {
+				slug,
+				title: data.title ?? slug,
+				description: data.description ?? "",
+				date: data.date ?? new Date().toISOString().slice(0, 10),
+				lastModified:
+					data.lastModified ??
+					data.date ??
+					new Date().toISOString().slice(0, 10),
+				tags: Array.isArray(data.tags) ? data.tags : [],
+				author: data.author ?? defaultAuthor,
+				content,
+			};
+		})
+		.sort((a, b) => (a.date < b.date ? 1 : -1))
+		.slice(0, FEED_LIMIT);
+}
 
-const latest = posts[0]?.lastModified ?? new Date().toISOString().slice(0, 10);
+/**
+ * 1セクション分の RSS/Atom/JSON Feed を生成して書き出す。
+ * feed の URL・XML 構造は従来の blog フィードとバイト互換を保つこと
+ * （既存購読者の guid/id が変わると全記事が未読として再配信されるため）。
+ */
+function generateFeeds({
+	contentDir,
+	urlPrefix, // e.g. "blog" -> https://kuucorp.com/blog/{slug}/
+	homePath, // e.g. "/blog/"
+	titleSuffix, // e.g. "Blog"
+	description,
+	defaultAuthor,
+	atomId, // Atom の <id>（blog は従来互換で SITE ルート）
+	files, // { rss, atom, json } 出力ファイル名
+}) {
+	const posts = loadPosts(contentDir, defaultAuthor);
+	const latest =
+		posts[0]?.lastModified ?? new Date().toISOString().slice(0, 10);
+	const feedTitle = `${SITE_NAME} ${titleSuffix}`;
 
-/* ---------- RSS 2.0 ---------- */
-const rssItems = posts
-	.map((p) => {
-		const url = `${SITE}/blog/${p.slug}/`;
-		const pub = new Date(p.date).toUTCString();
-		const html = contentHtml(p.content);
-		return `
+	/* ---------- RSS 2.0 ---------- */
+	const rssItems = posts
+		.map((p) => {
+			const url = `${SITE}/${urlPrefix}/${p.slug}/`;
+			const pub = new Date(p.date).toUTCString();
+			const html = contentHtml(p.content);
+			return `
     <item>
       <title>${xmlEscape(p.title)}</title>
       <link>${url}</link>
@@ -108,28 +128,28 @@ const rssItems = posts
 			}
       ${p.tags.map((t) => `<category>${xmlEscape(t)}</category>`).join("\n      ")}
     </item>`;
-	})
-	.join("");
+		})
+		.join("");
 
-const rss = `<?xml version="1.0" encoding="UTF-8"?>
+	const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>${xmlEscape(SITE_NAME)} Blog</title>
-    <link>${SITE}/blog/</link>
-    <description>${xmlEscape(SITE_DESC)}</description>
+    <title>${xmlEscape(feedTitle)}</title>
+    <link>${SITE}${homePath}</link>
+    <description>${xmlEscape(description)}</description>
     <language>ja</language>
     <lastBuildDate>${new Date(latest).toUTCString()}</lastBuildDate>
-    <atom:link href="${SITE}/feed.xml" rel="self" type="application/rss+xml" />${rssItems}
+    <atom:link href="${SITE}/${files.rss}" rel="self" type="application/rss+xml" />${rssItems}
   </channel>
 </rss>
 `;
 
-/* ---------- Atom 1.0 ---------- */
-const atomEntries = posts
-	.map((p) => {
-		const url = `${SITE}/blog/${p.slug}/`;
-		const html = contentHtml(p.content);
-		return `
+	/* ---------- Atom 1.0 ---------- */
+	const atomEntries = posts
+		.map((p) => {
+			const url = `${SITE}/${urlPrefix}/${p.slug}/`;
+			const html = contentHtml(p.content);
+			return `
   <entry>
     <title>${xmlEscape(p.title)}</title>
     <link href="${url}" />
@@ -145,50 +165,81 @@ const atomEntries = posts
     <author><name>${xmlEscape(p.author)}</name></author>
     ${p.tags.map((t) => `<category term="${xmlEscape(t)}" />`).join("\n    ")}
   </entry>`;
-	})
-	.join("");
+		})
+		.join("");
 
-const atom = `<?xml version="1.0" encoding="UTF-8"?>
+	const atom = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>${xmlEscape(SITE_NAME)} Blog</title>
-  <link href="${SITE}/atom.xml" rel="self" />
-  <link href="${SITE}/blog/" />
-  <id>${SITE}/</id>
+  <title>${xmlEscape(feedTitle)}</title>
+  <link href="${SITE}/${files.atom}" rel="self" />
+  <link href="${SITE}${homePath}" />
+  <id>${atomId}</id>
   <updated>${new Date(latest).toISOString()}</updated>
-  <subtitle>${xmlEscape(SITE_DESC)}</subtitle>${atomEntries}
+  <subtitle>${xmlEscape(description)}</subtitle>${atomEntries}
 </feed>
 `;
 
-/* ---------- JSON Feed 1.1 ---------- */
-const jsonFeed = {
-	version: "https://jsonfeed.org/version/1.1",
-	title: `${SITE_NAME} Blog`,
-	home_page_url: `${SITE}/blog/`,
-	feed_url: `${SITE}/feed.json`,
-	description: SITE_DESC,
-	language: "ja",
-	icon: `${SITE}/images/favicon-192.png`,
-	items: posts.map((p) => {
-		const html = contentHtml(p.content);
-		return {
-			id: `${SITE}/blog/${p.slug}/`,
-			url: `${SITE}/blog/${p.slug}/`,
-			title: p.title,
-			summary: p.description,
-			...(html ? { content_html: html } : {}),
-			date_published: new Date(p.date).toISOString(),
-			date_modified: new Date(p.lastModified).toISOString(),
-			tags: p.tags,
-			authors: [{ name: p.author }],
-		};
-	}),
-};
+	/* ---------- JSON Feed 1.1 ---------- */
+	const jsonFeed = {
+		version: "https://jsonfeed.org/version/1.1",
+		title: feedTitle,
+		home_page_url: `${SITE}${homePath}`,
+		feed_url: `${SITE}/${files.json}`,
+		description,
+		language: "ja",
+		icon: `${SITE}/images/favicon-192.png`,
+		items: posts.map((p) => {
+			const html = contentHtml(p.content);
+			return {
+				id: `${SITE}/${urlPrefix}/${p.slug}/`,
+				url: `${SITE}/${urlPrefix}/${p.slug}/`,
+				title: p.title,
+				summary: p.description,
+				...(html ? { content_html: html } : {}),
+				date_published: new Date(p.date).toISOString(),
+				date_modified: new Date(p.lastModified).toISOString(),
+				tags: p.tags,
+				authors: [{ name: p.author }],
+			};
+		}),
+	};
 
-writeBoth("feed.xml", rss);
-writeBoth("atom.xml", atom);
-writeBoth("feed.json", JSON.stringify(jsonFeed, null, 2));
+	writeBoth(files.rss, rss);
+	writeBoth(files.atom, atom);
+	writeBoth(files.json, JSON.stringify(jsonFeed, null, 2));
+
+	return posts.length;
+}
+
+const blogCount = generateFeeds({
+	contentDir: "content/blog",
+	urlPrefix: "blog",
+	homePath: "/blog/",
+	titleSuffix: "Blog",
+	description:
+		"AIエージェントガバナンス専門会社Kuu株式会社の公式ブログ。AX/DX戦略、Managed Agents、中小企業のAI導入実践を発信。",
+	defaultAuthor: "Kuu株式会社編集部",
+	atomId: `${SITE}/`,
+	files: { rss: "feed.xml", atom: "atom.xml", json: "feed.json" },
+});
+
+const caseCount = generateFeeds({
+	contentDir: "content/case",
+	urlPrefix: "case",
+	homePath: "/case/",
+	titleSuffix: "Case",
+	description:
+		"Kuu株式会社のAIエージェント活用ユースケース集。業種・業務別に「こういう使い方もできる」実装イメージを提案。",
+	defaultAuthor: "Kuu株式会社編集部",
+	atomId: `${SITE}/case/`,
+	files: {
+		rss: "feed-case.xml",
+		atom: "atom-case.xml",
+		json: "feed-case.json",
+	},
+});
 
 const target = fs.existsSync(OUT_DIR_NEXT) ? "public/+out/" : "public/";
 console.log(
-	`[feed] generated ${posts.length} items (full content: ${mdToHtml ? "yes" : "no"}) -> ${target}{feed.xml, atom.xml, feed.json}`,
+	`[feed] generated blog=${blogCount} case=${caseCount} items (full content: ${mdToHtml ? "yes" : "no"}) -> ${target}{feed,atom,feed-case,atom-case}.{xml,json}`,
 );

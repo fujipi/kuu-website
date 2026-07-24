@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SearchClient from "@/components/SearchClient";
+import { getAuthorBySlug } from "@/lib/authors";
 import { buildPageUrl } from "@/lib/blog-pagination";
 import type { BlogPostMeta } from "@/lib/mdx";
 
@@ -191,19 +192,22 @@ export default function BlogListView({
 							href={`/blog/${post.slug}/`}
 							className="blog-list-item fade-in-item"
 						>
-							<time
-								dateTime={post.date}
+							<div
 								style={{
 									fontSize: "0.7rem",
 									color: "var(--gray-dim)",
 									fontFamily: "var(--font-heading)",
 									letterSpacing: "0.05em",
-									display: "block",
 									marginBottom: "0.5rem",
 								}}
 							>
-								{formatDate(post.date)}
-							</time>
+								<time dateTime={post.date}>{formatDate(post.date)}</time>
+								{" · "}
+								<span>{getAuthorBySlug(post.author).name}</span>
+								{post.readingMinutes ? (
+									<span> · 約{post.readingMinutes}分</span>
+								) : null}
+							</div>
 							<h2
 								style={{
 									fontSize: "clamp(0.95rem, 1.5vw, 1.1rem)",
