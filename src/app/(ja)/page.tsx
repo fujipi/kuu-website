@@ -6,7 +6,10 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
+import { getAllCases } from "@/lib/case";
+import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
+import { PILLARS } from "@/lib/pillars";
 import {
 	BASE_ORG,
 	BASE_URL,
@@ -120,7 +123,14 @@ const homeJsonLd = [
 	},
 ];
 
+function formatDate(dateStr: string): string {
+	const d = new Date(dateStr);
+	return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function Home() {
+	const latestPosts = getAllPosts().slice(0, 3);
+	const latestCases = getAllCases().slice(0, 3);
 	return (
 		<>
 			<JsonLd data={homeJsonLd} />
@@ -184,6 +194,141 @@ export default function Home() {
 					<Link href="/services/" className="service-overview-link fade-in">
 						サービス概要を見る →
 					</Link>
+				</section>
+
+				<section className="section-service" id="latest">
+					<h2 className="section-label fade-in">Latest</h2>
+
+					<div
+						className="fade-in-stagger blog-list"
+						style={{ maxWidth: "720px", marginTop: "3rem" }}
+					>
+						{latestPosts.map((post) => (
+							<Link
+								key={post.slug}
+								href={`/blog/${post.slug}/`}
+								className="blog-list-item fade-in-item"
+							>
+								<time
+									dateTime={post.date}
+									style={{
+										fontSize: "0.7rem",
+										color: "var(--gray-dim)",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+										display: "block",
+										marginBottom: "0.5rem",
+									}}
+								>
+									{formatDate(post.date)} · Blog
+								</time>
+								<h3
+									style={{
+										fontSize: "clamp(0.95rem, 1.5vw, 1.1rem)",
+										fontWeight: 500,
+										color: "var(--white)",
+										marginBottom: "0.5rem",
+										lineHeight: "1.6",
+									}}
+								>
+									{post.title}
+								</h3>
+								<p
+									style={{
+										fontSize: "0.8rem",
+										color: "var(--gray-medium)",
+										lineHeight: "1.7",
+										maxWidth: "600px",
+									}}
+								>
+									{post.description}
+								</p>
+							</Link>
+						))}
+						{latestCases.map((c) => (
+							<Link
+								key={c.slug}
+								href={`/case/${c.slug}/`}
+								className="blog-list-item fade-in-item"
+							>
+								<time
+									dateTime={c.date}
+									style={{
+										fontSize: "0.7rem",
+										color: "var(--gray-dim)",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+										display: "block",
+										marginBottom: "0.5rem",
+									}}
+								>
+									{formatDate(c.date)} · Case
+								</time>
+								<h3
+									style={{
+										fontSize: "clamp(0.95rem, 1.5vw, 1.1rem)",
+										fontWeight: 500,
+										color: "var(--white)",
+										marginBottom: "0.5rem",
+										lineHeight: "1.6",
+									}}
+								>
+									{c.title}
+								</h3>
+								<p
+									style={{
+										fontSize: "0.8rem",
+										color: "var(--gray-medium)",
+										lineHeight: "1.7",
+										maxWidth: "600px",
+									}}
+								>
+									{c.description}
+								</p>
+							</Link>
+						))}
+						<div style={{ borderBottom: "1px solid var(--gray-dark)" }} />
+					</div>
+
+					<div
+						className="fade-in"
+						style={{ display: "flex", gap: "2rem", marginTop: "2rem" }}
+					>
+						<Link href="/blog/" className="service-overview-link">
+							ブログ一覧を見る →
+						</Link>
+						<Link href="/case/" className="service-overview-link">
+							ユースケース一覧を見る →
+						</Link>
+					</div>
+
+					<div
+						className="fade-in"
+						style={{
+							display: "flex",
+							gap: "0.5rem",
+							flexWrap: "wrap",
+							marginTop: "2.5rem",
+						}}
+					>
+						{PILLARS.map((pillar) => (
+							<Link
+								key={pillar.slug}
+								href={pillar.url}
+								style={{
+									fontSize: "0.7rem",
+									color: "var(--gray-medium)",
+									border: "1px solid var(--gray-dark)",
+									borderRadius: "2px",
+									padding: "0.35rem 0.8rem",
+									fontFamily: "var(--font-heading)",
+									letterSpacing: "0.05em",
+								}}
+							>
+								{pillar.label}
+							</Link>
+						))}
+					</div>
 				</section>
 
 				<section className="section-about" id="about">

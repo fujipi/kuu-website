@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Outfit } from "next/font/google";
 import Analytics from "@/components/Analytics";
 import { DEFAULT_KEYWORDS } from "@/lib/seo";
@@ -65,9 +65,13 @@ export const metadata: Metadata = {
 		types: {
 			"application/rss+xml": "/feed.xml",
 			"application/atom+xml": "/atom.xml",
-			"application/json": "/feed.json",
+			"application/feed+json": "/feed.json",
 		},
 	},
+};
+
+export const viewport: Viewport = {
+	themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -117,6 +121,30 @@ export default function RootLayout({
 					type="application/atom+xml"
 					title="Kuu株式会社 Blog Atom"
 					href="/atom.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/feed+json"
+					title="Kuu株式会社 Blog JSON Feed"
+					href="/feed.json"
+				/>
+				<link
+					rel="alternate"
+					type="application/rss+xml"
+					title="Kuu株式会社 Case RSS"
+					href="/feed-case.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/atom+xml"
+					title="Kuu株式会社 Case Atom"
+					href="/atom-case.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/feed+json"
+					title="Kuu株式会社 Case JSON Feed"
+					href="/feed-case.json"
 				/>
 			</head>
 			<body>

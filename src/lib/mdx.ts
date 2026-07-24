@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { readingTimeMinutes } from "./readingTime";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -36,6 +37,8 @@ export interface BlogPostMeta {
 	track?: string;
 	audience?: string;
 	techDepth?: string;
+	/** 概算読了時間（分）。getAllPosts が本文から算出する */
+	readingMinutes?: number;
 }
 
 export function getAllPostSlugs(): string[] {
@@ -54,7 +57,7 @@ export function getAllPosts(): BlogPostMeta[] {
 				? path.join(BLOG_DIR, `${slug}.mdx`)
 				: path.join(BLOG_DIR, `${slug}.md`);
 			const raw = fs.readFileSync(filePath, "utf-8");
-			const { data } = matter(raw);
+			const { data, content } = matter(raw);
 			return {
 				slug,
 				title: data.title ?? "",
@@ -75,6 +78,7 @@ export function getAllPosts(): BlogPostMeta[] {
 				audience: typeof data.audience === "string" ? data.audience : undefined,
 				techDepth:
 					typeof data.tech_depth === "string" ? data.tech_depth : undefined,
+				readingMinutes: readingTimeMinutes(content),
 			} satisfies BlogPostMeta;
 		})
 		.sort((a, b) => (a.date < b.date ? 1 : -1));

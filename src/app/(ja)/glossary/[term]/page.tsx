@@ -246,8 +246,8 @@ export default async function GlossaryTermPage({ params }: Props) {
 							<div style={{ display: "flex", flexDirection: "column" }}>
 								{mentioningPosts.map((p) => (
 									<Link
-										key={p.slug}
-										href={`/blog/${p.slug}/`}
+										key={p.href}
+										href={p.href}
 										style={{
 											padding: "0.75rem 0",
 											borderTop: "1px solid var(--gray-dark)",
