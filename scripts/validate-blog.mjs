@@ -113,6 +113,26 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"online-evaluation-production-traffic-sampling",
 			"agent-eval-cost-management-smb",
 		],
+		// Claude Opus 5（2026-07-24公開・$5/M・Adaptive Reasoning）と Fable 5（$10/M・多日間自律実行特化）: 別モデルの設計指針で正当な併存
+		[
+			"claude-fable-5-enterprise-agent-design",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5 設計ガイドとモデル別ツール使用性能比較（比較記事 vs 設計指針記事）: 主題が異なる正当な併存
+		[
+			"claude-model-tool-use-performance-comparison",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5（2026-07-24）と Opus 4.8（Adaptive Thinking移行期）: 異なるモデルバージョンの設計指針で正当な併存
+		[
+			"claude-opus48-enterprise-agentic-design",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5（enterprise/deep）と Sonnet 5（enterprise/deep）: 異なるモデルファミリーの設計指針で正当な併存
+		[
+			"claude-opus5-enterprise-agent-design",
+			"claude-sonnet5-enterprise-agentic-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
