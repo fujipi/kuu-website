@@ -1,0 +1,108 @@
+---
+title: "LangfuseでAIエージェントを可観測化——中小企業向け設定と実装"
+description: "LangfuseはMITライセンスのOSS可観測化基盤。月5万件まで無料のクラウド版またはセルフホスト（月$150前後）を3軸で選択し、Claude Agent SDKとOpenTelemetry経由で3ステップ連携できる。"
+date: "2026-07-25"
+lastModified: "2026-07-25"
+tags: ["Langfuse", "可観測性", "セルフホスト", "中小企業"]
+author: "kuu-engineering"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+target_query: "LangfuseでAIエージェントの可観測性を中小企業が低コストで実現するにはどうすればよいか"
+sources:
+  - "https://langfuse.com/integrations/frameworks/claude-agent-sdk"
+  - "https://langfuse.com/self-hosting"
+  - "https://coverge.ai/blog/langfuse-pricing"
+  - "https://www.digitalapplied.com/blog/agent-observability-platforms-langsmith-langfuse-arize-2026"
+---
+
+AIエージェントが本番環境で動き始めると、「なぜあのツール呼び出しが遅かったのか」「どのプロンプトが誤出力を引き起こしたのか」を素早く解決できる仕組みが必要になる。ログだけでは追えない実行フローの可視化が、エージェントを安定して運用するための前提条件だ。
+
+Langfuse は OSS のAIエージェント可観測化プラットフォームで、MIT ライセンスで提供されている。無料のクラウド版から始め、データ主権が必要になればセルフホストに移行できる設計が特徴的だ。中小企業のIT担当者が最短でLangfuseを導入するための判断基準と実装手順を整理する。
+
+## Langfuseとは何か——可観測化の3つの柱
+
+> LangfuseはMITライセンスのOSSで、トレース・評価・プロンプト管理を1つのダッシュボードに統合した可観測化プラットフォームだ。
+
+2026年1月にClickHouseがLangfuseを買収したが、コアのMITライセンスは維持されており、トレーシング・プロンプト管理・評価・Playground・アノテーションキューはすべて無償で利用できる。有償機能はSCIM・監査ログ・プロジェクトRBACなどの企業向け機能のみだ。
+
+Langfuseが可視化する対象は主に3層ある。
+
+- **トレース**: エージェントの実行全体を1ツリーで記録。ツール呼び出しの親子関係・入出力・レイテンシを時系列で追える
+- **評価**: トレースごとにLLM-as-a-judge・ルールベース・手動アノテーションを適用し、品質スコアを継続的に付与
+- **プロンプト管理**: バージョン管理したプロンプトをSDKから直接参照し、変更の効果をトレースで追跡できる
+
+## クラウドかセルフホストか——3軸で判断する
+
+> 月5万件以下ならLangfuseクラウド無料枠が最速の選択肢。個人情報をトレースに含む可能性がある場合はセルフホストを選ぶ。
+
+### 判断軸1: コスト
+
+Langfuseクラウドの無料HobbyプランはAPIトレースを月5万ユニット・30日間保存・2ユーザーまで無料で利用できる。スケールアップはCore（月$29）、Pro（月$199）の順で段階的に拡張できる。
+
+コスト比較として、月1Mイベントを処理する場合、LangSmith Plus が月約$2,514かかるのに対し、Langfuse Core は月約$101だ。セルフホスト版はインフラコストとして月$150前後（クラウドVMに6コンテナを展開した場合の目安）が必要になる。
+
+### 判断軸2: データ主権
+
+クラウド版ではトレースデータ（プロンプト・モデル応答・ツール入出力）がLangfuseのサーバーに送信される。顧客の個人情報がプロンプトに混入するリスクがあるシステムや、医療・法律・金融領域のエージェントでは、個人情報保護法の観点からセルフホストが推奨される。
+
+### 判断軸3: 運用負荷
+
+Docker Compose によるセルフホストは6コンテナ（web・worker・langfuse・clickhouse・postgres・redis）の管理を伴う。起動時のRAM消費は1.5GB程度と小さく、Ollamaが動くスペックのサーバーで運用できる。バックアップ・アップグレード・障害対応の運用コストが発生するため、社内にDockerを管理できる担当者がいない場合はクラウドから始めるのが現実的だ。
+
+## Claude Agent SDK との連携——3ステップで計装する
+
+> Claude Agent SDKの計装は3ステップで完了し、ツール呼び出しがOpenTelemetryスパンとしてLangfuseへ自動記録される。
+
+Langfuse は Claude Agent SDK を OpenTelemetry 経由でサポートしている。コードの変更量は最小限で、既存のエージェントに計装を後付けできる。
+
+### ステップ1: パッケージのインストール
+
+```bash
+pip install langfuse claude-agent-sdk openinference-instrumentation-claude-agent-sdk
+```
+
+### ステップ2: 計装コードの追加
+
+```python
+import os
+from langfuse import Langfuse
+from openinference.instrumentation.claude_agent_sdk import ClaudeAgentSDKInstrumentor
+
+# LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY を環境変数に設定しておく
+langfuse = Langfuse()
+langfuse.auth_check()  # 接続確認
+
+# 以降の Agent 実行がすべてトレースされる
+ClaudeAgentSDKInstrumentor().instrument()
+```
+
+### ステップ3: エージェントをそのまま実行する
+
+追加コードなしで通常通りエージェントを動かすだけで、ツール呼び出し・モデル入出力・実行時間がLangfuseのTraces画面に記録される。`@observe()` デコレータを追加すれば、`user_id` や `session_id` などのカスタム属性をスパンに付与することも可能だ。
+
+## 計装後に見えるもの——ダッシュボードの活用
+
+> 計装後のLangfuseでは、ツール呼び出し階層・レイテンシ分布・モデルごとのコスト累計が1画面で把握できる。
+
+Langfuseのダッシュボードには次の情報が自動的に集まる。
+
+- **ツール呼び出しツリー**: どのサブエージェントがどのツールを何回呼び出したか、親子関係で一覧できる
+- **入出力の記録**: プロンプトとモデル応答が全量保存される（セルフホスト版は保存量制限なし）
+- **レイテンシ分布**: P50/P95で遅い呼び出しを特定し、ボトルネックを把握できる
+- **コスト累計**: モデルごとのトークン消費量と推定コストが確認できる
+
+この可視化データを[Kuuのエージェント運用管理サービス（AI-Ops）](/services/ai-ops/)と組み合わせることで、品質劣化の早期検知と継続改善ループを構築できる。エージェントの数が増えるにつれて、ダッシュボードで異常を早期に発見できる体制の価値が高まる。
+
+## 参考
+
+- [Observability for Claude Agent SDK with Langfuse](https://langfuse.com/integrations/frameworks/claude-agent-sdk)
+- [Self-host Langfuse](https://langfuse.com/self-hosting)
+- [Langfuse pricing in 2026: tiers, self-hosting, and the ClickHouse factor](https://coverge.ai/blog/langfuse-pricing)
+- [Agent Observability: LangSmith, Langfuse, Arize 2026](https://www.digitalapplied.com/blog/agent-observability-platforms-langsmith-langfuse-arize-2026)
+
+## まとめ
+
+LangfuseはMITライセンスでフル機能が使えるAIエージェント可観測化プラットフォームだ。月5万件以下のトレース量であれば無料クラウドで始められ、個人情報を扱う場合はDocker Composeのセルフホストに移行できる。Claude Agent SDKとの連携は3ステップで完了し、ツール呼び出し階層・レイテンシ・コストを即日可視化できる。
+
+エージェントの挙動をブラックボックスのまま運用していると、問題発生時のデバッグに多大な工数を要する。まずLangfuseの無料枠で計装を試し、可観測性の基盤を整えることを推奨する。Kuuでは[AI-Ops（エージェント運用管理）](/services/ai-ops/)を通じて、可観測性スタックの設計から継続的な品質改善までを支援している。

@@ -917,6 +917,24 @@
         "https://modelcontextprotocol.io/docs/concepts/tools"
       ],
       "status": "published"
+    },
+    {
+      "slug": "langfuse-agent-observability-smb-setup",
+      "keyword": "Langfuse AIエージェント 可観測化 セルフホスト 中小企業",
+      "title_hint": "LangfuseでAIエージェントを可観測化——中小企業向け設定と実装",
+      "persona": "社内にDockerを管理できる担当者がいるIT担当・DX推進担当（AIエージェントの可観測化コスト選定を検討中）",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "LangfuseでAIエージェントの可観測性を中小企業が低コストで実現するにはどうすればよいか",
+      "sources": [
+        "https://langfuse.com/integrations/frameworks/claude-agent-sdk",
+        "https://langfuse.com/self-hosting",
+        "https://coverge.ai/blog/langfuse-pricing",
+        "https://www.digitalapplied.com/blog/agent-observability-platforms-langsmith-langfuse-arize-2026"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
