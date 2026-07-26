@@ -226,6 +226,16 @@
       "status": "published"
     }
   ],
+    {
+      "slug": "plumbing-contractor-estimate-agent",
+      "keyword": "水道工事 設備工事 見積書作成 工事記録 竣工報告書 AIエージェント 自動化",
+      "title_hint": "水道・設備工事業の見積書・工事記録をAIエージェントに——現場帰りの書類業務をこう減らす",
+      "persona": "水道設備工事会社の代表兼施工管理（給水装置工事主任技術者）",
+      "industry": "水道・設備工事業",
+      "use_case": "見積書作成・工事記録・竣工報告書の補助自動化",
+      "status": "published"
+    }
+  ],
   "keyword_bank": [
     "卸売 受発注 EDI 代行入力 AIエージェント",
     "保険代理店 見積 申込書 チェック AIエージェント",
