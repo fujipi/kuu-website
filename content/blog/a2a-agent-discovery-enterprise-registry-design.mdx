@@ -1,0 +1,130 @@
+---
+title: "A2A AgentCard発見設計——エンタープライズレジストリとOAuth2統合"
+description: "A2A v1.0 AgentCardの発見設計と、プライベートレジストリ・OAuth 2.0統合のエンタープライズ実装パターン3種を解説する。"
+date: "2026-07-26"
+lastModified: "2026-07-26"
+tags: ["A2A", "プロトコル", "エンタープライズ", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://a2a-protocol.org/latest/topics/agent-discovery/"
+  - "https://a2a-protocol.org/latest/specification/"
+  - "https://github.com/a2aproject/A2A/blob/main/docs/specification.md"
+  - "https://tyk.io/learning-center/a2a-protocol-architecture-and-technical-specification/"
+---
+
+エンタープライズのAIエージェント環境が100本を超えると、「どのエージェントがどのスキルを持つか」を把握するだけで運用コストが膨らむ。A2A v1.0はこの問題を**AgentCard**と呼ぶ機械可読なメタデータで解決しようとする。しかし`/.well-known/agent-card.json`への単純なHTTP GETだけではエンタープライズ要件を満たせない。アクセス制御・署名検証・マルチテナント分離を持つ「プライベートレジストリ」への移行が不可避になる。
+
+## Agent Discoveryとはなにか——なぜ2026年に重要になるのか
+
+> A2A v1.0はLinux Foundation管理下に移行し、エージェントが自律的に他エージェントのスキルを発見・委任するパターンが実用段階に入った。
+
+2025年6月、A2AプロジェクトはLinux Foundationへ寄贈されv1.0.0として正式リリースされた。仕様は各A2AサーバーがHTTPS上で自己記述JSONドキュメントを公開することで、クライアントが事前設定なしにエージェントのスキル・エンドポイント・認証要件を取得できる**Agent Discovery**を定義する。
+
+2026年前半の時点でWebインデックス上には104,000超のエージェントが17以上の競合レジストリに分散し、クロスレジストリの相互運用性はゼロに等しい（MuleSoft Agent Registry・Kong MCP Registryなどが独自APIを持つ）。Anthropic・AWS・Google・Microsoftが共同設立したAgentic AI Foundation（Linux Foundation傘下、2026年3月）が標準化を主導しているが、エンタープライズはプライベートレジストリを先行実装する判断を迫られている。
+
+## AgentCardのスキーマ——`/.well-known/agent-card.json`の構造
+
+> AgentCardはスキル・エンドポイント・認可スキームを宣言するJSON文書で、RFC 8615準拠パスに自己公開する。
+
+A2A v1.0が定義するAgentCardの構造（`spec/a2a.proto`が規範的定義）を整理する。
+
+| フィールド | 型 | 役割 |
+|---|---|---|
+| `name` / `description` | string | エージェント識別と概要 |
+| `provider` | object | 発行組織情報 |
+| `supportedInterfaces` | array | JSON-RPC・gRPC・HTTP+JSONのエンドポイント |
+| `capabilities` | object | ストリーミング・プッシュ通知等の機能フラグ |
+| `securitySchemes` | object | OAuth2・API Key・mTLS等の認証スキーム宣言 |
+| `securityRequirements` | array | スキルごとの必須スコープ |
+| `skills` | array | スキル単位の入出力モード・実例 |
+| `signatures` | array | JWS署名（改ざん防止） |
+| `extensions` | array | プロトコル拡張宣言 |
+
+クライアントは以下のパスにHTTP GETを送りAgentCardを取得する。
+
+```
+GET https://{a2a-server}/.well-known/agent-card.json
+```
+
+`signatures` フィールドにはJWS（JSON Web Signature）形式の署名が格納される。レジストリは発行者の公開鍵でこの署名を検証することでカード改ざんを検出できる。エンタープライズ環境では未署名カードを拒否するゲートをレジストリに設けることが推奨される。
+
+## 3つの探索パターンと設計判断
+
+> エンタープライズ実装では「Well-Known URI（分散型）」「プライベートレジストリ（集中型）」「直接設定（密結合型）」の3パターンがあり、スケールとガバナンス要件で選択が決まる。
+
+### パターン1：Well-Known URI（分散型）
+
+各エージェントが `/.well-known/agent-card.json` を自己公開するモデル。クライアントはエージェントのドメインが既知であれば、中央機構なしにカードを取得できる。外部公開エージェントや信頼境界が明確な小規模インフラに適している。
+
+**制約**：ドメインが未知のエージェントを探索できない。ネットワーク境界内のエージェントには到達できない。複数ドメインのアクセス制御を統一できない。
+
+### パターン2：プライベートレジストリ（集中型）
+
+組織内にAgentCardのカタログサービスを構築し、クライアントがスキルタグ・組織ユニット・タグ等のメタデータでエージェントを検索するモデル。A2A v1.0はレジストリAPIを意図的に未規定としており、実装自由度がある一方で設計コストが生じる。
+
+エンタープライズで最も推奨される理由は以下の統制が実現できるからだ。
+
+- **アクセス制御**：RBAC/ABACでチームごとに参照可能なエージェントを制限
+- **署名検証ゲート**：JWS署名必須化、未署名カードを拒否
+- **カード失効**：セキュリティインシデント時に特定エージェントを即時無効化
+- **マルチテナント分離**：事業部・子会社をテナントとして分離管理（[マルチテナント分離設計](/blog/multitenant-agent-isolation-design/)を参照）
+
+### パターン3：直接設定（密結合型）
+
+オーケストレーターがエンドポイントURLをハードコードするモデル。動的探索機構を持たず変更に弱い。PoC・開発環境のみに限定すべきである。
+
+## OAuth 2.0認可統合——`securitySchemes`の設計と実装フロー
+
+> AgentCardのsecuritySchemesでOAuth2 Client Credentialsフローを宣言し、既存IAMとのトークン統合でエージェント間認可を実現する。
+
+AgentCardの`securitySchemes`フィールドはOpenAPI Security Scheme形式に準じ、次の認可スキームを宣言できる。
+
+```json
+{
+  "securitySchemes": {
+    "agentOAuth2": {
+      "type": "oauth2",
+      "flows": {
+        "clientCredentials": {
+          "tokenUrl": "https://auth.corp.example.com/token",
+          "scopes": {
+            "agent:execute:data-analysis": "データ分析スキルの実行",
+            "agent:read": "エージェントメタデータの読み取り"
+          }
+        }
+      }
+    }
+  },
+  "securityRequirements": [
+    {"agentOAuth2": ["agent:execute:data-analysis"]}
+  ]
+}
+```
+
+エンタープライズでのOAuth 2.0統合フロー（Client Credentials）は次の手順を踏む。
+
+1. オーケストレーターがプライベートレジストリまたは `/.well-known/agent-card.json` からAgentCardを取得
+2. `securitySchemes` を解析しトークンエンドポイントを特定
+3. 既存IAM基盤（Azure AD・Okta・Keycloak等）へClient Credentialsフローでアクセストークンを取得
+4. リクエストヘッダー `Authorization: Bearer <token>` を付与してA2A呼び出しを実行
+5. A2Aサーバーが `iss`・`aud`・`exp`・`scope`・`jti`（リプレイ攻撃防止）を検証
+
+A2A v1.0は `OAuth2SecurityScheme` に加え、`APIKeySecurityScheme`・`HTTPAuthSecurityScheme`・`OpenIdConnectSecurityScheme`・`MutualTlsSecurityScheme` をサポートする。ゼロトラスト原則を適用する環境では、mTLSとOAuth2の組み合わせが推奨される（[ゼロトラスト設計](/blog/zero-trust-agent-network-mtls-design/)を参照）。
+
+なお、エンタープライズで既存のMCP統合と組み合わせる場合は、[A2AとMCPの使い分け](/blog/a2a-protocol-agent-interop-design/)も参照されたい。Kuu の [RDEサービス](/services/rde/) では、プライベートレジストリ設計からIAM統合まで本番環境への定着を支援する。
+
+## 参考
+
+- [A2A Protocol — Agent Discovery（公式仕様）](https://a2a-protocol.org/latest/topics/agent-discovery/)
+- [A2A v1.0.0 Specification（フル仕様）](https://a2a-protocol.org/latest/specification/)
+- [A2A GitHub Repository — specification.md](https://github.com/a2aproject/A2A/blob/main/docs/specification.md)
+- [Tyk — A2A Architecture and Technical Specification](https://tyk.io/learning-center/a2a-protocol-architecture-and-technical-specification/)
+
+## まとめ
+
+A2A v1.0のAgentCard仕様はエージェントの能力発見を標準化する機械可読メタデータを定義した。エンタープライズ実装では「Well-Known URI（分散型）」「プライベートレジストリ（集中型）」「直接設定」の3パターンから選択し、JWS署名検証・RBAC・OAuth 2.0 Client Credentials Flowを組み合わせてガバナンスを確立する。
+
+現時点で業界標準レジストリAPIは未定義であり、Agentic AI Foundation主導の標準化は2026年後半に向けて進行中だ。先行する組織はプライベートレジストリの内製コストと将来の標準移行コストを天秤にかけながら設計判断を下す必要がある。Agent Discovery基盤の構築はKuu の [RDEサービス](/services/rde/) でご相談いただきたい。

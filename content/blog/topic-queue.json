@@ -935,6 +935,24 @@
         "https://www.digitalapplied.com/blog/agent-observability-platforms-langsmith-langfuse-arize-2026"
       ],
       "status": "published"
+    },
+    {
+      "slug": "a2a-agent-discovery-enterprise-registry-design",
+      "keyword": "A2A AgentCard エージェント発見 プライベートレジストリ OAuth2 エンタープライズ",
+      "title_hint": "A2A AgentCard発見設計——エンタープライズレジストリとOAuth2統合パターン",
+      "persona": "マルチエージェント基盤でAgent Discoveryを設計するプラットフォームエンジニア・セキュリティアーキテクト",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "エンタープライズでA2AエージェントをAgentCardで発見・管理するプライベートレジストリはどう設計するか",
+      "sources": [
+        "https://a2a-protocol.org/latest/topics/agent-discovery/",
+        "https://a2a-protocol.org/latest/specification/",
+        "https://github.com/a2aproject/A2A/blob/main/docs/specification.md",
+        "https://tyk.io/learning-center/a2a-protocol-architecture-and-technical-specification/"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
