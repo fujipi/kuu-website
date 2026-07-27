@@ -12,7 +12,9 @@ import {
 	getAllCases,
 	getCaseBySlug,
 } from "@/lib/case";
+import { getRelatedCases } from "@/lib/case-related";
 import { getAllGlossaryTerms } from "@/lib/glossary";
+import { resolveIndustryGroup } from "@/lib/industries";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getMainNav } from "@/lib/navigation";
 import {
@@ -84,9 +86,8 @@ export default async function CaseDetailPage({ params }: Props) {
 
 	const url = `${BASE_URL}/case/${slug}/`;
 	const html = autoLinkGlossary(mdToHtml(c.content), getAllGlossaryTerms());
-	const related: CaseEntryMeta[] = getAllCases()
-		.filter((x) => x.slug !== slug)
-		.slice(0, 5);
+	const related: CaseEntryMeta[] = getRelatedCases(c, getAllCases(), 5);
+	const industryGroup = resolveIndustryGroup(c.industry);
 
 	const hasSummary =
 		c.objectives.length > 0 || c.measures.length > 0 || c.effects.length > 0;
@@ -180,7 +181,21 @@ export default async function CaseDetailPage({ params }: Props) {
 						}}
 					>
 						{formatDate(c.date)}
-						{c.industry ? ` · ${c.industry}` : ""}
+						{c.industry ? (
+							<>
+								{" · "}
+								{industryGroup ? (
+									<Link
+										href={`/case/industry/${industryGroup.slug}/`}
+										style={{ color: "var(--gray-medium)" }}
+									>
+										{c.industry}
+									</Link>
+								) : (
+									c.industry
+								)}
+							</>
+						) : null}
 					</p>
 
 					{c.tags.length > 0 && (

@@ -113,6 +113,26 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"online-evaluation-production-traffic-sampling",
 			"agent-eval-cost-management-smb",
 		],
+		// Claude Opus 5（2026-07-24公開・$5/M・Adaptive Reasoning）と Fable 5（$10/M・多日間自律実行特化）: 別モデルの設計指針で正当な併存
+		[
+			"claude-fable-5-enterprise-agent-design",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5 設計ガイドとモデル別ツール使用性能比較（比較記事 vs 設計指針記事）: 主題が異なる正当な併存
+		[
+			"claude-model-tool-use-performance-comparison",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5（2026-07-24）と Opus 4.8（Adaptive Thinking移行期）: 異なるモデルバージョンの設計指針で正当な併存
+		[
+			"claude-opus48-enterprise-agentic-design",
+			"claude-opus5-enterprise-agent-design",
+		],
+		// Claude Opus 5（enterprise/deep）と Sonnet 5（enterprise/deep）: 異なるモデルファミリーの設計指針で正当な併存
+		[
+			"claude-opus5-enterprise-agent-design",
+			"claude-sonnet5-enterprise-agentic-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
@@ -317,6 +337,27 @@ for (let i = 0; i < metas.length; i++) {
 	}
 }
 
+// (warning) タグ増殖の抑制。タグページは 3 記事未満で noindex になるため、1 記事に
+// しか使われないタグが増えるほどタグアーカイブが index されず内部リンクも分散する。
+// 既存記事に大量に該当するため per-file にはせず、集計 1 件の警告に留める（hard gate
+// にすると既存全件が落ちてデプロイが止まる）。新規生成側は既存タグの再利用を優先する。
+const tagCounts = new Map();
+for (const m of metas) {
+	for (const t of m.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+const singletonTags = [...tagCounts.entries()]
+	.filter(([, count]) => count === 1)
+	.map(([tag]) => tag);
+if (singletonTags.length > 0) {
+	warnings.push({
+		file: "(全体)",
+		kind: "tag_sprawl",
+		message: `1記事のみで使われているタグが ${singletonTags.length} 個（タグページは3記事未満で noindex）。新規生成では既存タグの再利用を推奨。例: ${singletonTags
+			.slice(0, 8)
+			.join(", ")}`,
+	});
+}
+
 if (warnings.length > 0) {
 	console.warn(
 		`[validate-blog] WARN: ${warnings.length} 件の警告（hard fail にはしない）`,
@@ -368,6 +409,7 @@ process.exit(0);
  * | slug 重複なし                                 | hard    | 94                         |
  * | audience=enterprise → /services/rde/ 言及     | hard    | 94（既存に enterprise が 0 件のため発火せず） |
  * | /services/ 内部リンク ≥ 1                     | warning | 92（what-is-ai-agent と why-agent-governance が欠落） |
+ * | タグ増殖（1記事のみのタグ）                   | warning | 集計1件のみ（タグページは3記事未満で noindex のため再利用を促す） |
  * | 本文 1,600〜2,400 字                          | 不採用  | 44（50 件が超過。深い技術記事は到達できない） |
  * | `## 参考` H2 + sources ≥ 2                    | 不採用  | 1（既存 93 件には未設置）  |
  * | DAB 40〜60 字                                 | 不採用  | 96.2%（誤検知リスク高）    |

@@ -1,0 +1,144 @@
+---
+title: "Claude Agent SDK 最小実装——中小企業が30分で動かす手順"
+description: "Claude Agent SDKの最小実装を解説する。pip installからquery()の10行実装、MCPカスタムツール追加、サブエージェント並列設計まで、中小企業IT担当が即日着手できる手順と実装コードをまとめた。"
+date: "2026-07-26"
+lastModified: "2026-07-26"
+tags: ["Claude Agent SDK", "エージェント実装", "マルチエージェント", "アーキテクチャ"]
+author: "kuu-engineering"
+audience: "smb"
+track: "architecture"
+tech_depth: "intermediate"
+sources:
+  - "https://helply.com/blog/create-ai-agent-using-claude-agent-sdk"
+  - "https://zylos.ai/research/2026-04-20-claude-agent-sdk-managed-agents-architecture/"
+  - "https://www.morphllm.com/ai-agent-framework"
+---
+
+社内でAIエージェントを試したいが、どのライブラリから始めればいいか分からない。LangChainは複雑すぎ、n8nは柔軟性が足りない——そんな中小企業のIT担当に向けて、Anthropicが直接提供する **Claude Agent SDK** の最小実装手順を解説する。2025年末に「Claude Code SDK」から改称されたこのランタイムは、10行のコードで本番品質のエージェントを動かせる設計になっている。
+
+## Claude Agent SDKとは何か
+
+> Claude Agent SDKはAnthropicのオープンソースエージェント実行ランタイムで、ツール実行・サブエージェント・MCP統合を標準装備する。2025年末にClaude Code SDKから改称され、コード以外の業務自動化も視野に入れた汎用設計に進化した。
+
+Claude Agent SDKが他のフレームワークと異なる点は、エージェントループを隠蔽しないことだ。「コンテキスト収集 → ツール実行 → 結果検証 → 繰り返し」というサイクルを開発者が明示的に確認しながら制御できる。この透明性が、デバッグを容易にし、予期しない挙動の原因追跡を速める。
+
+標準で利用できる機能は以下の通りだ:
+- Bash実行・ファイル読み書き・WebSearch・WebFetch
+- Model Context Protocol（MCP）クライアント
+- サブエージェントによる並列実行
+- セッション継続（`session_id` による再開）
+- ライフサイクルフック（PreToolUse / PostToolUse / Stop）
+
+コスト面では、ライブラリ自体は無料で、APIトークン消費またはClaude Maxの Agent SDK クレジット（Max 5x: 月100ドル、Max 20x: 月200ドル）で賄う。2026年6月15日から Agent SDK クレジットが独立した枠として設けられている。
+
+## 最小実装はどう書くか
+
+> 最小実装はquery()関数の10行で完結する。Pythonなら `pip install claude-agent-sdk` と `ANTHROPIC_API_KEY` 設定だけで即日動かせる。
+
+**インストール（Python）:**
+```bash
+pip install claude-agent-sdk
+export ANTHROPIC_API_KEY=your_api_key
+```
+
+**Node.jsの場合:**
+```bash
+npm install @anthropic-ai/claude-agent-sdk
+```
+
+**最小実装コード（Python）:**
+```python
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def main():
+    async for message in query(
+        prompt="content/reports/ 配下のCSVを読み込み、売上合計を計算して報告せよ",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Read", "Glob", "Bash"],
+        ),
+    ):
+        print(message)
+
+asyncio.run(main())
+```
+
+返ってくるメッセージは3種類: `SystemMessage`（セッション情報）、`AssistantMessage`（Claudeの推論ステップ）、`ResultMessage`（最終出力とトークンコスト）。`ResultMessage` にはモデル別のコスト内訳も含まれるため、費用の把握がしやすい。
+
+**権限制御の実装**: エージェントには最小権限を与えるのが原則だ。`canUseTool` ハンドラで危険な操作を事前にブロックできる:
+```python
+def can_use_tool(tool_name, tool_input):
+    if tool_name == "Bash":
+        cmd = tool_input.get("command", "")
+        if "rm -rf" in cmd or "DROP TABLE" in cmd:
+            return {"behavior": "deny"}
+    return {"behavior": "allow"}
+```
+
+本番運用では、ループガード（反復上限）と反復検出も必ず実装する。ドキュメントが明記している通り、「動くデモと本番エージェントの距離は多くのチームが想定するより大きい」。
+
+## カスタムツールをどう追加するか
+
+> カスタムツールはSDK付属のin-process MCPサーバーで実装する。ネットワーク不要のインプロセス実行で低レイテンシを保ちながら、社内APIへの接続が可能だ。
+
+自社の顧客管理システムを参照するツールの実装例:
+```python
+from claude_agent_sdk.mcp import create_sdk_mcp_server, tool
+
+@tool("get_customer", "顧客IDで顧客情報を取得する", {"customer_id": str})
+async def get_customer(args):
+    result = your_crm_api.fetch(args["customer_id"])
+    return {"content": [{"type": "text", "text": str(result)}]}
+
+server = create_sdk_mcp_server(name="crm", tools=[get_customer])
+
+# 使用時は allowed_tools に追加
+options = ClaudeAgentOptions(
+    allowed_tools=["mcp__crm__get_customer", "Read"],
+    mcp_servers=[server],
+)
+```
+
+ツール名は `mcp__<サーバー名>__<ツール名>` の形式で `allowed_tools` に指定する。この設計により、Claudeは「顧客情報を調べて報告書を作成する」といった複合タスクを自律的にこなせるようになる。MCPサーバーの詳しい実装については[MCPサーバーを実装する](/blog/mcp-server-implementation-tool-design/)も参照されたい。
+
+Kuuの[AIエージェント運用管理サービス（ai-ops）](/services/ai-ops/)では、このようなカスタムツール設計の支援とその後の運用管理も行っている。
+
+## サブエージェントで処理を並列化するには
+
+> サブエージェントはAgentDefinitionで役割を定義し、allowed_toolsに "Agent" を追加することで有効化する。独立したコンテキストウィンドウで並列動作し、複合タスクの処理速度と品質を改善する。
+
+```python
+from claude_agent_sdk import AgentDefinition
+
+options = ClaudeAgentOptions(
+    allowed_tools=["Read", "Grep", "Agent"],
+    agents={
+        "sales-analyst": AgentDefinition(
+            description="売上データ分析専門エージェント",
+            prompt="売上CSVを分析し、前月比・製品別傾向を数値で報告せよ",
+            tools=["Read", "Bash"],
+        ),
+        "report-writer": AgentDefinition(
+            description="レポート作成専門エージェント",
+            prompt="受け取った分析結果を経営会議向けMarkdownレポートに整形せよ",
+            tools=["Write"],
+        ),
+    },
+)
+```
+
+上記では「分析」と「レポート作成」を専門エージェントに分業させている。Anthropicの研究では、並列サブエージェント構成は単一エージェント比で最大90%のベンチマーク改善が報告されている。
+
+ただし、サブエージェントの過剰生成はメモリとコストの増大を招く。**ステップが明確に決まっているタスクでは、シンプルな線形ワークフローのほうが速く・安く・デバッグしやすい**。サブエージェントは「実行パスが事前に決められないオープンエンドなタスク」にのみ使うのが原則だ。
+
+セッションの中断・再開には、`SystemMessage` から `session_id` を取得して保存し、次回の `query()` 呼び出しで渡す。これにより長時間タスクをチェックポイント形式で進められる。
+
+## 参考
+
+- [How to Create AI Agents With the Claude Agent SDK (2026) - Helply](https://helply.com/blog/create-ai-agent-using-claude-agent-sdk)
+- [Claude Agent SDK & Managed Agents: Anthropic's Q2 2026 Agent Infrastructure Play - Zylos Research](https://zylos.ai/research/2026-04-20-claude-agent-sdk-managed-agents-architecture/)
+- [AI Agent Frameworks (2026 Update): 8 SDKs Compared - Morphllm](https://www.morphllm.com/ai-agent-framework)
+
+## まとめ
+
+Claude Agent SDKは「10行で動かせる手軽さ」と「本番運用に耐える設計」を両立している。`query()` で最小実装から始め、in-process MCPツールで自社システムと接続し、サブエージェントで並列化する——この3ステップが中小企業にとっての現実的な進め方だ。エージェントの設計・運用体制の構築に課題を感じた際は、[Kuu株式会社のAIエージェント運用管理サービス](/services/ai-ops/)にご相談いただきたい。

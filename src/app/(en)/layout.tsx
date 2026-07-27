@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Outfit } from "next/font/google";
 import Analytics from "@/components/Analytics";
 import "../globals.css";
@@ -59,6 +59,17 @@ export const metadata: Metadata = {
 	verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
 		? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
 		: undefined,
+	alternates: {
+		types: {
+			"application/rss+xml": "/feed.xml",
+			"application/atom+xml": "/atom.xml",
+			"application/feed+json": "/feed.json",
+		},
+	},
+};
+
+export const viewport: Viewport = {
+	themeColor: "#000000",
 };
 
 export default function EnRootLayout({
@@ -96,6 +107,42 @@ export default function EnRootLayout({
 					type="text/plain"
 					title="LLM-friendly site index"
 					href="/llms.txt"
+				/>
+				<link
+					rel="alternate"
+					type="application/rss+xml"
+					title="Kuu Inc. Blog RSS (Japanese)"
+					href="/feed.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/atom+xml"
+					title="Kuu Inc. Blog Atom (Japanese)"
+					href="/atom.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/feed+json"
+					title="Kuu Inc. Blog JSON Feed (Japanese)"
+					href="/feed.json"
+				/>
+				<link
+					rel="alternate"
+					type="application/rss+xml"
+					title="Kuu Inc. Case RSS (Japanese)"
+					href="/feed-case.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/atom+xml"
+					title="Kuu Inc. Case Atom (Japanese)"
+					href="/atom-case.xml"
+				/>
+				<link
+					rel="alternate"
+					type="application/feed+json"
+					title="Kuu Inc. Case JSON Feed (Japanese)"
+					href="/feed-case.json"
 				/>
 			</head>
 			<body>
