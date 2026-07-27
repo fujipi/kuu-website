@@ -133,6 +133,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-opus5-enterprise-agent-design",
 			"claude-sonnet5-enterprise-agentic-design",
 		],
+		// MCP OAuth 2.1スコープ設計（enterprise/deep・仕様準拠）と MCP認証移行ガイド（smb/intermediate・APIキーからの移行実務）: audience・tech_depthが異なる正当な併存
+		[
+			"mcp-security-oauth-scope-design",
+			"mcp-auth-apikey-to-oauth-smb",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
