@@ -224,8 +224,7 @@
       "industry": "印刷業",
       "use_case": "見積書作成・校正確認フォロー・入稿データ管理の補助自動化",
       "status": "published"
-    }
-  ],
+    },
     {
       "slug": "plumbing-contractor-estimate-agent",
       "keyword": "水道工事 設備工事 見積書作成 工事記録 竣工報告書 AIエージェント 自動化",
@@ -233,6 +232,15 @@
       "persona": "水道設備工事会社の代表兼施工管理（給水装置工事主任技術者）",
       "industry": "水道・設備工事業",
       "use_case": "見積書作成・工事記録・竣工報告書の補助自動化",
+      "status": "published"
+    },
+    {
+      "slug": "web-agency-project-proposal-agent",
+      "keyword": "Web制作 デジタルエージェンシー 見積書 要件定義 議事録 AIエージェント 属人化",
+      "title_hint": "Web制作の見積・要件定義をAIエージェントに——ディレクター業務の属人化をこう解消する",
+      "persona": "Web制作会社のディレクター・PM",
+      "industry": "ウェブ制作・デジタルエージェンシー",
+      "use_case": "要件定義・見積書作成・進捗管理・クライアント報告の補助自動化",
       "status": "published"
     }
   ],
