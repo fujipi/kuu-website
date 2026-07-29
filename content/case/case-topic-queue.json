@@ -242,6 +242,15 @@
       "industry": "ウェブ制作・デジタルエージェンシー",
       "use_case": "要件定義・見積書作成・進捗管理・クライアント報告の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "apparel-inventory-order-agent",
+      "keyword": "アパレル セレクトショップ 在庫管理 受注 展示会 AIエージェント 属人化解消",
+      "title_hint": "セレクトショップの在庫・受注管理をAIエージェントに——バイヤー属人化をこう解消する",
+      "persona": "セレクトショップのバイヤー責任者・オーナー",
+      "industry": "アパレル・セレクトショップ",
+      "use_case": "在庫・受注管理とバイヤー業務の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
