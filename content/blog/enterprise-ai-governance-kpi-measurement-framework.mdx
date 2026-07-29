@@ -1,0 +1,155 @@
+---
+title: "AIガバナンス統制のKPI設計——有効性を定量化する10指標"
+description: "NIST AI RMFのMEASURE機能とISO 42001第9条が要求する統制有効性の測定を解説。シャドーAI検知率・インシデント対応MTTRなど10のKPI設計パターンと計装実装例を示します。"
+date: "2026-07-29"
+lastModified: "2026-07-29"
+tags: ["AIガバナンス", "KPI設計", "NIST AI RMF", "ISO 42001"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "governance-tech"
+tech_depth: "deep"
+target_query: "エンタープライズのAIガバナンスはどのようなKPIで統制有効性を測定すべきか"
+sources:
+  - "https://www.aigl.blog/ai-rmf-2026-measure-function-complete-framework-crosswalk/"
+  - "https://www.novelvista.com/blogs/quality-management/ai-performance-measurement-iso-42001"
+  - "https://www.liminal.ai/blog/enterprise-ai-governance-guide"
+  - "https://neuraltrust.ai/blog/nist-ai-rmf-implementation-guide"
+pillar: "ai-governance"
+---
+
+AIガバナンス体制を整備した企業が直面する共通の壁が「統制の有効性を数字で示せない」問題だ。ポリシー文書を作成し、承認フローを設定し、ツール導入チェックリストを整えても、役員会や監査委員会が求める「ガバナンスが機能しているという客観的エビデンス」を提示できない。NIST AI RMFの最新勧告はこの課題を「MEASURE機能の未実装」と位置付ける。
+
+本記事では、エンタープライズのプラットフォームエンジニア・セキュリティアーキテクト・情報システム部門が設計すべき[エージェントガバナンス](/glossary/agent-governance/)KPIの10項目と、Prometheusを使った計装パターンを解説する。
+
+[AIガバナンスの全体設計](/ai-governance/)についてはピラーページも参照してほしい。大規模な統制基盤の設計支援は[Kuuのエンタープライズ向けRDEサービス](/services/rde/)で対応している。
+
+## AIガバナンスの「測定されていない統制」問題
+
+> 91.4%の企業ガバナンス統制が6ヶ月以上更新されず、有効性を測定できないガバナンスは統制の存在確認に終わります。
+
+ポリシーと技術統制を導入しただけでは、ガバナンスが機能しているとは言えない。「シャドーAIが増えているか減っているか」「インシデントが発生した際に何分で収束できるか」「エージェントの権限設定は適切か」——こうした問いに定量的に答えられなければ、ガバナンス体制はコスト部門として見なされ、予算・人員の縮小圧力にさらされる。
+
+Liminalの調査によれば、AIガバナンス統制の91.4%が6ヶ月間更新されず、明示的なオーナーを持つ統制はわずか16.9%に留まる。この状況では、統制の存在が有効性の証明にはならない。KPIとは「統制の有無確認」ではなく「統制の有効性測定」のための道具であり、継続的なエビデンスを生成する仕組みだ。
+
+## NIST AI RMFのMEASURE機能が求めること
+
+> NIST AI RMFのMEASURE機能はリスク識別を定量指標に変換する「エビデンスエンジン」であり、企業のAIガバナンス報告の根拠となります。
+
+NIST AI RMF 1.0の4機能（Govern・Map・Measure・Manage）のうちMEASURE機能は、リスク識別を実際の測定値に変換する役割を担う。2025〜2026年の更新勧告ではエージェントAIへの対応が強化され、次の測定カテゴリが規定されている。
+
+- **データ品質指標**: トレーニングデータのバイアス定量化・鮮度監視・データリネージ追跡
+- **システム性能指標**: 精度・レイテンシ・人口統計的公正性・エッジケース挙動
+- **エージェント固有指標**: マルチエージェント協調評価・ツール実行監査・自律性検証
+- **継続監視**: ドリフト検知・性能劣化アラート・セキュリティ監視・ユーザーフィードバックループ
+- **環境指標**: エネルギー消費・カーボンフットプリント（2026年勧告追加）
+
+ISO/IEC 42001の第9条（Performance Evaluation）はこれらの測定をAIMS（AIマネジメントシステム）の継続的改善サイクルに組み込むことを要求する。特に「バイアス閾値遵守率」「インシデント対応時間」「監査完了率」の定期的な計測と経営層への報告が明示的に求められる。
+
+## AIガバナンスKPI 10項目の設計パターン
+
+> ガバナンスKPIは技術レイヤー別に「セキュリティ統制」「運用ガバナンス」「コンプライアンス」の3層に分けて設計し、それぞれ測定責任者と目標値を定めます。
+
+### セキュリティ統制指標
+
+**① シャドーAI検知率**
+承認プロセスを経ずに利用されたAIツール・APIの検知件数と、検知後72時間以内に対処できた割合。SIEMやゲートウェイログから導出する。目標値: 対処率90%以上。
+
+**② エージェント権限過剰率**
+本番環境のエージェントのうち、最小権限原則に違反する過剰スコープを持つものの割合。IAMレポートと[スコープ付き認証情報設計](/blog/agent-iam-scoped-credentials-design/)の権限マトリクスとの差分で算出する。目標値: 5%以下。
+
+**③ プロンプトインジェクション検知率**
+[多層防御アーキテクチャ](/blog/prompt-injection-layered-defense-architecture/)（入力検証・権限分離・出力監査）によって遮断した攻撃試行の割合。既知パターンに対しては99%以上の検知率を目標とする。
+
+### 運用ガバナンス指標
+
+**④ インシデント対応MTTR**
+AIガバナンスインシデント（誤出力・無認可アクセス・SLA違反等）の検知から収束までの平均時間。[インシデント対応プレイブック](/blog/agent-incident-response-playbook/)で定義したSLAと照合する。目標値: クリティカルインシデント4時間以内。
+
+**⑤ 変更管理プロセス遵守率**
+本番AIシステムへの変更のうち、正式な変更管理フロー（テスト・承認・ロールバック計画）を経たものの割合。[ブルー/グリーンデプロイ設計](/blog/agent-blue-green-canary-deployment/)と連携して計測する。目標値: 緊急変更を除き95%以上。
+
+**⑥ 監査ログカバレッジ率**
+本番AIオペレーション（LLM呼び出し・ツール実行・データアクセス）のうち、[改ざん防止監査ログ](/blog/audit-log-tamper-proof-schema-design/)に記録されているものの割合。目標値: 100%（ゼロ欠損）。
+
+### コンプライアンス指標
+
+**⑦ ポリシー適用率**
+本番稼働中のAIシステムのうち、承認済みガバナンスポリシーが適用されているものの割合。[ランタイムポリシーエンジン](/blog/agent-runtime-policy-engine-guardrails/)のレポートから算出する。目標値: 100%（例外は変更管理チケット必須）。
+
+**⑧ モデル更新承認リードタイム**
+新LLMバージョンの採用申請から本番適用承認までの平均所要時間。長すぎると競合との能力差が広がり、短すぎるとリスク評価が不十分になる。目標値: 通常更新5営業日以内・セキュリティパッチ24時間以内。
+
+**⑨ リスクアセスメント実施率**
+デプロイ済みAIシステムのうち、直近12ヶ月以内にリスクアセスメントを実施したものの割合。ISO 42001第9条は継続的評価サイクルを要求する。目標値: 高リスクシステム100%・中リスクシステム90%以上。
+
+**⑩ ガバナンス研修完了率**
+AIシステムを設計・運用するエンジニア・データサイエンティスト・PMのうち、年次AIガバナンス研修を完了したものの割合。NIST AI RMFのGOVERN機能が推奨する人的統制を補完する。目標値: 95%以上。
+
+## KPIスコアカードの計装設計——Prometheusで統制有効性を可視化する
+
+> スコアカード実装の標準パターンはアプリケーション層でのメトリクス収集・Prometheusでの集計・Grafanaでのダッシュボード化であり、RAGステータスで経営層への定量報告が可能になります。
+
+10項目のKPIをPrometheusのゲージ指標として公開する実装例を示す。
+
+```python
+# governance_exporter.py
+from prometheus_client import Gauge, start_http_server
+
+# セキュリティ統制
+shadow_ai_resolution_rate = Gauge(
+    'ai_governance_shadow_ai_resolution_rate',
+    'Rate of shadow AI incidents resolved within 72h',
+    ['environment']
+)
+overprivileged_agent_ratio = Gauge(
+    'ai_governance_overprivileged_agent_ratio',
+    'Ratio of agents exceeding minimum privilege',
+    ['team', 'service']
+)
+pi_detection_rate = Gauge(
+    'ai_governance_prompt_injection_detection_rate',
+    'Detection rate for known prompt injection patterns'
+)
+
+# 運用ガバナンス
+incident_mttr_seconds = Gauge(
+    'ai_governance_incident_mttr_seconds',
+    'Mean time to resolve AI governance incidents',
+    ['severity']
+)
+change_mgmt_compliance = Gauge(
+    'ai_governance_change_management_compliance_rate',
+    'Fraction of AI changes going through formal process'
+)
+audit_log_coverage = Gauge(
+    'ai_governance_audit_log_coverage_ratio',
+    'Fraction of AI operations captured in audit logs'
+)
+
+# コンプライアンス
+policy_application_rate = Gauge(
+    'ai_governance_policy_application_rate',
+    'Fraction of AI systems with active governance policies'
+)
+model_approval_lead_time = Gauge(
+    'ai_governance_model_approval_lead_time_hours',
+    'Average hours from model update request to approval'
+)
+```
+
+Grafanaのアラートルールと組み合わせ、`overprivileged_agent_ratio > 0.05`（5%超過）や`incident_mttr_seconds > 14400`（4時間超過）でPagerDutyへの自動エスカレーションを設定する。スコアカードは経営層向けの月次レポート（RAGステータス：赤/黄/緑）とエンジニア向けリアルタイムダッシュボード（トレンドグラフ・原因分析リンク付き）で出力形式を分けることで、両者に実効性のある情報を届けられる。
+
+## 参考
+
+- [AI RMF 2026 MEASURE Function Complete Framework Crosswalk](https://www.aigl.blog/ai-rmf-2026-measure-function-complete-framework-crosswalk/)
+- [ISO 42001 AI Performance Measurement: Ultimate Guide (Clause 9)](https://www.novelvista.com/blogs/quality-management/ai-performance-measurement-iso-42001)
+- [Enterprise AI Governance: Complete Implementation Guide](https://www.liminal.ai/blog/enterprise-ai-governance-guide)
+- [NIST AI RMF 1.0 Implementation Guide for Enterprises](https://neuraltrust.ai/blog/nist-ai-rmf-implementation-guide)
+
+## まとめ
+
+AIガバナンス統制は「実装した」だけでは組織的な価値を示せない。NIST AI RMFのMEASURE機能とISO 42001第9条が要求するのは、統制が期待通りに機能していることを継続的に測定・報告するサイクルだ。
+
+本記事で設計した10のKPIはセキュリティ統制・運用ガバナンス・コンプライアンスの3層に整理され、Prometheusで計装することで経営層への定量報告とエンジニアリングチームのリアルタイム監視を同時に実現できる。一部のKPIはゼロから計装せず、[エージェントランタイムポリシーエンジン](/blog/agent-runtime-policy-engine-guardrails/)や[監査ログ設計](/blog/audit-log-tamper-proof-schema-design/)など既存の統制インフラからデータを引き出すだけで測定を開始できる。
+
+Kuu株式会社は大規模なAIガバナンス統制の設計・KPIスコアカード構築をエンタープライズ向けRDEサービスで支援している。具体的なKPI設計の相談は[Kuuのエンタープライズ向けRDEサービス](/services/rde/)から始めてほしい。
