@@ -1,0 +1,115 @@
+---
+title: "Claude Mythos 5 実装指針——Project Glasswingと制約設計"
+description: "Claude Mythos 5はFable 5と同基盤でサイバーセキュリティ分類器が解除された企業限定モデル。Project Glasswing参加組織向けのスコープ制限・監査ログ・ルーティング設計を解説する。"
+date: "2026-07-29"
+lastModified: "2026-07-29"
+tags: ["Claude Mythos 5", "Project Glasswing", "エンタープライズ", "モデル選定"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "model-capability"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5"
+  - "https://www.anthropic.com/glasswing"
+  - "https://cycode.com/blog/claude-mythos-security-readiness/"
+  - "https://www.anthropic.com/news/claude-fable-5-mythos-5"
+---
+
+Claude Mythos 5 の登場は、エンタープライズのセキュリティアーキテクトに新しい設計上の問いを投げかけている。「Fable 5 と同じ基盤モデルを、特定の安全分類器を解除した状態で使えるとしたら、どんな実装上の制約を設ける必要があるか」という問いだ。Project Glasswing を通じた限定アクセスは、単に「使えるモデルが増えた」以上の意味を持つ。オフェンシブセキュリティ調査における AI エージェントの自律範囲と、組織として引き受けるガバナンス責任の両方が問われる。
+
+Fable 5 が「多日間自律実行」を軸に設計されているのに対し、Mythos 5 はその能力セットを保持しながら、サイバーセキュリティ領域の安全分類器を解除することで特定の組織が使えるようにしたモデルだ。本稿では Mythos 5 の技術仕様・Project Glasswing のアクセス条件・エンタープライズでの実装設計要点を整理する。
+
+## Claude Mythos 5 は Fable 5 とどう違うか
+
+> Mythos 5 は Fable 5 と同一基盤モデルで、サイバーセキュリティ領域の安全分類器が解除された企業限定モデルです。
+
+基本スペックは Fable 5 と共通だ。
+
+- **コンテキストウィンドウ**: 1M トークン
+- **最大出力**: 128k トークン／リクエスト
+- **価格**: 入力 $10/M・出力 $50/M（Fable 5 と同価格帯）
+- **Adaptive Thinking**: 常時オン（extended thinking 相当の推論ループ）
+- **データ保持**: 30 日（ゼロデータ保持 ZDR の対象外）
+
+Fable 5 との最大の違いは安全分類器の扱いにある。Fable 5 はサイバーセキュリティ関連のリクエスト（エクスプロイト開発・脆弱性連鎖・攻撃的操作）を受けると、内蔵分類器が `stop_reason: "refusal"` を返して Opus 4.8 にフォールバックする。Mythos 5 はこの分類器が解除されており、ペネトレーションテスト・レッドチーム調査・ゼロデイ研究に対応したリクエストを人間の介入なしに処理できる。
+
+モデル ID は `claude-mythos-5-20260609` だ。API 呼び出しは Fable 5 と同様に Anthropic API・Amazon Bedrock・Google Cloud Vertex AI 各プラットフォームを経由するが、利用には Project Glasswing のメンバーシップが必要となる。
+
+## Project Glasswing のアクセス条件と制約
+
+> Project Glasswing は約 50 の重要インフラ組織のみアクセス可能なプログラムで、NDA と米政府との調整が前提条件です。
+
+Project Glasswing は Anthropic が 2026年 4月 7 日に立ち上げたサイバーセキュリティ向け管理プログラムだ。参加条件を整理する。
+
+**参加要件**
+
+- Anthropic からの招待（公開ウェイトリスト・API エンドポイントは存在しない）
+- NDA（守秘義務契約）の締結
+- 米国政府との調整を含む審査プロセスの通過
+
+**初期メンバー（12 の創設組織）**
+
+AWS・Apple・Google・Microsoft・CrowdStrike・Palo Alto Networks をはじめとする重要インフラ組織が参加している。参加組織はソフトウェアの脆弱性を発見し、公開前にパッチを適用するという協定のもとでモデルを使用する。
+
+**データポリシー上の固有制約**
+
+ZDR（Zero Data Retention）が適用されない点は実装設計に直接影響する。30 日間のデータ保持が固定されているため、最高機密扱いの調査データや国家安全保障関連の情報をコンテキストに含める設計は避ける。機密インフラの IP アドレス・内部システム仕様・未公開 CVE の詳細などは、Mythos 5 に直接送信する前に匿名化・抽象化する設計が求められる。
+
+Kuu が提供する [RDE（Reinvention Deployed Engineering）サービス](/services/rde/) では、Project Glasswing 参加組織向けのエージェント実装設計と監査証跡の構築を支援している。
+
+## エンタープライズセキュリティ組織向けアーキテクチャ設計
+
+> Mythos 5 を使う脆弱性調査エージェントは、スコープ制限・ツール分離・エビデンス管理の 3 層で設計します。
+
+Mythos 5 を使ったオフェンシブセキュリティワークフローの核心は、モデルの自律範囲をどこまで広げるかという設計判断だ。以下の 3 レイヤーで実装する。
+
+### スコープ制限（ツールレベル）
+
+エージェントに渡すツールは、調査対象スコープ内のシステムのみに作用するよう厳密に定義する。
+
+- **ネットワークスキャンツール**: 許可 IP レンジを明示した CIDR ブロックのみを引数として受け付けるよう実装。範囲外のアドレスはツール定義のバリデーションレイヤーで拒否する
+- **コード実行サンドボックス**: スコープ外ネットワークへのアウトバウンドをブロックした隔離環境で実行する。[ツール実行サンドボックス設計](/blog/tool-execution-sandbox-isolation-design/) と組み合わせて最小権限原則をツール定義レベルで徹底する
+- **ファイルシステムアクセス**: 調査対象リポジトリのパスのみに限定したマウントポイントを使用し、コンテナ外への書き込みを遮断する
+
+### エビデンス管理と監査ログ
+
+エクスプロイト出力・CVE 詳細・PoC コードといった高感度な出力は、専用ストレージ（暗号化＋アクセス制御つき）に書き込む設計にする。[監査ログ改ざん防止設計](/blog/audit-log-tamper-proof-schema-design/) で解説した Append-Only ログに、呼び出し時刻・スコープ定義・モデル ID（`claude-mythos-5-20260609`）・出力ハッシュを記録する。ログの改ざん防止とアクセス制御は、Glasswing 参加協定上の義務でもある。
+
+### 人間承認フロー（Human-in-the-Loop）
+
+未知の脆弱性を発見した後に自動でエクスプロイトを試みるフローは、必ず人間の承認ステップを挟む。[Human-in-the-Loop 設計](/blog/ai-agent-human-in-the-loop-design/) で示したタスク中断パターンをアーキテクチャに組み込み、エージェントが「発見フェーズ」から「実証フェーズ」に移行する際に承認ゲートを設ける。
+
+## Fable 5 とのモデルルーティング設計
+
+> 日常的な調査タスクは Fable 5 で処理し、スコープ内の自律エクスプロイト検証のみ Mythos 5 に送るルーティングが推奨設計です。
+
+Mythos 5 の使用を最小化するルーティング設計を採用することが、ガバナンス上推奨される。
+
+**Mythos 5 に送るべきタスク**
+
+- スコープ内のバイナリ解析と脆弱性連鎖探索
+- PoC コードの自動生成と検証ループ
+- 既知 CVE を用いたエクスプロイトシミュレーション
+
+**Fable 5 で処理するタスク**
+
+- 脆弱性レポートのドラフト作成
+- コードレビュー（セキュリティ観点のみ）
+- 設計ドキュメント・事後報告書の生成
+
+[LLM ゲートウェイ](/blog/llm-gateway-routing-rate-limiting/) にモデルルーティングロジックを組み込み、タスクタイプを分類してモデルを自動選択する設計にすると、Mythos 5 の呼び出しに対する完全な可視性と制御が得られる。入力価格は Fable 5 と同じ $10/M のため、ルーティング実装のコストオーバーヘッドは実質ゼロだ。
+
+モデルルーティングのより詳細な実装パターンは[動的モデル選択の設計](/blog/model-routing-dynamic-selection-design/)を参照されたい。
+
+## 参考
+
+- [Introducing Claude Fable 5 and Claude Mythos 5 — Anthropic Platform Docs](https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5)
+- [Project Glasswing | Anthropic](https://www.anthropic.com/glasswing)
+- [Claude Mythos and Project Glasswing: A Security Readiness Guide | Cycode](https://cycode.com/blog/claude-mythos-security-readiness/)
+- [Introducing Claude Fable 5 and Claude Mythos 5 | Anthropic](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+
+## まとめ
+
+Claude Mythos 5 は、Project Glasswing という管理プログラムを通じた限定アクセスと引き換えに、オフェンシブセキュリティ領域での安全分類器を解除している。エンタープライズセキュリティ組織が設計で直面する核心は、技術仕様の理解にとどまらず、ZDR 非対応のデータポリシーへの対応・スコープ制限の実装・Fable 5 との責任分界に基づくモデルルーティング設計の 3 点だ。
+
+Kuu では Project Glasswing 参加組織を含む大規模 AI エージェント実装支援を [RDE サービス](/services/rde/) として提供している。エージェント設計・監査証跡・ガバナンス体制の構築についてはお問い合わせください。
