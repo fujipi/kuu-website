@@ -1,0 +1,161 @@
+---
+title: "エージェントのセマンティックキャッシュ——LLMコスト削減設計"
+description: "クエリ埋め込みの類似検索でLLMコールをスキップするセマンティックキャッシュは、応答3〜8msとコスト30〜70%削減を実現する。プロンプトキャッシュとの違い・類似度閾値・TTL設計を解説する。"
+date: "2026-07-30"
+lastModified: "2026-07-30"
+tags: ["セマンティックキャッシュ", "LLMコスト最適化", "エージェント設計", "プラットフォーム設計"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://learn.microsoft.com/ja-jp/azure/cosmos-db/gen-ai/semantic-cache"
+  - "https://www.spheron.network/blog/semantic-cache-llm-inference-gpu-cloud/"
+  - "https://myengineeringpath.dev/genai-engineer/llm-caching/"
+pillar: "ai-governance"
+---
+
+本番AIエージェントをスケールさせると、LLM APIコストが予算を圧迫するのは避けられません。AnthropicのプロンプトキャッシュとバッチAPIは強力ですが、どちらも「LLMを呼び出すことは前提」です。似たような質問が繰り返されるワークロードでは、LLMを呼び出す前の段階でキャッシュを参照し、コールそのものをスキップできれば、より根本的なコスト削減が実現します。それが**セマンティックキャッシュ**の役割です。
+
+本記事は[AI FinOps設計](/blog/ai-finops-token-cost-instrumentation/)および[LLM推論コスト削減](/blog/inference-cost-optimization-batch-cache-routing/)と連動しています。プロンプトキャッシュ単体の設計は[プロンプトキャッシュ設計](/blog/prompt-caching-agent-design-context-reuse/)を参照してください。
+
+## セマンティックキャッシュとはどんな仕組みか
+
+> セマンティックキャッシュはクエリを埋め込みベクトルに変換してベクター検索で類似した過去のクエリを見つけ、0.92〜0.97の類似度スコアを超えた場合にLLMコールなしで応答を再利用します。
+
+従来のキャッシュは文字列の完全一致でヒットを判定します。「商品の返品方法を教えて」と「返品の手順は？」は意味が同じでも完全一致にならず、別々のLLMコールになります。セマンティックキャッシュはこの問題を「ベクター類似検索」で解決します。
+
+処理フローを示します。
+
+```
+ユーザーリクエスト
+    │
+    ▼
+[埋め込みモデル] ── クエリ → ベクター変換（数ミリ秒）
+    │
+    ▼
+[ベクターストア] ── 類似検索（コサイン類似度）
+    │
+    ├── 類似度 ≥ 閾値（例: 0.95） → キャッシュHIT → 応答を即返却（3〜8ms）
+    │
+    └── 類似度 < 閾値 → キャッシュMISS → LLM呼び出し → 応答 + キャッシュ書き込み
+```
+
+キャッシュHIT時のレスポンスは3〜8msで、通常のLLM推論（500〜2,000ms）と比べて100倍以上高速です。APIコストはゼロになり、呼び出し回数が多いワークロードで30〜70%のLLMコスト削減を達成できます（Spheron調べ）。
+
+## プロンプトキャッシュとどう違うか
+
+> プロンプトキャッシュはLLM内部のKVテンソルを再利用してトークン計算コストを削減し、セマンティックキャッシュはアプリケーション層でLLMコールそのものをスキップします。
+
+2つのキャッシュ機構は動作レイヤーが異なります。
+
+| 観点 | セマンティックキャッシュ | プロンプトキャッシュ（Anthropic API） |
+|---|---|---|
+| 動作レイヤー | アプリケーション層 | LLMプロバイダーのAPI層 |
+| キャッシュ対象 | (クエリベクター, LLMレスポンス) | プレフィックスのKVテンソル |
+| コスト削減 | LLMコール自体をスキップ | 入力トークン単価を最大90%削減 |
+| 有効なパターン | 繰り返しクエリ多数のワークロード | 長いシステムプロンプトを同一で送るパターン |
+| 設定の複雑さ | 類似度閾値・TTLの調整が必要 | キャッシュブレークポイントの設計が必要 |
+
+両者は排他ではなく**スタック可能**です。セマンティックキャッシュミス時にLLMを呼び出す際も、プロンプトキャッシュを有効にすれば入力トークンコストをさらに削減できます。Microsoft Azure Cosmos DBのセマンティックキャッシュガイドは、これを「LLMへの呼び出しはアプリケーションで最もコストが高く待機時間が最も長いサービス」と位置付け、セマンティックキャッシュをその最上位に置く構成を推奨しています。
+
+[プロンプトキャッシュ](/blog/prompt-caching-agent-design-context-reuse/)はAnthropicのAPIが持つ機能であり、設定方法が異なります。本記事はアプリケーション層の設計を扱います。
+
+## 類似度閾値とコンテキストウィンドウの設計はどうするか
+
+> 類似度閾値は0.92〜0.97の範囲で設定し、マルチターン会話では直近のコンテキスト履歴をキャッシュキーに含めて誤ヒットを防ぎます。
+
+### 類似度閾値の調整
+
+類似度閾値はセマンティックキャッシュの挙動を決める最重要パラメータです。
+
+| 閾値 | キャッシュヒット率 | 誤ヒットリスク |
+|---|---|---|
+| 0.97以上 | 低い | 非常に低い |
+| 0.93〜0.96 | 中程度（推奨） | 低い |
+| 0.90未満 | 高い | 高い（意図不一致の回答を返す） |
+
+**0.95前後**から始め、ワークロードのヒット率と誤回答率を計測しながら調整するのが実践的なアプローチです。近年の研究では、静的閾値では正確さの保証が難しいため、**クエリごとの適応的閾値**（per-prompt adaptive threshold）も提案されています（arxiv 2606.19719）。
+
+### マルチターン会話でのコンテキストウィンドウ
+
+マルチターンエージェントでは、最後のユーザーメッセージだけをキャッシュキーにしてはなりません。Azureのガイドは以下の失敗例を示しています。
+
+```
+ユーザーA: 「北米最大の湖は？」→ キャッシュ: {embedding, "Lake Superior"}
+ユーザーA: 「2番目は？」   → キャッシュ: {embedding, "Lake Huron"}（コンテキスト付き）
+
+ユーザーB: 「北米最大のスタジアムは？」→ "Michigan Stadium"
+ユーザーB: 「2番目は？」   → セマンティックキャッシュが "Lake Huron" を誤ヒット ← 誤回答
+```
+
+対策は**直近N件の会話履歴をキャッシュキーに結合**することです。
+
+```python
+# キャッシュキーの生成例
+def build_cache_key(history: list[str], current_query: str, window_size: int = 3) -> str:
+    context = history[-window_size:] if len(history) >= window_size else history
+    return "\n".join(context + [current_query])
+
+cache_key = build_cache_key(conversation_history, user_message)
+embedding = embed_model.encode(cache_key)
+```
+
+コンテキストを含めた結合文字列をベクトル化することで、同じ質問でも会話の文脈が異なれば別エントリとしてキャッシュされます。
+
+## TTL・エビクションポリシーの設計はどうするか
+
+> TTLは「事実の陳腐化速度」に合わせて設定し、ヒットカウントでエビクション優先度を制御すると有用エントリを長期保持できます。
+
+### TTLの設定指針
+
+キャッシュされた回答は時間とともに陳腐化します。TTLはコンテンツの性質によって設定します。
+
+| コンテンツタイプ | 推奨TTL | 理由 |
+|---|---|---|
+| 製品仕様・機能説明 | 24〜72時間 | 変更頻度が低い |
+| 在庫・価格・日付情報 | 5〜30分 | リアルタイム性が必要 |
+| 法令・規約の説明 | 1〜7日 | 更新時に明示的無効化が必要 |
+| 一般的なFAQ | 7〜30日 | 安定した内容 |
+
+時間の経過とともに事実が変わるクエリ（「今日の天気は？」「在庫はありますか？」）はセマンティックキャッシュに向きません。こうしたクエリはキャッシュから除外するルールを設けます。
+
+### ヒットカウントベースのエビクション
+
+Azureのガイドでは、頻繁にヒットするキャッシュエントリを長期保持する設計が推奨されています。
+
+```python
+# キャッシュヒット時にカウントを更新
+def on_cache_hit(cache_entry_id: str):
+    db.patch(cache_entry_id, {"hit_count": db.increment(1)})
+
+# エビクションポリシー: ヒット数が閾値を超えたらTTLをリセット
+def maybe_extend_ttl(cache_entry_id: str, threshold: int = 100):
+    entry = db.get(cache_entry_id)
+    if entry["hit_count"] >= threshold:
+        db.patch(cache_entry_id, {"expires_at": now() + EXTENDED_TTL})
+```
+
+この設計により、頻繁に使われるエントリは自然に長期保持され、稀にしかヒットしないエントリはTTLで自動削除されます。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**、まず[Langfuse](/blog/langfuse-agent-observability-smb-setup/)などのオブザーバビリティツールで「同一または類似クエリの繰り返し率」を計測してから導入判断します。類似クエリが多い受付系・FAQ系・問い合わせ対応エージェントで最も効果が出ます。埋め込みモデルには`text-embedding-3-small`（OpenAI）や`voyage-3-lite`（Anthropic）など低コストのものを選びます。ベクターストアはpostgresql + pgvector や Redis Stack（RediSearch）で小規模に始められます。[Kuu株式会社のAI Ops運用管理](/services/ai-ops/)では、セマンティックキャッシュを含むLLMコスト最適化設計を支援しています。
+
+**エンタープライズの場合**は、テナント分離設計が必要です。部門・ユーザーグループをまたいだキャッシュ共有は機密漏洩リスクになります。ベクターストアにはAzure Cosmos DB（DiskANN インデックス）・Pinecone・Weaviate等のSLA保証がある選択肢を用います。キャッシュヒット率・コスト削減額はAI FinOpsの部門配賦に組み込み、投資対効果として可視化します。大規模マルチエージェント基盤での設計は[Kuu株式会社のRDEサービス](/services/rde/)で対応しています。
+
+## 参考
+
+- [大規模言語モデルのセマンティックキャッシュ - Azure Cosmos DB | Microsoft Learn](https://learn.microsoft.com/ja-jp/azure/cosmos-db/gen-ai/semantic-cache)
+- [Semantic Caching for LLM Inference: GPTCache, Redis Vector Cache, and Prompt Cache Setup - Spheron Blog](https://www.spheron.network/blog/semantic-cache-llm-inference-gpu-cloud/)
+- [LLM Caching — Semantic Cache, KV Cache & Prompt Cache (2026) - MyEngineeringPath](https://myengineeringpath.dev/genai-engineer/llm-caching/)
+
+## まとめ
+
+セマンティックキャッシュはアプリケーション層でLLMコールをスキップする仕組みであり、繰り返しクエリが多いワークロードで30〜70%のコスト削減と100倍以上の応答高速化をもたらします。設計のポイントは3点です。
+
+1. **類似度閾値の調整**: 0.95前後から始め、ワークロードに合わせて誤ヒット率とコスト削減率のバランスをとる
+2. **コンテキストウィンドウの結合**: マルチターン会話では直近3〜5件の履歴をキャッシュキーに含める
+3. **TTLとエビクションポリシー**: コンテンツの陳腐化速度に合わせてTTLを設定し、ヒットカウントで長期保持エントリを制御する
+
+セマンティックキャッシュの導入から効果測定まで支援が必要な場合は[Kuu株式会社のAI Ops運用管理](/services/ai-ops/)にお問い合わせください。
