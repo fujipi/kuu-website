@@ -1,0 +1,94 @@
+---
+title: "Advisorパターンで高精度をSonnet価格で——2モデル協調エージェント設計"
+description: "AnthropicのAdvisor戦略は、HaikuをエグゼキュータにOpusをアドバイザとして協調させるAPIパターンです。Haiku単体比でBrowseComp得点2倍、コストをSonnet比85%削減。実装手順と使い分けを示します。"
+date: "2026-07-28"
+lastModified: "2026-07-28"
+tags: ["Advisor戦略", "モデル選定", "コスト最適化", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+sources:
+  - "https://claude.com/blog/the-advisor-strategy"
+  - "https://www.jonkrohn.com/posts/2026/7/20/fable-5-as-advisor-anthropics-two-model-pattern-for-smarter-cheaper-agents"
+---
+
+フロンティアモデルを全タスクに投げると月次コストが予算を超える。安価モデルに切り替えると精度が落ちてビジネス要件を満たせない。このトレードオフを「2モデルの役割分担」で解消するのが、Anthropicが2026年4月9日に公開したAdvisor戦略だ。
+
+## Advisorパターンとは何か——エグゼキュータとアドバイザが分かれる設計か
+
+> Advisor戦略はHaikuがエージェントループ全体を担い、判断に詰まった時のみOpusを呼ぶ2モデル協調設計です。
+
+従来のアーキテクチャは「モデルを1つ選んで使い続ける」か「タスク種別で事前に振り分ける」二択だった。Advisor戦略はこれと根本的に異なる。**エグゼキュータ（Haiku/Sonnet）がエージェントループ全体——ツール呼び出し・コード実行・出力生成——を担い、判断に行き詰まった瞬間だけアドバイザ（Opus/Fable 5）をツールとして問い合わせる**。アドバイザはガイダンスを返すだけで、ツールを実行したりユーザー向け出力を生成したりはしない。
+
+従来の[動的モデルルーティング](/blog/model-routing-dynamic-selection-design/)が「タスク着手前にモデルを決める」設計であるのに対し、Advisorパターンは「実行中に必要な時だけ上位知性を借りる」点が本質的に異なる。実行コストの大半をHaiku/Sonnet水準に保ちながら、複雑な判断箇所だけOpus/Fable 5の推論を活用できる。
+
+## Advisorパターンの実装手順——APIをどう設定するか
+
+> ベータヘッダー `advisor-tool-2026-03-01` とツール定義1行を追加するだけで実装できます。エグゼキュータが行き詰まった時点でアドバイザが自動的に介入します。
+
+Python SDKでの最小実装を示す。
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+
+response = client.beta.messages.create(
+    model="claude-haiku-4-5-20251001",   # エグゼキュータ
+    max_tokens=8096,
+    tools=[
+        {
+            "type": "advisor_20260301",
+            "name": "advisor",
+            "model": "claude-opus-4-6",   # アドバイザ
+            "max_uses": 3,                # 1タスクあたりの最大呼び出し回数
+        },
+        # … 業務ツール定義
+    ],
+    messages=[{"role": "user", "content": "...タスク指示..."}],
+    betas=["advisor-tool-2026-03-01"],
+)
+```
+
+`max_uses` パラメータはコスト制御の核心だ。アドバイザ出力を1回あたり2,000トークン上限にキャップし `max_uses: 3` に設定すれば、最大6,000トークン分のアドバイザコストで上限が引ける。[プロンプトキャッシュ](/blog/prompt-caching-agent-design-context-reuse/)と組み合わせると、長いエージェントループでのアドバイザコストをさらに圧縮できる。
+
+アドバイザモデルにFable 5（`claude-fable-5`）を指定した場合、Sonnet 5 + Fable 5アドバイザはFable 5単独の精度の約92%をFable 5単独コストの約63%で実現したという報告がある。最高精度が必要なコーディング・調査タスクに適したペアリングだ。
+
+なお、本パターンは拡張エージェントタスク（コーディング・調査）に最適化されており、単一ターン質問応答や低レイテンシが求められるリアルタイム応答には向かない。アドバイザ呼び出しが発生した際の追加レイテンシを許容できる設計が前提となる。
+
+## AdvisorパターンとSonnet・Opus単独で精度コストはどう変わるか
+
+> BrowseCompでHaiku+OpusアドバイザはHaiku単独の2倍超（41.2%）を記録し、Sonnet単独比85%コスト削減を実現します。
+
+ベンチマーク結果を整理する。
+
+| 構成 | BrowseComp | コスト（Sonnet単独基準） |
+|---|---|---|
+| Sonnet 単独 | 基準 | 基準（100%） |
+| Sonnet + Opus Advisor | +2.7pp | **-11.9%** |
+| Haiku 単独 | 19.7% | 大幅安 |
+| Haiku + Opus Advisor | 41.2%（+21.5pp） | **Sonnet比 -85%** |
+
+「Haiku + Opus Advisor」はSonnet単独比でコストを85%削減しつつ、Haiku単独の2倍超の精度を出す。構造化抽出・定型自動化・大量処理系タスクではこのペアリングが最もコストパフォーマンスに優れる。
+
+SWE-bench Multilingual（コーディングタスク）では「Sonnet + Opus Advisor」がSonnet単独比2.7ポイント向上（72.1% → 74.8%）、コストも11.9%削減した。精度上限を追求しながらコストも下げたい複雑度の高い長時間タスクに適したペアリングだ。
+
+[LLM推論コストの削減](/blog/inference-cost-optimization-batch-cache-routing/)でバッチAPI・プロンプトキャッシュを組み合わせると、Advisor戦略との相乗効果でさらに最適化を進めることができる。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMB**: 月次エージェント実行コストが膨らんでいる場合、`Haiku + Opus Advisor（max_uses: 2）`から試す。既存エージェントのツール定義にAdvisorツールを追加するだけで導入でき、フレームワーク変更は不要だ。詳細は[AIエージェント運用管理サービス](/services/ai-ops/)を参照。
+
+**エンタープライズ**: 複数チームが異なるタスク複雑度でエージェントを実行する環境では、タスク種別ごとにエグゼキュータ/アドバイザペアを切り替えるルーティング層をLLMゲートウェイに実装する。部門ごとのコスト配賦は[AI FinOps設計](/blog/ai-finops-token-cost-instrumentation/)で計装し、大規模マルチチーム統制は[RDEサービス](/services/rde/)で支援している。
+
+## 参考
+
+- [The advisor strategy: Give Sonnet an intelligence boost with Opus | Claude by Anthropic](https://claude.com/blog/the-advisor-strategy)
+- [Fable 5 as Advisor: Anthropic's Two-Model Pattern for Smarter, Cheaper Agents — Jon Krohn](https://www.jonkrohn.com/posts/2026/7/20/fable-5-as-advisor-anthropics-two-model-pattern-for-smarter-cheaper-agents)
+
+## まとめ
+
+Advisor戦略は「安いモデルか高いモデルか」の二択を「安いモデルが走り、詰まったら高いモデルに問い合わせる」設計で解消する。`advisor_20260301` ツールをMessages APIに追加するだけで実装でき、Haiku + Opus Advisor のペアリングでコストをSonnet単独比85%削減しながらHaiku単独の2倍超の精度を達成できる。
+
+KuuのAIエージェント運用管理では、Advisor戦略の設計・コスト検証から本番モニタリングまでをサポートしています。[Kuu株式会社のAIエージェント運用管理サービス](/services/ai-ops/)からお問い合わせください。
