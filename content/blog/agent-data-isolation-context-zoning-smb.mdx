@@ -1,0 +1,144 @@
+---
+title: "AIエージェントの3層ゾーニング——コンテキスト汚染防止設計"
+description: "AIエージェントが複数システムを自律横断する際の「コンテキスト汚染」を防ぐ、3層ゾーニングと感度タグ・境界チェック・RAGフィルタリングによる機密データ分離設計を解説します。"
+date: "2026-07-30"
+lastModified: "2026-07-30"
+tags: ["AIエージェント", "セキュリティ設計", "データ分類", "ゾーニング"]
+author: "kuu-engineering"
+audience: "smb"
+track: "security"
+tech_depth: "deep"
+sources:
+  - "https://confidentialcomputing.io/2026/05/20/your-ai-agents-are-already-in-production-your-security-architecture-isnt-ready/"
+  - "https://arxiv.org/pdf/2506.08837"
+  - "https://medium.com/@v31u/handling-sensitive-data-in-llm-agents-a-security-first-approach-2e64b1bf9cc5"
+  - "https://www.gravitee.io/state-of-ai-agent-security"
+---
+
+カスタマーサポートエージェントが社内CRMから顧客情報を取得し、同一セッションでナレッジベースを検索する。この動作は正常に見えるが、2つのデータソースが持つ感度の違いを無視すると、LLMの出力に機密情報が混入するリスクが生まれる。これが「コンテキスト汚染（context contamination）」だ。
+
+AIエージェントが扱うデータのセキュリティ設計は、PII（個人識別情報）のフィルタリングや[権限管理](/blog/agent-authorization-rbac-abac-rebac-design/)だけでは不十分だ。エージェントが複数システムを横断して得たデータを、単一のコンテキストウィンドウに無差別に積み上げる構造自体が問題だからだ。本記事では、**3層ゾーニング**という設計手法で、このリスクをアーキテクチャレベルで断ち切る方法を解説する。
+
+## AIエージェントはなぜ「機密データ漏洩」の新たなリスクを生むのか
+
+> AIエージェントは正規の認証情報で複数システムを自律横断し、本来接触しないデータを同一コンテキストに持ち込むため、従来のアクセス制御だけでは情報漏洩を防げません。
+
+従来の情報セキュリティは「人が認証してアクセスする」モデルを前提にしてきた。ACL（アクセス制御リスト）やIAMロールは、「誰が」「どのリソースを」操作するかを制御する仕組みであり、データが「既知のストレージに静置し、認証済みの人間がアクセスする」という前提に立つ。
+
+AIエージェントはこの前提を崩す。1回のタスク実行で社内CRM・契約書リポジトリ・財務スプレッドシートを横断し、それぞれの取得結果を単一のコンテキストウィンドウにまとめて処理する。アクセスログには「エージェントが正常にアクセスした」と記録されるが、別々のゾーンに格納されていたはずのデータが意図せず混在し、LLMの出力に機密情報が滲み出る。
+
+Gravitee社の2026年調査によれば、シャドーAI関連のデータ侵害は通常のデータ侵害より平均67万ドル多い損害をもたらしており、エージェントのデータアクセスを体系的に分類・制御できていない企業が多数存在することが確認されている。
+
+### コンテキスト汚染が発生する3つのパターン
+
+1. **ツール呼び出しによる混入**: エージェントが複数ツールを順次呼び出し、上位感度の取得結果が下位感度の処理コンテキストに混入する
+2. **RAG検索の無差別取得**: ベクトルDB検索が機密度を考慮せず上位k件を返し、公開情報と機密情報が同一プロンプトに入る
+3. **エラーメッセージ経由の漏洩**: 例外スタックトレースやAPIエラーボディに機密値が含まれ、エージェントの出力に転写される
+
+## 3層ゾーニングとは何か——データ感度による空間分離の原則
+
+> 3層ゾーニングは、データをPUBLIC・INTERNAL・CONFIDENTIALの3段階に分類し、エージェントが操作できる「空間」を明確に分離する設計手法です。
+
+コンテキスト汚染を防ぐ直接的な手法が、**データ感度ゾーニング**だ。データを感度レベルで3層に分け、エージェントが実行時に構築するコンテキストが「どのゾーンのデータまで許容するか」を制限する。
+
+| ゾーン | 対象データ例 | エージェントアクセス |
+|---|---|---|
+| **PUBLIC** | 公開Web・FAQ・製品マニュアル | 制限なし |
+| **INTERNAL** | 社内規程・議事録・顧客リスト（非個人） | 認証済みエージェントのみ |
+| **CONFIDENTIAL** | 個人情報・財務明細・契約書原本 | 承認フロー必須・専用エージェント |
+
+重要な設計原則は「エージェントのコンテキストは実行ゾーン内でのみ構築する」ことだ。INTERNALゾーンで動くエージェントがCONFIDENTIALデータを取り込まないよう、中間層が実行時に検査する。
+
+この考え方は、arXiv（2506.08837）で示された「Dual LLM / Privileged-Quarantined パターン」とも整合する。特権的なオーケストレーター（上位ゾーン担当）と制約されたデータプロセッサ（下位ゾーン担当）を分離し、コンテキストの混入経路を構造的に断つ設計だ。
+
+## 実装設計——感度タグ・コンテキスト境界チェック・RAGフィルタの3点セット
+
+> 実装の核心は「感度タグの付与」「コンテキスト境界チェック」「RAGのゾーンフィルタリング」の3点を中間層として組み込むことです。
+
+### 1. 感度タグの付与
+
+すべてのデータソース（DB・ファイル・APIレスポンス）に機密度メタデータを付与する。MCPツールまたはAPIラッパー関数でタグを注入する設計が最も侵入的でない。
+
+```python
+def fetch_with_sensitivity(source, query: str) -> dict:
+    raw = source.fetch(query)
+    return {
+        "content": raw,
+        "sensitivity": source.zone,  # "PUBLIC" / "INTERNAL" / "CONFIDENTIAL"
+        "source_id": source.id,
+    }
+```
+
+### 2. コンテキスト境界チェック
+
+エージェントのコンテキストビルダーに境界チェックを組み込む。現在の実行ゾーンより高い感度データはコンテキストへの追加を拒否する。
+
+```python
+ZONE_LEVEL = {"PUBLIC": 0, "INTERNAL": 1, "CONFIDENTIAL": 2}
+
+class ZonedContextBuilder:
+    def __init__(self, agent_zone: str):
+        self.zone = agent_zone
+        self._items = []
+
+    def add(self, item: dict):
+        if ZONE_LEVEL[item["sensitivity"]] > ZONE_LEVEL[self.zone]:
+            raise DataZoneViolation(
+                f"Cannot add {item['sensitivity']} data "
+                f"to {self.zone} context"
+            )
+        self._items.append(item)
+```
+
+導入初期は例外を発生させず「警告ログ＋Slack通知」のみ（ソフトモード）で運用し、違反パターンを把握してからブロック（ハードモード）に切り替えるとスムーズだ。
+
+### 3. RAGのゾーンフィルタリング
+
+ベクトルDB検索時にゾーンフィルタを適用し、現在の実行ゾーン以下の感度データのみ返すよう制限する。pgvector・Chroma・Qdrantなどほとんどのベクトルストアがメタデータフィルタをサポートする。
+
+```python
+def allowed_zones(agent_zone: str) -> list[str]:
+    levels = ["PUBLIC", "INTERNAL", "CONFIDENTIAL"]
+    return levels[: ZONE_LEVEL[agent_zone] + 1]
+
+results = vector_store.similarity_search(
+    query=user_query,
+    k=5,
+    filter={"zone": {"$in": allowed_zones(agent_zone)}}
+)
+```
+
+このフィルタにより、INTERNALゾーンのエージェントはPUBLICとINTERNALのチャンクのみ取得でき、CONFIDENTIALのチャンクは検索結果から自動除外される。[PII フィルタリング](/blog/agent-pii-filtering-anonymization-design/)と組み合わせることで、さらに精密な保護が実現できる。
+
+## 中小企業が最初に取り組む3ステップ
+
+> まずデータ棚卸しでゾーン分類を定め、次にツール/APIラッパーへ感度タグを注入し、最後にコンテキストビルダーの境界チェックをソフトモードで有効化するのが最短経路です。
+
+### ステップ1: データ棚卸しとゾーン割り当て（1〜2日）
+
+エージェントが触るデータソースをすべて列挙し、PUBLIC/INTERNAL/CONFIDENTIALを割り当てる。スプレッドシート1枚で十分だ。「迷ったらCONFIDENTIAL」を原則にすると、後でゾーンを下げる方向に修正するだけで済み安全だ。
+
+### ステップ2: ツール/APIラッパーへの感度タグ注入（2〜3日）
+
+既存のMCPツール定義またはAPIラッパーに `sensitivity` フィールドを返すよう修正する。新規コードの変更量は小さく、既存エージェントの動作を変えずに実施できる。
+
+### ステップ3: 境界チェックのソフトモード有効化（1日）
+
+コンテキストビルダーに境界チェックを組み込み、まず「ログ出力・通知のみ」で1〜2週間稼働させる。違反が出なくなったらブロックモードに切り替える。
+
+[Kuuの[AIエージェントガバナンス運用管理サービス](/services/ai-ops/)では、データゾーニング設計からツール実装・境界チェックの本番化まで一貫してサポートします。まずは無料相談でスコープを整理することをお勧めします。]
+
+## 参考
+
+- [Your AI Agents Are Already in Production. Your Security Architecture Isn't Ready.](https://confidentialcomputing.io/2026/05/20/your-ai-agents-are-already-in-production-your-security-architecture-isnt-ready/) — Confidential Computing Consortium（2026年5月）
+- [Design Patterns for Securing LLM Agents against Prompt Injection](https://arxiv.org/pdf/2506.08837) — arXiv 2506.08837
+- [Handling Sensitive Data in LLM Agents: A Security-First Approach](https://medium.com/@v31u/handling-sensitive-data-in-llm-agents-a-security-first-approach-2e64b1bf9cc5) — Medium
+- [State of AI Agent Security Report 2026](https://www.gravitee.io/state-of-ai-agent-security) — Gravitee
+
+## まとめ
+
+AIエージェントの機密データ漏洩は「エージェントが悪意を持つ」ことで起きるのではない。「正規の動作でデータが意図せず混在する」コンテキスト汚染が本質的な問題だ。
+
+3層ゾーニング（PUBLIC/INTERNAL/CONFIDENTIAL）と、感度タグ・コンテキスト境界チェック・RAGフィルタリングの3点セットが、この問題をアーキテクチャで断ち切る基盤になる。
+
+中小企業が最初に取り組むべきは「データ棚卸し → タグ注入 → 境界チェック有効化」の3ステップだ。難しいのは実装ではなく「どのデータがどのゾーンか」を判断することだ。その整理から始めたい場合は、Kuuの[AIエージェントガバナンス運用管理サービス](/services/ai-ops/)にご相談ほしい。
