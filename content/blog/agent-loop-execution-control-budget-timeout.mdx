@@ -1,0 +1,195 @@
+---
+title: "AIエージェントのループ実行制御——実行予算・最大反復数の設計"
+description: "AIエージェントの無限ループを防ぐ4層の実行制御設計（最大反復数・トークン予算・タイムアウト・進捗検知）を解説。本番68件の障害事例とAnthropicのTask Budgets APIの使い方も紹介する。"
+date: "2026-08-02"
+lastModified: "2026-08-02"
+tags: ["ループ制御", "実行予算", "アーキテクチャ", "エージェントハーネス"]
+author: "kuu-engineering"
+audience: "both"
+track: "architecture"
+tech_depth: "intermediate"
+target_query: "AIエージェントの無限ループを防ぐためのループ制御はどう設計すればよいか"
+sources:
+  - "https://www.anthropic.com/engineering/building-effective-agents"
+  - "https://arxiv.org/html/2607.01641v1"
+  - "https://platform.claude.com/docs/en/build-with-claude/task-budgets"
+pillar: "ai-governance"
+---
+
+本番エージェントが深夜に暴走し、気づいたら数百ドルのAPI課金が積み上がっていた——こうした事故は珍しくない。原因のほとんどは「最大反復数を設定していない」「タイムアウトがない」「終了条件をモデルに委ねきっている」の3つに集約される。
+
+## AIエージェントはなぜループし続けるのか
+
+> AIエージェントの無限ループは「反復上限なし・タイムアウトなし・終了条件なし」の3つの欠如から生まれます。arXiv 2607.01641は本番68件の障害事例を記録しています。
+
+[エージェントハーネスアーキテクチャ](/blog/agent-harness-architecture/)では、エージェントは「LLM呼び出し→ツール実行→結果を受け取って再度LLM呼び出し」を繰り返すフィードバックループで動く。このループが意図せず終了しないとき、「無限エージェントループ（Infinite Agentic Loop: IAL）」が発生する。
+
+arXivの研究（2607.01641）が実際のオープンソースプロジェクトとSNS事例から収集した68件の障害事例を分析したところ、IALの発生パターンは6種類に集約された。
+
+| パターン | 発生比率 | 説明 |
+|---|---|---|
+| 上限なしリトライ | 25% | パーサーエラーでモデルを際限なく呼び出す |
+| ツール呼び出し無限反復 | 23.5% | モデルが上限なくツールを要求し続ける |
+| エージェント間対話の無制限継続 | 20.6% | マルチエージェントの会話に終了条件がない |
+| ワークフローサイクル | 13.2% | グラフ遷移がターン上限なしにループする |
+| メッセージ再入力障害 | 10.3% | コンテキストが膨張し続け最終的に OOM |
+
+重要な知見は「フレームワークが終了機構を提供していても、設定を省略・誤配置すると無効化される」という点だ。68件のうち多くは LangChain・LangGraph・AutoGen 等が max_iterations や max_turns を提供しているにもかかわらず、開発者がフィードバックパス外に設定していたために機能しなかった事例だった。
+
+## ループ制御の4層構造はどう設計するか
+
+> 効果的なループ制御は最大反復数・トークン予算・タイムアウト・進捗検知の4層を組み合わせる設計が標準です。
+
+各レイヤーが独立して機能し、どれかが抜けても残りが保護する「多層防御」が原則だ。
+
+### 第1層：最大反復数（max_iterations）
+
+最もシンプルで最初に実装すべき制御がループカウンターだ。
+
+```python
+class LoopGuard:
+    def __init__(self, max_iterations: int = 20, max_tokens: int = 100_000):
+        self._iterations = 0
+        self._tokens_used = 0
+        self.max_iterations = max_iterations
+        self.max_tokens = max_tokens
+
+    def tick(self, tokens_this_step: int) -> None:
+        self._iterations += 1
+        self._tokens_used += tokens_this_step
+        if self._iterations >= self.max_iterations:
+            raise LoopBudgetExceeded(
+                f"Max iterations ({self.max_iterations}) reached"
+            )
+        if self._tokens_used >= self.max_tokens:
+            raise LoopBudgetExceeded(
+                f"Token budget ({self.max_tokens}) exhausted"
+            )
+```
+
+反復数の目安は用途によって異なる。情報収集エージェントなら 15〜25 回、コード修正エージェントなら 10〜15 回が出発点になる。
+
+### 第2層：実行時間タイムアウト（wall-clock timeout）
+
+反復数の上限があっても1回の推論が長引けば全体が止まらない。CPU時間ではなく壁時計時間（wall-clock）でタイムアウトを設ける。
+
+```python
+import asyncio
+
+async def run_with_timeout(
+    agent_fn, 
+    timeout_seconds: float = 60.0,
+    **kwargs
+):
+    try:
+        return await asyncio.wait_for(
+            agent_fn(**kwargs),
+            timeout=timeout_seconds,
+        )
+    except asyncio.TimeoutError:
+        raise AgentTimeout(
+            f"Agent exceeded {timeout_seconds}s wall-clock limit"
+        )
+```
+
+タイムアウト値は「正常ケースの 2〜3 倍」を基準にする。平均10秒で完了するエージェントなら 30 秒タイムアウトが目安だ。
+
+### 第3層：AnthropicのTask Budgets APIを使う
+
+Claude Opus 5/Fable 5/Opus 4.8 では、Anthropic公式の Task Budgets APIがエージェントループ全体に対してソフト上限を設定できる。モデルはカウントダウンを参照しながら自律的にペーシングする。
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+
+response = client.beta.messages.create(
+    model="claude-opus-5-20260301",
+    max_tokens=8096,
+    messages=[{"role": "user", "content": "以下のタスクを実行してください..."}],
+    output_config={
+        "task_budget": 50_000,  # ループ全体のソフト上限トークン数
+    },
+    betas=["task-budgets-2026-03-13"],
+)
+```
+
+**注意点**: Task Budgets はソフト上限（advisory）であり、ハード上限ではない。最低 20,000 トークンが必要で、予算が厳しすぎるとモデルがタスクを拒否することがある。第1〜2層の制御と併用し、Task Budgets は「モデルへのヒント」として使うのが正しい位置づけだ。
+
+### 第4層：進捗検知（progress detection）
+
+反復数・トークン・時間のどれにも引っかからないケースとして「エージェントが同じアクションを繰り返して進まない」状況がある。直前の N ステップの出力を比較し、類似度が高ければ終了する。
+
+```python
+from difflib import SequenceMatcher
+
+def is_making_progress(recent_outputs: list[str], threshold: float = 0.85) -> bool:
+    if len(recent_outputs) < 3:
+        return True
+    last = recent_outputs[-1]
+    prev = recent_outputs[-2]
+    similarity = SequenceMatcher(None, last, prev).ratio()
+    return similarity < threshold
+```
+
+実用的には「直前3ステップのアクション + 観測の類似度が 85% 超で 2回連続したら終了」という条件が初期設定として機能する。
+
+## 実装パターン：ループ制御はどこに置くか
+
+> ループ制御はモデル本体ではなくハーネス層に実装します。フィードバックパス上に直接配置することが前提です。
+
+arXiv研究が示した最大の教訓は「ループ制御が存在しても、フィードバックパス外に置かれると機能しない」という点だ。制御ロジックは必ずエージェントが実際に呼び出されるパスに割り込む必要がある。
+
+```python
+from contextlib import contextmanager
+
+@contextmanager  
+def loop_budget(max_iter: int = 20, timeout_sec: float = 120.0):
+    guard = LoopGuard(max_iterations=max_iter)
+    start = time.monotonic()
+    try:
+        yield guard
+    except LoopBudgetExceeded as e:
+        logger.warning("loop_budget_exceeded", reason=str(e))
+        raise
+    finally:
+        elapsed = time.monotonic() - start
+        if elapsed > timeout_sec:
+            raise AgentTimeout(f"Agent timed out after {elapsed:.1f}s")
+
+# 使用例
+with loop_budget(max_iter=15, timeout_sec=60.0) as guard:
+    while not done:
+        result = call_agent_step()
+        guard.tick(tokens_this_step=result.usage.total_tokens)
+        done = check_completion(result)
+```
+
+コンテキストマネージャーパターンにすることで、ループ制御ロジックをビジネスロジックから分離しつつ、フィードバックパス上に確実に挿入できる。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+### SMB向け
+
+まず max_iterations と timeout_seconds だけを設定する。Task Budgets API はオプションで試す。最初から進捗検知を組み込まなくて良い。
+
+- `max_iterations: 15〜25`（用途に応じて調整）
+- `timeout_seconds: 60〜120`
+- ログに `iterations` と `total_tokens` を必ず出力する
+- Kuu の [AIエージェント運用管理サービス](/services/ai-ops/)では、ループ上限の設計テンプレートを提供している
+
+### エンタープライズ向け
+
+ゲートウェイ層でセッション単位のトークン予算を集計・強制し、HTTP 429 でエージェントのAPI呼び出しを遮断する構成を加える。各テナント・各エージェントロール別の予算枠設定と[AI FinOps](/blog/ai-finops-token-cost-instrumentation/)との連携が重要だ。また、進捗検知スコアを可観測性基盤に流し、ダッシュボードでループストール状態をアラートとして検出する体制を整える。大規模運用では [RDE（Reinvention Deployed Engineering）](/services/rde/)によるガバナンス設計の支援も選択肢になる。
+
+## 参考
+
+- [Building Effective Agents — Anthropic Engineering](https://www.anthropic.com/engineering/building-effective-agents)
+- [When Agents Do Not Stop: Uncovering Infinite Agentic Loops in LLM Agents（arXiv 2607.01641）](https://arxiv.org/html/2607.01641v1)
+- [Task budgets — Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/task-budgets)
+
+## まとめ
+
+AIエージェントのループ実行制御は「最大反復数・トークン予算・タイムアウト・進捗検知」の4層で構成する。どれか1つを省略するのではなく、最低限 max_iterations と timeout から実装を始め、本番化とともに段階的に追加するアプローチが現実的だ。最も重要な設計原則は「制御をフィードバックパス上に置く」こと——フレームワークが終了機構を提供していても、実際のモデル呼び出しを囲まなければ無効だ。
+
+エージェントの実行制御設計についてのご相談は、[Kuu株式会社のAIエージェント運用管理サービス](/services/ai-ops/)へどうぞ。
