@@ -1,0 +1,129 @@
+---
+title: "ユーザーフィードバックでエージェント評価を継続改善する設計"
+description: "明示的フィードバック（親指UP/DOWN）の参加率は1〜3%だが、再質問・コピー操作などの暗示的シグナルは100%のセッションを捕捉できる。LangfuseスコアとトレースIDを紐付け、本番から評価データセットを積み上げる設計を示す。"
+date: "2026-08-02"
+lastModified: "2026-08-02"
+tags: ["エージェント評価", "ユーザーフィードバック", "Langfuse", "評価設計"]
+author: "kuu-engineering"
+audience: "smb"
+track: "evaluation"
+tech_depth: "intermediate"
+target_query: "AIエージェントにユーザーフィードバックを組み込んで評価精度を上げるにはどうすればよいか"
+sources:
+  - "https://langfuse.com/docs/observability/features/user-feedback"
+  - "https://www.nebuly.com/blog/explicit-implicit-llm-user-feedback-quick-guide"
+  - "https://langfuse.com/faq/all/user-feedback"
+  - "https://www.adaline.ai/blog/complete-guide-llm-ai-agent-evaluation-2026"
+pillar: "ai-governance"
+---
+
+エージェントが間違った回答を返しても、[ゴールデンデータセット](/blog/agent-regression-test-golden-dataset/)に含まれていなければ評価スコアには反映されない。本番で起きている失敗の大半は、テストケースの外側で静かに積み重なっている。
+
+ユーザーの行動は、その事実を最も正直に示すシグナルだ。「再度質問し直した」「回答をコピーした」「途中で離脱した」——これらのシグナルは人間がラベルを付けなくても、エージェントの品質を語る。[AIエージェントガバナンス](/ai-governance/)の観点から、本番の現実を評価に反映させることは放置できない課題だ。
+
+## ユーザーフィードバックがエージェント評価に必要な理由
+
+> ゴールデンデータセットは既知の失敗しか捕捉できず、ユーザー行動を評価データに変換する設計が品質改善速度を左右します。
+
+eval用のゴールデンデータセットは「知っている失敗」しか捕捉できない。しかし、本番の利用者が踏む失敗パターンは、事前に網羅することが構造的に難しい。Adalineの2026年度評価ガイドによれば、「本番トラフィック上でevaluatorを動かすことで、事前のテストデータセットでは発見できなかったエッジケースを継続的に取り込める」とされる。
+
+本番のユーザー行動を評価シグナルに変換できれば、ゴールデンデータセットは人手を介さずに育ち続ける。
+
+### 明示的シグナルと暗示的シグナルの違い
+
+**明示的シグナル**（親指UP/DOWN、星評価）は、ユーザーが意図的に行動を起こす必要がある。Nebulyの調査によれば、参加率は全インタラクションの1〜3%に留まる。件数は少ないが、「悪い回答だと確信した」というラベルとして信頼性が高く、低評価トレースの根本原因分析に直結する。
+
+**暗示的シグナル**（再質問・コピー操作・離脱）は、ユーザーに何も要求しない。全セッションの100%が対象になる。ただし、文脈なしに単独で解釈すると誤読しやすい（コピーは満足の証拠にも、エラーメッセージを貼るためにも使われる）。インテント分類との組み合わせが必要だ。
+
+## 明示的フィードバックの実装パターンはどう設計するか
+
+> Langfuseのスコア機能でトレースIDとthumbsクリックを紐付けると、評価データが本番利用のたびに自動蓄積されます。
+
+実装の核心は「スコアとトレースIDの紐付け」だ。Langfuseではすべてのエージェント呼び出しにトレースIDが自動付与される。フロントエンドにそのIDを渡し、ユーザーのクリックイベントでスコアをLangfuseに書き込む。
+
+**バックエンド（Python）**: エージェントのレスポンスと共にトレースIDをAPIレスポンスに含める。
+
+```python
+from langfuse import get_client
+langfuse = get_client()
+
+langfuse.create_score(
+    trace_id=response_trace_id,
+    name="user-feedback",
+    value=1,          # 1 = 親指UP、0 = 親指DOWN
+    comment=user_comment,
+)
+```
+
+**フロントエンド（TypeScript）**: Langfuse Browser SDKは公開キーのみで動作する（シークレットキー不要のため、クライアントサイドに安全に配置できる）。
+
+```typescript
+import { LangfuseBrowserClient } from "@langfuse/browser";
+const langfuse = new LangfuseBrowserClient({
+  publicKey: process.env.NEXT_PUBLIC_LANGFUSE_PUBLIC_KEY!,
+});
+
+await langfuse.score({
+  traceId: messageId,
+  name: "user-feedback",
+  value: thumbsUp ? 1 : 0,
+  dataType: "BOOLEAN",
+  comment: comment ?? undefined,
+});
+```
+
+スコアはLangfuseダッシュボードに自動集約され、「低評価トレースのみ表示」でフィルタリングして失敗パターンを分析できる。自己ホスト構成については[LangfuseでAIエージェントを可観測化する](/blog/langfuse-agent-observability-smb-setup/)も参照されたい。
+
+## 暗示的シグナルから評価データを生成するにはどうすればよいか
+
+> 再質問・コピー・離脱の3シグナルは実装コストが低く、インテント分類と組み合わせることで特定の失敗領域を精度よく特定できます。
+
+暗示的シグナルの主要5種を優先度順に整理する。
+
+| シグナル | 意味 | 実装難易度 |
+|---|---|---|
+| セッション離脱（途中） | ゴール未達成で諦めた可能性 | 低（タイムアウト検出） |
+| 人間へのエスカレーション | AIで解決できなかった | 低（ボタントラッキング） |
+| コンテンツのコピー | ユーザーが回答を有用と判断 | 低（DOMイベント） |
+| 再質問・言い換え | 最初の回答がニーズを満たさなかった | 中（埋め込み類似度） |
+| 翌日の再訪問 | ツールを信頼して継続利用 | 中（セッション相関） |
+
+**重要な設計原則**: シグナルを単独で解釈しない。コピーイベントが「トラブルシュートセッション」で発生した場合は強いポジティブシグナルになるが、「エラー報告」インテントのセッションでは別の意味を持つ。インテント分類と組み合わせて初めて信頼できるシグナルになる。
+
+**導入順序の推奨**: まずエスカレーションボタンのトラッキングとコピーイベント（`document.addEventListener('copy')`）から始める。再質問の類似度検出は埋め込み計算が必要なため、二段階目に組み込む。
+
+## フィードバックをEvalループに組み込む5ステップ
+
+> 本番フィードバックからデータセットを週次更新し、CI/CDゲートでスコア回帰をブロックする5ステップで評価を継続自動化できます。
+
+Adalineが定義する「評価フライホイール」は、本番データを起点にして評価基準そのものを継続的に改善するサイクルだ。
+
+**Step 1: 計装（Instrument）**
+Langfuseの`@observe`デコレータでエージェントの各ステップをスパンとして記録する。LLM呼び出し・ツール呼び出し・RAG取得の各スパンがトレースIDで束ねられ、低評価トレースをどのステップが原因かまで遡れる。
+
+**Step 2: 収集（Collect）**
+明示的フィードバック（thumbs）をトレースIDに紐付けてLangfuseへ書き込む。暗示的シグナルは軽量なスコア（例: 再質問検出で-0.5）として同じトレースに追加する。
+
+**Step 3: 分類（Triage）**
+ダッシュボードで低評価トレースをフィルタし、失敗の根本原因を「検索ミス」「プロンプト失敗」「ルーティング誤分類」「ハルシネーション」の4カテゴリで手動タグ付けする。週1回30分の作業で十分だ。
+
+**Step 4: データセット構築（Dataset）**
+低評価トレースの入力を[ゴールデンデータセット](/blog/agent-regression-test-golden-dataset/)候補として追加する。LLM-as-judgeで理想出力を生成し、人間がサンプリングレビューする。Braintrust/Adalineのガイドラインでは「10〜20件から始めれば回帰テストに有効」とされており、大規模な初期投資は不要だ。
+
+**Step 5: 評価・ゲート（Evaluate & Gate）**
+新しいプロンプトバージョンやモデル設定変更前に、蓄積したデータセットで評価を走らせる。スコアが閾値を下回ったらデプロイをブロックするCI/CDゲートを設ける。本番の全トラフィックにはヒューリスティックな評価（ルールベース）を100%適用し、LLM-as-judgeは5〜10%のサンプリングに限定してコストを管理する。フルRLHFインフラは不要で、RLAIF（LLM自体を報酬モデルとして使う）が中小企業の現実的な選択肢だ。
+
+## 参考
+
+- [Langfuse - User Feedback](https://langfuse.com/docs/observability/features/user-feedback)
+- [Langfuse - How to capture User Feedback FAQ](https://langfuse.com/faq/all/user-feedback)
+- [Nebuly - Explicit & Implicit LLM User Feedback Quick Guide](https://www.nebuly.com/blog/explicit-implicit-llm-user-feedback-quick-guide)
+- [Adaline - The Complete Guide to LLM & AI Agent Evaluation in 2026](https://www.adaline.ai/blog/complete-guide-llm-ai-agent-evaluation-2026)
+
+## まとめ
+
+明示的フィードバック（全インタラクションの1〜3%を捕捉）と暗示的シグナル（100%のセッションを捕捉）は、ゴールデンデータセットでは届かない本番の失敗をリアルタイムで可視化する。LangfuseのスコアAPIを使えば、thumbsボタンのクリックがトレースIDに紐付き、低評価トレースをフィルタして根本原因を特定できる。
+
+フィードバックを週次でゴールデンデータセットに追加し、CI/CDゲートで評価を自動化するサイクルを回すことで、エージェント品質は人手を増やさずに改善し続ける。
+
+[Kuu株式会社のAIエージェント運用管理サービス](/services/ai-ops/)では、評価設計から継続的改善の仕組み構築まで支援しています。エージェントの本番品質モニタリングに課題を感じている場合は、ぜひご相談ください。
