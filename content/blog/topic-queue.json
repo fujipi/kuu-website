@@ -953,6 +953,24 @@
         "https://tyk.io/learning-center/a2a-protocol-architecture-and-technical-specification/"
       ],
       "status": "published"
+    },
+    {
+      "slug": "mcp-tool-poisoning-rug-pull-defense",
+      "keyword": "MCP ツール毒殺 Tool Poisoning Rug Pull Cross-Server Shadowing 対策",
+      "title_hint": "MCPツール毒殺とRug Pull攻撃への防御設計",
+      "persona": "MCPサーバーを複数接続するセキュリティアーキテクト・バックエンドエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "MCPのツール毒殺攻撃とRug Pull攻撃はどう防げばよいか",
+      "sources": [
+        "https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks",
+        "https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning",
+        "https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices",
+        "https://github.com/invariantlabs-ai/mcp-injection-experiments"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
