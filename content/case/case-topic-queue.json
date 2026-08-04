@@ -251,6 +251,15 @@
       "industry": "アパレル・セレクトショップ",
       "use_case": "在庫・受注管理とバイヤー業務の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "trucking-dispatch-rollcall-agent",
+      "keyword": "トラック運送 点呼記録 配車管理 運行日報 改善基準告示 AIエージェント",
+      "title_hint": "トラック運送の点呼記録・配車管理をAIエージェントに——2024年問題をこう乗り切る",
+      "persona": "トラック運送会社の運行管理者",
+      "industry": "貨物自動車運送業（トラック運送）",
+      "use_case": "点呼記録・配車管理・運行日報の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
