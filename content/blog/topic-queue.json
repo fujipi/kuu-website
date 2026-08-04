@@ -953,6 +953,23 @@
         "https://tyk.io/learning-center/a2a-protocol-architecture-and-technical-specification/"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-skill-supply-chain-security-signing-sandboxing",
+      "keyword": "エージェントスキル サプライチェーン セキュリティ 署名 サンドボックス",
+      "title_hint": "エージェントスキルのサプライチェーン攻撃を防ぐ設計",
+      "persona": "スキル・拡張機能エコシステムを組織導入するセキュリティアーキテクト・プラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "エージェントスキルのサプライチェーン攻撃はどう防ぐか",
+      "sources": [
+        "https://arxiv.org/pdf/2603.00195",
+        "https://www.runzero.com/blog/openclaw/",
+        "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
