@@ -970,6 +970,23 @@
         "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
       ],
       "status": "published"
+    },
+    {
+      "slug": "mcp-tool-schema-drift-contract-testing",
+      "keyword": "MCP ツール スキーマドリフト コントラクトテスト",
+      "title_hint": "MCPツールのスキーマドリフト検知——コントラクトテスト設計",
+      "persona": "MCPサーバーを運用するバックエンドエンジニア・プラットフォームエンジニア（evaluation track手薄領域を補充）",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "MCPツールのスキーマドリフトはどう検知・防止すればよいか",
+      "sources": [
+        "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
+        "https://specmatic.io/updates/testing-mcp-servers-how-specmatic-mcp-auto-test-catches-schema-drift-and-automates-regression/",
+        "https://www.digitalapplied.com/blog/vercel-ai-sdk-mcp-tool-drift-fingerprint-security-2026"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
