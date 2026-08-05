@@ -1,0 +1,49 @@
+---
+title: "AIエージェントのサーバーレス実行基盤設計"
+description: "AIエージェントをサーバーレスで動かす鍵は、コールドスタート対策と状態管理です。Cloudflare Workersは月5ドルからDurable Objectsで状態を保持できます。"
+date: "2026-08-05"
+lastModified: "2026-08-05"
+tags: ["サーバーレス", "AIエージェント基盤", "コールドスタート", "コスト設計"]
+author: "kuu-editorial"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+sources:
+  - "https://developers.cloudflare.com/agents/"
+  - "https://developers.cloudflare.com/workers/platform/pricing/"
+  - "https://aws.amazon.com/lambda/pricing/"
+---
+
+## AIエージェントのサーバーレス実行基盤とは何か
+
+> サーバーレス実行基盤とは、AWS LambdaやCloudflare Workersのように使用量に応じて課金され、常時稼働のサーバーを持たない実行環境です。
+
+中小企業がAIエージェントを本番投入する際、専任のインフラ担当者を置かずに済むサーバーレス基盤は現実的な選択肢です。エージェントは1回のユーザー入力に対して複数のツール呼び出しを連鎖させるため、リクエストごとに関数を起動するサーバーレスモデルと相性がよい一方、コールドスタートと状態管理という2つの技術的な壁に直面します。代表的な選択肢はAWS LambdaとCloudflare Workers（Agents SDK）で、どちらも「使った分だけ課金」ですが、状態の持ち方が根本的に異なります。
+
+## なぜコールドスタートがエージェントで深刻になるのか
+
+> エージェントは1回の応答で複数回のツール呼び出しを連鎖させることがあり、各呼び出しの遅延が積み重なりやすい構造です。
+
+通常のWebアプリなら数百ミリ秒のコールドスタートは許容範囲でも、エージェントは推論・ツール呼び出し・推論を繰り返すため、遅延がステップ数だけ乗算されます。AWS Lambdaは無料枠として月100万リクエストと40万GB秒を提供しますが、低遅延が必須の経路にはProvisioned Concurrencyが必要で、これは1GB秒あたり0.0000041667ドルが待機中も継続課金される仕組みです。低遅延が必要な経路を絞り込み、常時起動のコストを最小限にすることがコスト設計の起点になります。
+
+## 状態管理はどう設計すべきか
+
+> AWS Lambdaは実行のたびに状態が消える設計のため、エージェントの会話履歴は外部ストアに保存する必要があります。
+
+Lambdaは本質的にステートレスなので、会話履歴やツール実行結果はDynamoDBやRedisなど外部ストアへ毎回読み書きし、そのぶんレイテンシとコストが加算されます。対してCloudflare WorkersのAgents SDKは、エージェント1体につき1つのDurable Objectを割り当て、ローカルのSQLiteに状態を直接永続化できます。Durable Objectsは月100万リクエストと40万GB秒の実行時間を無料枠に含み、外部データベースへの往復なしにセッションを再開できる点が、運用コストを抑えたい中小企業にとって有利に働きます。
+
+## 中小企業はどちらを選ぶべきか
+
+> 既存インフラがAWS中心なら経路を絞ってLambdaを使い、新規構築ならCloudflare Workersで状態管理コストを抑える選択が現実的です。
+
+判断基準は3つあります。第一に既存のクラウド資産です。AWS中心の環境なら、低遅延が必要な一部の経路だけProvisioned Concurrencyを適用し、それ以外はオンデマンドのままにするのが費用対効果の高い設計です。第二に状態管理の複雑さです。長時間の会話や複数ステップのワークフローを扱うなら、外部ストアへの往復が不要なDurable Objects型が実装・運用の両面で有利になります。第三に初期コストの下限です。Cloudflare Workersの有料プランは月5ドルから始められ、リクエスト数の増加に応じて段階的にスケールする料金体系のため、小規模な試験導入と相性がよいといえます。いずれの基盤を選ぶ場合も、ツール実行の権限設計は[AIエージェントの権限管理](/blog/ai-agent-permission-management-design/)と合わせて検討する必要があります。基盤選定から運用体制の構築まで、Kuu株式会社の[AI Ops](https://kuucorp.com/services/ai-ops/)で相談できます。
+
+## 参考
+
+- [Cloudflare Agents](https://developers.cloudflare.com/agents/)
+- [Cloudflare Workers Pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+- [AWS Lambda Pricing](https://aws.amazon.com/lambda/pricing/)
+
+## まとめ
+
+AIエージェントのサーバーレス実行基盤は、コールドスタート対策と状態管理の設計で費用対効果が大きく変わります。AWS Lambdaはステートレスな分、外部ストアとProvisioned Concurrencyの使いどころを絞り込む設計が必要です。Cloudflare WorkersはDurable Objectsで状態をローカルに持てる分、月5ドルからのシンプルな料金体系で小規模導入を試しやすい選択肢です。自社の既存インフラと運用体制に合わせた基盤選定から本番運用の設計まで、Kuu株式会社にご相談ください。

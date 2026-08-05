@@ -970,6 +970,23 @@
         "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
       ],
       "status": "published"
+    },
+    {
+      "slug": "serverless-agent-runtime-design-smb",
+      "keyword": "AIエージェント サーバーレス実行基盤 コールドスタート 状態管理",
+      "title_hint": "AIエージェントのサーバーレス実行基盤設計——コールドスタートと状態管理",
+      "persona": "社内にインフラ専任者を置けない中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェントはサーバーレス基盤（Cloudflare Workers、AWS Lambda）でどう実行設計すればよいか",
+      "sources": [
+        "https://developers.cloudflare.com/agents/",
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://aws.amazon.com/lambda/pricing/"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
