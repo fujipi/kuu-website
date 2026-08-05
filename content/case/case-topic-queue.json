@@ -260,6 +260,15 @@
       "industry": "貨物自動車運送業（トラック運送）",
       "use_case": "点呼記録・配車管理・運行日報の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "driving-school-lesson-scheduling-agent",
+      "keyword": "自動車教習所 教習予約 技能検定 進捗管理 AIエージェント",
+      "title_hint": "自動車教習所の教習予約・進捗管理をAIエージェントに——指導員不足をこう補う",
+      "persona": "指定自動車教習所の教習主任・受付責任者",
+      "industry": "自動車教習所",
+      "use_case": "教習予約調整・技能検定進捗管理・生徒問い合わせ対応の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
