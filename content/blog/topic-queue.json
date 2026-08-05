@@ -970,6 +970,23 @@
         "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
       ],
       "status": "published"
+    },
+    {
+      "slug": "self-hosted-llm-inference-stack-vllm-sglang",
+      "keyword": "セルフホストLLM推論エンジン vLLM SGLang テンソル並列",
+      "title_hint": "セルフホストLLM推論スタック——vLLM/SGLang選定",
+      "persona": "自社GPUクラスタでエージェント推論を運用するプラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "自社でLLMを推論ホスティングする場合、vLLMとSGLangはどう選べばよいか",
+      "sources": [
+        "https://docs.vllm.ai/en/latest/serving/parallelism_scaling/",
+        "https://docs.vllm.ai/en/v0.9.1/serving/distributed_serving.html",
+        "https://arxiv.org/pdf/2312.07104"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
