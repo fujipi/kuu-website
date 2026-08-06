@@ -1,0 +1,60 @@
+---
+title: "MCPツールのスキーマドリフト検知——コントラクトテスト設計"
+description: "MCPツールのスキーマドリフト（Rug Pull）は署名済みベースライン比較とコントラクトテストのCI組み込みで検知できます。具体的な設計手順を解説します。"
+date: "2026-08-04"
+lastModified: "2026-08-04"
+tags: ["MCP", "コントラクトテスト", "エージェント評価", "スキーマドリフト"]
+author: "kuu-engineering"
+audience: "both"
+track: "evaluation"
+tech_depth: "deep"
+target_query: "MCPツールのスキーマドリフトはどう検知・防止すればよいか"
+sources:
+  - "https://modelcontextprotocol.io/specification/2025-06-18/server/tools"
+  - "https://specmatic.io/updates/testing-mcp-servers-how-specmatic-mcp-auto-test-catches-schema-drift-and-automates-regression/"
+  - "https://www.digitalapplied.com/blog/vercel-ai-sdk-mcp-tool-drift-fingerprint-security-2026"
+pillar: "ai-governance"
+glossary_refs: ["mcp", "agent-governance"]
+---
+
+レビューを通過し、数週間安定稼働していた[MCP](/glossary/mcp/)サーバーが、ある日ツールの入力スキーマを黙って変更する——エージェントはそれまで信頼していた契約に基づいてツールを呼び出し続け、型不一致やビジネスロジックの想定外挙動が本番で初めて表面化する。この現象は「MCP rug pull」と呼ばれ、モデルの推論精度とは無関係にエージェント全体の信頼性を損なう。[MCPサーバーの実装設計](/blog/mcp-server-implementation-tool-design/)がツールを正しく公開する話だとすれば、本記事はその契約が壊れていないかをどう継続検証するかを扱う。
+
+## MCPツールのスキーマドリフトとは何か
+
+> MCPツールのスキーマドリフトとは、`inputSchema`/`outputSchema`として宣言された契約と実際のサーバー挙動が実行時に乖離する現象です。
+
+MCP仕様では、各ツールは`name`・`description`・`inputSchema`（必須）・`outputSchema`（任意）で構成される。クライアントは`tools/list`でこの契約を取得し、`tools/call`で呼び出す。仕様上、サーバーが`outputSchema`を宣言した場合は「構造化結果はこのスキーマに準拠しなければならない（MUST）」とされ、クライアント側も「検証すべき（SHOULD）」と定義されている。ドリフトは、この宣言と実装の同期が崩れたときに起きる。Specmaticの検証事例では、あるツールのパラメータがスキーマ上は任意（optional）と宣言されていたにもかかわらず、実際のサーバーはそのパラメータなしのリクエストを拒否していた——スキーマが「言っていること」と実装が「要求すること」が食い違う典型パターンだ。
+
+## なぜ今、契約の継続検証が必要なのか
+
+> サーバー更新のたびに手動でツール仕様を確認するのは非現実的で、信頼済みツールが黙って挙動を変える「rug pull」への対処が2026年の実務課題になっています。
+
+MCPサーバーは`listChanged`機能を宣言していれば、ツール一覧の変更時に`notifications/tools/list_changed`通知を送れる。しかし通知が来ても、何がどう変わったかの差分は自動では分からない。さらに、外部ベンダーが運用するリモートMCPサーバーでは、サーバー側の更新タイミングをクライアント側が制御できない。Vercel AI SDKが`fingerprintTools`と`detectToolDrift`という機能を導入した背景も同じで、一度承認したツールの説明文やスキーマが後から静かに書き換えられる攻撃・事故のリスクを、実行時のフィンガープリント比較で検知する狙いがある。エージェントが自律的にツールを選択・実行する設計であるほど、この契約破りは人間のレビューを経ずに本番影響へ直結する。
+
+## コントラクトテストはどう設計するか
+
+> 署名済みベースラインとの継続比較・自動生成テスト・CI統合の3要素で、スキーマドリフトを本番投入前に検知する設計が基本形です。
+
+具体的な設計は3段階に分けられる。第一に、信頼できる時点のツール一覧（`tools/list`の応答）を「ゴールデンベースライン」として保存する。第二に、そのスキーマから入力値を自動生成してツールを実際に呼び出し、応答を`outputSchema`と突き合わせて検証する——Specmaticのアプローチはこの生成・実行・検証をCLIコマンド一つで再現可能にしている。第三に、この一連のテストをCIパイプラインに組み込み、プルリクエストやマージ前に自動実行してビルドを失敗させる。ベースラインの改ざん自体を防ぐため、SigStoreのような署名基盤でベースラインファイルの真正性を担保する構成も提案されている。検知対象は、必須パラメータの追加・削除、型の変更、説明文の書き換え、宣言にない制約の出現など多岐にわたる。
+
+## 規制文脈でも無視できない理由
+
+> EU AI Actは高リスクAIシステムに試験・検証プロセスの文書化を義務付けており、エージェントが呼ぶAPI層全体を防御対象に含めています。
+
+EU AI Actの高リスクAIシステム義務は2026年8月2日に本格適用が始まった。第17条は品質マネジメントシステムの一部として試験・検証プロセスの手順を、第12条はログの改ざん防止保存を求めている。エージェントがツール呼び出しを通じて外部システムと連携する設計では、モデル出力だけでなく「エージェントが呼ぶAPI層」全体が防御・検証の対象に含まれるという整理が広がっており、契約テストの実施記録はこの文書化要求に対する技術的な裏付けとしても機能する。
+
+## 規模別の留意点（SMB / エンタープライズ）
+
+SMBで社内利用するMCPサーバーが数個程度であれば、まずは主要ツールのベースラインをリポジトリにコミットし、CIで`tools/list`の差分を検知するだけでも効果がある。高価な署名基盤は必須ではなく、Gitの差分レビューを一次防御として運用できる。一方エンタープライズでは、複数チームが多数のリモートMCPサーバーを横断利用するため、ベースラインの署名検証とレジストリでの一元管理が前提になる。[大規模組織向けAIエージェント実装支援](https://kuucorp.com/services/rde/)では、こうしたツール契約のガバナンス設計も支援範囲に含めている。
+
+## 参考
+
+- [MCP Specification — Tools (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18/server/tools)
+- [Testing MCP Servers: How Specmatic MCP Auto-Test Catches Schema Drift (Specmatic)](https://specmatic.io/updates/testing-mcp-servers-how-specmatic-mcp-auto-test-catches-schema-drift-and-automates-regression/)
+- [Vercel AI SDK Tool Drift Defenses: Stop MCP Rug Pulls (DigitalApplied)](https://www.digitalapplied.com/blog/vercel-ai-sdk-mcp-tool-drift-fingerprint-security-2026)
+
+## まとめ
+
+MCPツールのスキーマドリフトは、モデルの精度や設計とは独立に本番挙動を壊すリスクだ。ゴールデンベースラインとの継続比較、自動生成テストの実行、CIへの統合という3段構えで検知の仕組みを組み込めば、契約破りを本番投入前に捕捉できる。
+
+Kuuでは、[AIエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)を通じて、MCPツールの契約管理を含むエージェント運用基盤の設計を支援しています。既存のMCP連携の棚卸しから始めたい場合も、ぜひご相談ください。
