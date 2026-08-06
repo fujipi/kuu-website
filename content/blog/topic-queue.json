@@ -970,6 +970,23 @@
         "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
       ],
       "status": "published"
+    },
+    {
+      "slug": "mcp-registry-namespace-verification-enterprise-trust",
+      "keyword": "MCP公式レジストリ namespace検証 信頼モデル",
+      "title_hint": "MCP公式レジストリのnamespace検証と信頼モデル",
+      "persona": "MCPサーバーの調達・選定基準を作るエンタープライズのプラットフォームエンジニア・セキュリティアーキテクト",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "protocols",
+      "tech_depth": "intermediate",
+      "target_query": "MCP公式レジストリはサーバーの信頼性をどう検証しているか",
+      "sources": [
+        "https://modelcontextprotocol.io/registry/about",
+        "https://raw.githubusercontent.com/modelcontextprotocol/registry/refs/heads/main/docs/reference/server-json/official-registry-requirements.md",
+        "https://github.com/modelcontextprotocol/registry"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
