@@ -148,6 +148,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-data-isolation-context-zoning-smb",
 			"agent-context-compression-session-management",
 		],
+		// MCPサプライチェーン（ABOM設計・依存4層の統制フレームワーク・both/governance-tech）と エージェントスキルのサプライチェーン（CVE-2026-25253/OpenClaw事例・署名/能力ベース権限/サンドボックスの実装詳細・enterprise/security）: 対象と焦点が異なる正当な併存
+		[
+			"mcp-supply-chain-risk-abom-governance",
+			"agent-skill-supply-chain-security-signing-sandboxing",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

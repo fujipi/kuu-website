@@ -251,6 +251,24 @@
       "industry": "アパレル・セレクトショップ",
       "use_case": "在庫・受注管理とバイヤー業務の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "trucking-dispatch-rollcall-agent",
+      "keyword": "トラック運送 点呼記録 配車管理 運行日報 改善基準告示 AIエージェント",
+      "title_hint": "トラック運送の点呼記録・配車管理をAIエージェントに——2024年問題をこう乗り切る",
+      "persona": "トラック運送会社の運行管理者",
+      "industry": "貨物自動車運送業（トラック運送）",
+      "use_case": "点呼記録・配車管理・運行日報の補助自動化",
+      "status": "published"
+    },
+    {
+      "slug": "land-surveyor-boundary-agent",
+      "keyword": "土地家屋調査士 表題登記 境界確認 筆界 AIエージェント 属人化解消",
+      "title_hint": "土地家屋調査士の表題登記・境界確認業務をAIエージェントに——現場と事務所の両輪をこう支える",
+      "persona": "土地家屋調査士事務所の代表・所長",
+      "industry": "士業・土地家屋調査士事務所",
+      "use_case": "表題登記書類のドラフト生成・筆界確認資料整理・現地立会いスケジュール管理の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
@@ -264,5 +282,6 @@
     "BtoB営業 商談メモ 提案書 AIエージェント",
     "コールセンター FAQ ナレッジ AIエージェント",
     "経理 請求書 突合 支払処理 AIエージェント"
-  ]
+  ],
+  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-02時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
 }
