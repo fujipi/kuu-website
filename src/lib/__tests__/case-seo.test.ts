@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getAllCaseSlugs, getCaseBySlug } from "@/lib/case";
+import {
+	getAllCaseSlugs,
+	getCaseBySlug,
+	parseSource,
+	sourceUrls,
+} from "@/lib/case";
 import { extractFaqPairs } from "@/lib/faq";
 
 /**
@@ -50,30 +55,72 @@ describe("case corpus / citation sources", () => {
 		}
 	});
 
-	it("citable-URL coverage does not regress", () => {
-		// 詳細ページは URL の sources だけを citation JSON-LD と外部リンクに変換する。
-		// 2026-08 実測では 70 件中 45 件 (64%) が全件 URL、残る 25 件は
-		// 「〜に関する一般的な業界傾向（公開情報）」のような散文のみで URL がゼロ。
-		// 散文のみの記事は citation が付かず、引用の裏付けが機械可読にならない。
-		// CLAUDE.md の Case チェックリストは「URL を貼る。曖昧記述で済ませない」と
-		// 定めているため、この 25 件は本来この規約に反している（backfill 対象）。
-		// ここでは現状からの後退だけを止める。
-		const withUrl = cases.filter((c) =>
-			c.sources.some((s) => /^https?:\/\//.test(s)),
-		);
-		expect(withUrl.length / cases.length).toBeGreaterThan(0.6);
+	it("every source line carries a URL", () => {
+		// 詳細ページは URL を持つ sources だけを citation JSON-LD と外部リンクに
+		// 変換する。URL の無い行は「〜に関する一般的な業界傾向（公開情報）」のような
+		// 検証不能な記述になり、引用の裏付けが機械可読にならない。
+		// 2026-08 に全 70 件 210 行を URL 付きに揃えた（validate-case.mjs でも hard gate）。
+		for (const c of cases) {
+			const urls = sourceUrls(c.sources);
+			expect(
+				urls.length,
+				`${c.slug}: URL を含まない sources 行がある（${urls.length}/${c.sources.length}）`,
+			).toBe(c.sources.length);
+		}
 	});
 
-	it("sources are either all-URL or all-prose, never silently mixed", () => {
-		// 混在が出てきたら、片方だけが citation に載る状態になる。現状は 45/25 で
-		// きれいに分かれているため、混在の発生を検知できるようにしておく。
+	it("every case yields citations for its JSON-LD", () => {
 		for (const c of cases) {
-			const urls = c.sources.filter((s) => /^https?:\/\//.test(s));
-			expect(
-				urls.length === 0 || urls.length === c.sources.length,
-				`${c.slug}: sources に URL と散文が混在（URL ${urls.length}/${c.sources.length}）`,
-			).toBe(true);
+			expect(sourceUrls(c.sources).length, c.slug).toBeGreaterThanOrEqual(2);
 		}
+	});
+});
+
+describe("parseSource", () => {
+	it("returns a bare URL as both label and url", () => {
+		const s = parseSource("https://www.mlit.go.jp/foo/bar.html");
+		expect(s.url).toBe("https://www.mlit.go.jp/foo/bar.html");
+		expect(s.label).toBe("https://www.mlit.go.jp/foo/bar.html");
+	});
+
+	it("splits a title + URL line into label and url", () => {
+		const s = parseSource(
+			"国土交通省「重要事項説明書等の電磁的方法による提供」https://www.mlit.go.jp/a/b.html",
+		);
+		expect(s.url).toBe("https://www.mlit.go.jp/a/b.html");
+		expect(s.label).toBe(
+			"国土交通省「重要事項説明書等の電磁的方法による提供」",
+		);
+	});
+
+	it("keeps prose with no URL as a plain label", () => {
+		const s = parseSource("契約レビュー業務の工数に関する一般的な業界傾向");
+		expect(s.url).toBeUndefined();
+		expect(s.label).toBe("契約レビュー業務の工数に関する一般的な業界傾向");
+	});
+
+	it("does not swallow trailing punctuation or closing brackets into the URL", () => {
+		expect(parseSource("出典（https://example.com/a）").url).toBe(
+			"https://example.com/a",
+		);
+		expect(parseSource("参考 https://example.com/b。").url).toBe(
+			"https://example.com/b",
+		);
+	});
+
+	it("takes the first URL when a line contains more than one", () => {
+		const s = parseSource("A https://example.com/1 と B https://example.com/2");
+		expect(s.url).toBe("https://example.com/1");
+	});
+
+	it("sourceUrls drops lines without a URL", () => {
+		expect(
+			sourceUrls([
+				"https://example.com/a",
+				"散文のみ",
+				"題 https://example.com/b",
+			]),
+		).toEqual(["https://example.com/a", "https://example.com/b"]);
 	});
 });
 

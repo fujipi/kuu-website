@@ -296,7 +296,7 @@ persona_voice:     # 現場で想定されるニーズ（実績の声ではな�
   attribution: "想定ペルソナ：（役職）"
 models_used:       # 活用した最新モデル・機能
   - "..."
-sources:           # リサーチプロトコルで確認した一次情報源（最低2件）
+sources:           # リサーチプロトコルで確認した一次情報源（最低2件・全行にURL必須）
   - "..."
   - "..."
 future_outlook: "今後の展望（次の発展段階。提案調を保つ）"
@@ -306,6 +306,26 @@ future_outlook: "今後の展望（次の発展段階。提案調を保つ）"
 ```
 
 > `industry` / `use_case` は `src/lib/case.ts` の `CaseEntry` で参照されるため、frontmatter に必ず転記する。`fictional: true` も必須（架空バッジ表示・実在企業誤認防止のため）。
+
+### `sources` の記法（hard gate あり）
+
+**`sources` の全行に URL を含める。** 詳細ページは URL を持つ行だけを Article JSON-LD の `citation` と出典リンクに変換する（`src/lib/case.ts` の `parseSource` / `sourceUrls`）。URL の無い行は画面にも構造化データにも出典として機能しない。
+
+```yaml
+sources:
+  # 推奨: 発行元 + 文書名 + URL（タイトル部分がリンクテキストになる）
+  - "法務省「ＡＩ等を用いた契約書等関連業務支援サービスの提供と弁護士法第72条との関係について」（令和5年8月）https://www.moj.go.jp/housei/shihouseido/housei10_00134.html"
+  # 可: 裸のURL（URL自体がリンクテキストになる）
+  - "https://www.meti.go.jp/report/whitepaper/mono/2025/index.html"
+  # 不可: URL の無い記述（validate:case が exit 1 で落とす）
+  - "契約レビュー業務の工数に関する一般的な業界傾向（公開情報）"
+```
+
+URL 収集時の注意:
+
+- **リンクの生死を curl で確かめるときはブラウザ相当の User-Agent を送る。** ボットらしい UA だと `meti.go.jp` 等が 403 を返し、生きているページを死んだと誤判定する。
+- **e-Gov（`laws.e-gov.go.jp/law/{id}`）は存在しない法令IDでも 200 を返す。** ステータスコードでは検証にならないので、法令API（`https://laws.e-gov.go.jp/api/1/lawdata/{id}`）で正式名称を確認してから貼る。
+- 疎通確認は `pnpm check:case-sources`（任意実行）。上記2点を織り込んである。CI の必須ゲートにはしていない（外部サイト都合でデプロイを止めないため）。
 
 ## 本文の構成・文体ルール
 
@@ -337,7 +357,7 @@ node scripts/validate-case.mjs   # または pnpm validate:case
 - [ ] `industry` / `use_case` が `case-topic-queue.json` の該当 topic と整合する
 - [ ] `objectives` / `measures` / `effects` が**各3項目**
 - [ ] `metrics` が **3枚**、`company_profile` が **4行**、`persona_voice` あり
-- [ ] `sources` が **最低2件**（リサーチプロトコルで確認した URL を貼る。曖昧記述で済ませない）
+- [ ] `sources` が **最低2件**、かつ**全行に URL が入っている**（`pnpm validate:case` の hard gate。下記「sources の記法」を参照）
 - [ ] `models_used` が記載されている
 - [ ] 本文冒頭に **DAB を1つ**配置、**H2 が4個以上**、本文 **1,200〜2,400字**
 - [ ] 提案調で書かれており、**実績・実在企業を装っていない**（「導入した結果〜」のような断定をしていない）

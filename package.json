@@ -13,7 +13,8 @@
     "check:links": "node scripts/check-internal-links.mjs",
     "coverage:blog": "node scripts/blog-coverage-report.mjs",
     "validate:case": "node scripts/validate-case.mjs",
-    "validate:blog": "node scripts/validate-blog.mjs"
+    "validate:blog": "node scripts/validate-blog.mjs",
+    "check:case-sources": "node scripts/check-case-sources.mjs"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

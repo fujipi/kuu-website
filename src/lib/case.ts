@@ -19,6 +19,50 @@ export interface CasePersonaVoice {
 	attribution: string;
 }
 
+/**
+ * frontmatter `sources` の1行を「表示ラベル」と「URL」に分解する。
+ *
+ * 実コーパスには3つの形が混在している:
+ *   1. 裸のURL              `https://www.mlit.go.jp/...`
+ *   2. タイトル + URL       `国土交通省「重要事項説明書〜」https://www.mlit.go.jp/...`
+ *   3. URL 無しの散文       `契約レビュー業務の工数に関する一般的な業界傾向（公開情報）`
+ *
+ * 先頭一致（`/^https?:/`）で判定すると 2 を「URL 無し」と取りこぼし、
+ * citation JSON-LD にも出典リンクにも載らない。URL は行のどこにあっても拾う。
+ *
+ * 複数 URL を含む行は最初の1件を採用する（出典1件＝1リンクの想定）。
+ */
+export interface ParsedSource {
+	/** 画面に出す文字列。タイトルがあればタイトル、無ければ URL か原文そのまま */
+	label: string;
+	/** 抽出できた URL。無ければ undefined */
+	url?: string;
+}
+
+// 末尾の句読点・閉じ括弧は URL に含めない（日本語本文に URL を直書きすると付きやすい）
+const SOURCE_URL = /https?:\/\/[^\s"'<>）)」』】]+/;
+
+export function parseSource(raw: string): ParsedSource {
+	const text = raw.trim();
+	const m = SOURCE_URL.exec(text);
+	if (!m) return { label: text };
+
+	const url = m[0].replace(/[.,、。]+$/, "");
+	const title = text
+		.slice(0, m.index)
+		.trim()
+		.replace(/[-—–:：]+$/, "")
+		.trim();
+	return { label: title || url, url };
+}
+
+/** sources のうち URL を持つものだけを URL 文字列として返す（citation 用） */
+export function sourceUrls(sources: string[]): string[] {
+	return sources
+		.map((s) => parseSource(s).url)
+		.filter((u): u is string => Boolean(u));
+}
+
 export interface CaseEntry {
 	slug: string;
 	title: string;

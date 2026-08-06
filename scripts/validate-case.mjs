@@ -14,7 +14,7 @@
  *   - description が 120字以内 / tags が 4個
  *   - industry / use_case / models_used / future_outlook / persona_voice の必須
  *   - objectives / measures / effects が各3項目、metrics 3枚、company_profile 4行
- *   - sources が 2件以上
+ *   - sources が 2件以上、かつ **各行が URL を含む**
  *   - 本文 H2 が 4個以上
  *   - slug（ファイル名）重複なし
  *
@@ -23,6 +23,9 @@
  * 逆に言えば、ここを緩める前に既存が壊れていないかを必ず確認すること。
  *
  * あえて検査しないもの:
+ *   - sources URL の疎通（HTTP ステータス）: 外部サイトの一時的な 503・レート制限・
+ *     UA ブロックでサイト全体のデプロイが止まるため、CI の hard gate にはしない。
+ *     代わりに scripts/check-case-sources.mjs を任意実行のスクリプトとして用意した。
  *   - 本文字数（1,200〜2,400字）: 業種により妥当な幅が異なり、hard gate だと
  *     正当な記事を落とす。CLAUDE.md の人間向けチェックリストに残す。
  *   - DAB の 40〜60字: 実測で 70 件中 2 件しか収まっておらず（中央値 105字）、
@@ -81,6 +84,14 @@ const EXACT_LENGTH_ARRAYS = [
 	["metrics", 3],
 	["company_profile", 4],
 ];
+
+/**
+ * sources 行から URL を検出する正規表現。
+ * src/lib/case.ts の SOURCE_URL と同じ意図（行のどこにあっても拾う）。
+ * validator は .mjs で src/ の TS を import できないため、ここは意図的な複製。
+ * 片方を変えたら他方も合わせること。
+ */
+const SOURCE_URL = /https?:\/\/[^\s"'<>）)」』】]+/;
 
 /** 本文中の H2 を数える（コードフェンス内は除外） */
 function countH2(content) {
@@ -225,21 +236,32 @@ for (const file of files) {
 		});
 	}
 
-	// (warning) sources が散文のみで URL を含まない。
-	// 詳細ページは URL の sources だけを citation JSON-LD と外部リンクに変換するため、
-	// 散文のみだと引用の裏付けが機械可読にならない。CLAUDE.md は
-	// 「URL を貼る。曖昧記述で済ませない」と定めているが、2026-08 時点で 70 件中
-	// 25 件が散文のみのため hard gate にはせず警告に留める。
-	if (
-		Array.isArray(data.sources) &&
-		data.sources.length > 0 &&
-		!data.sources.some((s) => typeof s === "string" && /^https?:\/\//.test(s))
-	) {
-		warnings.push({
-			file,
-			kind: "sources_no_url",
-			message: `sources に URL が1件も無い（散文のみ）。citation JSON-LD と出典リンクが生成されない。一次情報の URL を記載してください。`,
-		});
+	// (hard) sources の各行に URL が含まれること。
+	// 詳細ページは URL を持つ sources だけを citation JSON-LD と外部リンクに変換する
+	// （src/lib/case.ts の parseSource / sourceUrls）。URL の無い行は
+	// 「〜に関する一般的な業界傾向（公開情報）」のような検証不能な記述になり、
+	// 引用の裏付けが機械可読にならない。CLAUDE.md も「URL を貼る。曖昧記述で
+	// 済ませない」と定めている。2026-08 に全 70 件 210 行を URL 付きに揃えたため
+	// hard gate に昇格した（それ以前は 14 行が該当し warning 止まりだった）。
+	//
+	// 判定は URL の位置を問わない。「タイトル + URL」形式も可
+	// （先頭一致で見ると 61 行を取りこぼす）。
+	if (Array.isArray(data.sources)) {
+		const noUrl = data.sources.filter(
+			(s) => typeof s !== "string" || !SOURCE_URL.test(s),
+		);
+		if (noUrl.length > 0) {
+			violations.push({
+				file,
+				kind: "sources_no_url",
+				message: `sources に URL を含まない行が ${noUrl.length} 件（例: ${String(
+					noUrl[0],
+				).slice(
+					0,
+					40,
+				)}…）。citation JSON-LD と出典リンクが生成されないため、一次情報の URL を記載してください。`,
+			});
+		}
 	}
 
 	// (8) models_used は1件以上

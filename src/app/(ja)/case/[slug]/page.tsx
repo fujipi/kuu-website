@@ -11,6 +11,8 @@ import {
 	getAllCaseSlugs,
 	getAllCases,
 	getCaseBySlug,
+	parseSource,
+	sourceUrls,
 } from "@/lib/case";
 import { getRelatedCases } from "@/lib/case-related";
 import { buildFaqJsonLd, extractFaqPairs } from "@/lib/faq";
@@ -103,8 +105,10 @@ export default async function CaseDetailPage({ params }: Props) {
 	const hasSummary =
 		c.objectives.length > 0 || c.measures.length > 0 || c.effects.length > 0;
 
-	// sources は URL と散文が混在する。構造化データに載せるのは URL のみ。
-	const citationUrls = c.sources.filter((s) => /^https?:\/\//.test(s));
+	// sources は「裸のURL」「タイトル + URL」「URL無しの散文」が混在する。
+	// URL は行のどこにあっても拾う（parseSource / sourceUrls を参照）。
+	const citationUrls = sourceUrls(c.sources);
+	const parsedSources = c.sources.map(parseSource);
 
 	const jsonLd: Record<string, unknown>[] = [
 		{
@@ -392,17 +396,17 @@ export default async function CaseDetailPage({ params }: Props) {
 						>
 							<h2 className="section-label">調査の出典・需要根拠</h2>
 							<ul className="case-sources">
-								{c.sources.map((s) =>
-									/^https?:\/\//.test(s) ? (
-										<li key={s}>
-											<a href={s} target="_blank" rel="noopener noreferrer">
-												{s}
+								{parsedSources.map((s) => (
+									<li key={s.url ?? s.label}>
+										{s.url ? (
+											<a href={s.url} target="_blank" rel="noopener noreferrer">
+												{s.label}
 											</a>
-										</li>
-									) : (
-										<li key={s}>{s}</li>
-									),
-								)}
+										) : (
+											s.label
+										)}
+									</li>
+								))}
 							</ul>
 						</section>
 					)}
