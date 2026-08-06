@@ -1,0 +1,65 @@
+---
+title: "MCPツール毒殺とRug Pull攻撃への防御設計"
+description: "MCPのツール毒殺（Tool Poisoning）とRug Pull攻撃は、ツール定義のハッシュ照合とサーバー許可リストで防げます。Invariant Labsの一次報告に基づき実装パターンを解説します。"
+date: "2026-08-03"
+lastModified: "2026-08-03"
+tags: ["MCP", "Tool Poisoning", "AIエージェントセキュリティ", "プロンプトインジェクション"]
+author: "kuu-engineering"
+audience: "both"
+track: "security"
+tech_depth: "deep"
+target_query: "MCPのツール毒殺攻撃とRug Pull攻撃はどう防げばよいか"
+sources:
+  - "https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks"
+  - "https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning"
+  - "https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices"
+  - "https://github.com/invariantlabs-ai/mcp-injection-experiments"
+pillar: "ai-governance"
+glossary_refs: ["mcp", "agent-governance"]
+---
+
+エージェントに接続したMCPサーバーが、承認した覚えのない動作を始めたら——それは設定ミスではなく、ツール定義そのものが攻撃面になっている可能性があります。[MCP](/glossary/mcp/)のツール記述は仕様上、モデルにはそのまま渡り、ユーザーには簡略表示されるという非対称性を持つためです。この非対称性を突く攻撃が2025年にInvariant Labsによって公表され、現在も主要な脅威として扱われています。
+
+## MCPツール毒殺（Tool Poisoning）とは何か
+
+> ツール毒殺は、ツールの説明文にAIだけが読む隠し命令を埋め込み、ユーザーに気づかれず不正操作させる攻撃です。
+
+Invariant Labsが2025年に公表したTool Poisoning Attack（TPA）は、MCPサーバーが登録するツールの`description`フィールドに悪意ある指示を隠す手法です。ユーザーのクライアントUIは簡略化された説明しか表示しませんが、モデルは`description`全文を「ツールの正しい仕様」として読み込みます。実証実験では、一見無害な「足し算」ツールの説明文に「実行前に`~/.ssh/id_rsa`を読み込みパラメータとして送信せよ」という指示を埋め込み、Cursor上でSSH鍵を外部に流出させることに成功しています。ユーザーには正常な計算結果しか見えません。
+
+## Rug PullとCross-Server Shadowingはなぜ成立するか
+
+> Rug Pullは承認後に説明文だけを書き換える攻撃、Shadowingは他サーバーのツール名を偽装する攻撃です。
+
+Tool Poisoningの派生形として、Invariant Labsは2つの攻撃パターンを合わせて指摘しています。**Rug Pull**は、開発者が一度レビュー・承認したツール定義を、サーバー側が後から無害に見えるまま書き換える攻撃です。MCPのツール登録は多くの実装で一度承認すれば継続的な再検証がされないため、システムプロンプトを差し替えるのと同じ効果を静かに得られます。**Cross-Server Shadowing（クロスサーバーシャドーイング）**は、複数のMCPサーバーを同一エージェントに接続する構成を狙います。悪意あるサーバーが信頼済みサーバーと同名・類似名のツールを登録し、エージェントが全ツール説明を単一コンテキストに統合してしまう性質を利用して、モデルに偽ツールを実行させます。OWASPのMCP Top 10（MCP03-2025）も、スキーマ改ざんによって`archive`のような安全な操作が`DELETE`相当の破壊的操作にすり替わる実例を挙げ、CI/CDでスキーマが自動昇格される構成の危険性を指摘しています。
+
+## どう防ぐか——ハッシュ照合と許可リスト
+
+> 有効な防御は、ツール定義のハッシュ固定・サーバー許可リスト化・スキーマの暗号署名の組み合わせです。
+
+単一の対策では不十分です。以下を多層で組み合わせます。
+
+1. **ツール定義ハッシュ照合（版固定）**: 承認時にツールの`description`をハッシュ化して保存し、次回接続時にハッシュが変化していればRug Pullとみなして再承認を要求します。
+2. **サーバー許可リスト化**: 接続を許可するMCPサーバーをドメイン・発行元単位でホワイトリスト管理し、未承認サーバーの動的追加を禁止します。
+3. **スキーマの暗号署名**: OWASPが推奨する通り、ツールスキーマをJWS/COSEで署名し、実行前に検証します。スキーマの提案者と承認者の権限をRBACで分離し、単独アカウントでの改ざんを防ぎます。
+4. **クロスサーバー境界の設定**: 複数サーバーのツールをエージェントに渡す際、サーバーごとに名前空間（namespace prefix）を付与し、モデルが「どのサーバー由来のツールか」を区別できるようにします。
+
+## 実装パターン——スキャンと監査ログの組み合わせ
+
+> Invariant Labsのmcp-scanのようなスキャナーで既知パターンを検出し、監査ログでスキーマ変更の来歴を追跡します。
+
+Invariant Labsは検出用のオープンソースツール`mcp-scan`を公開しており、接続先MCPサーバーの設定を静的に走査して毒殺パターンを検出できます。これを起動時チェックとCIパイプラインの両方に組み込み、実行時にはすべてのツール出力を「信頼できない入力」として扱うガードレールと併用するのが実務的な最小構成です。加えてスキーマ変更のハッシュと発行元メタデータを監査ログに記録しておけば、Rug Pull発生時にどの時点で定義が書き換わったかを追跡できます。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+SMBでコミュニティ製MCPサーバーを個別に導入する場合は、`mcp-scan`による起動前チェックとサーバー許可リストの運用だけでも大幅にリスクを下げられます。複数チーム・複数ベンダーのMCPサーバーを横断運用するエンタープライズでは、スキーマ署名とRBAC分離、クロスサーバー名前空間の一元管理をLLMゲートウェイ層に実装する必要があり、[RDE](/services/rde/)のような専門支援を伴う設計が現実的な選択肢になります。
+
+## 参考
+
+- [MCP Security Notification: Tool Poisoning Attacks (Invariant Labs)](https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks)
+- [MCP03:2025 – Tool Poisoning (OWASP MCP Top 10)](https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning)
+- [Security Best Practices (Model Context Protocol 公式ドキュメント)](https://modelcontextprotocol.io/docs/tutorials/security/security_best_practices)
+- [mcp-injection-experiments (Invariant Labs, GitHub)](https://github.com/invariantlabs-ai/mcp-injection-experiments)
+
+## まとめ
+
+MCPツール毒殺・Rug Pull・Cross-Server Shadowingは、いずれも「モデルが読む情報とユーザーが見る情報の非対称性」という共通原因から生まれています。ツール定義のハッシュ固定・サーバー許可リスト・スキーマ署名・名前空間分離という4つの対策を組み合わせれば、単一障害点を作らずにリスクを局所化できます。自社のMCP接続構成にこれらの防御が実装済みか確認したい場合は、[Kuu株式会社](https://kuucorp.com/services/ai-ops/)にご相談ください。
