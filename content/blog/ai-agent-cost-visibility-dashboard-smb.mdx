@@ -1,0 +1,54 @@
+---
+title: "AIエージェントのコスト可視化ダッシュボード設計"
+description: "Anthropic Usage & Cost APIとLangfuseを組み合わせれば、中小企業でも低コストでAIエージェントの運用コストをワークスペース・モデル単位で可視化できる。利用データは5分以内に反映される。"
+date: "2026-08-03"
+lastModified: "2026-08-03"
+tags: ["コスト可視化", "AI FinOps", "中小企業", "可観測性"]
+author: "kuu-engineering"
+audience: "smb"
+track: "platform-infra"
+tech_depth: "intermediate"
+target_query: "中小企業がAIエージェントの運用コストをどう可視化・監視すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/usage-cost-api"
+  - "https://langfuse.com/docs/observability/features/token-and-cost-tracking"
+  - "https://docs.helicone.ai/guides/cookbooks/cost-tracking"
+---
+
+AIエージェントを本番投入したあと、多くの中小企業が同じ壁にぶつかる。月末に届くAPI請求が想定より数倍膨らんでいるのに、どのプロジェクト・どのモデル呼び出しが原因か分からない。ワークスペースやAPIキーを増やすたびに、コストの内訳は見えにくくなっていく。
+
+原因は技術ではなく計測の欠如だ。トークン単価は公開されているのに、それを継続的に集計・可視化する仕組みを後回しにしている企業が大半を占める。ここでは中小企業が低コストで導入できるコスト可視化の構成を、一次情報に基づいて整理する。
+
+## なぜAIエージェントのコストは"見えない"のか
+
+> ワークスペースやAPIキーが増えるほど、どの機能がコストを生んでいるかは請求書だけでは分からなくなる。
+
+多くの企業は最初、1つのAPIキーで複数のエージェント機能を動かす。プロトタイプ段階ではそれで十分だが、本番運用に移ると経費精算・カスタマーサポート・レポート生成など複数の用途が同じキーに相乗りし、コストの発生源を後から切り分けられなくなる。キャッシュ書き込みと読み取り、バッチ処理と通常呼び出しでは単価が異なるため、単純なトークン数の合計だけでは実態を把握できない。
+
+## Anthropic Usage & Cost APIで何が計測できるか
+
+> Usage APIとCost APIはワークスペース単位で使用量とコストを集計でき、データは5分以内に反映される。
+
+Anthropicは組織向けにUsage & Cost Admin APIを提供している。`/v1/organizations/usage_report/messages`はトークン消費量を`1m`・`1h`・`1d`の粒度で集計し、`workspace_id`・`model`・`api_key_id`・`service_tier`でフィルタ・グルーピングできる。`/v1/organizations/cost_report`は日次粒度でUSD建てのコストを返し、`workspace_id`や`description`でグループ化すればプロジェクトごとの請求内訳が得られる。ポーリングは1分に1回まで対応しており、ダッシュボード更新には十分な頻度だ。バッチ処理は通常料金の50%割引、プロンプトキャッシュの読み取りは大幅に安くなるため、これらの内訳を`service_tier`で分離して見ることが最初のコスト最適化につながる。
+
+## OSSダッシュボードでどう補完するか
+
+> Langfuseはコストをモデル・利用種別ごとに可視化し、API応答から直接取得したコストを推定値より優先して表示する。
+
+Admin APIは組織全体の集計には強いが、「どのエージェントのどのステップでコストが発生したか」というリクエスト単位の粒度は苦手だ。ここを補うのがLangfuseのようなOSS可観測化ツールで、生成呼び出しごとにトークン数とコストをトレースに紐づけ、ユーザーやタグでフィルタできる。API応答にコスト情報が含まれる場合はそれを優先し、含まれない場合はモデル名とトークナイザーから自動計算する仕組みのため、追加設定なしで主要モデルのコストを追える。月間のLLM支出が小さいうちはHeliconeのようなプロキシ型ツールでキャッシュ込みの簡易ログから始め、エージェント構成が複雑になったらLangfuseに移行する、という段階的な選び方も現実的だ。
+
+## 中小企業はどこから着手すべきか
+
+> Admin APIキーを発行しワークスペースを分割、次にOSSダッシュボードでコストの内訳を追うと着手しやすい。
+
+最初の一歩は、用途ごとにワークスペースを分けることだ。経費精算・サポート対応・社内ナレッジ検索を同じワークスペースで動かしていると、`cost_report`をどう集計しても切り分けられない。次に、週次で`cost_report`を`workspace_id`と`description`でグループ化して取得し、CSVで経理担当と共有する運用を作る。エージェントの本数が増えてきたら、[Langfuseの可観測化基盤](/blog/langfuse-agent-observability-smb-setup/)を追加し、リクエスト単位のトレースとコストを結びつける。評価コストの最適化まで含めて設計したい場合は、judgeモデル選定とサンプリング設計を扱った既存記事も参考になる。運用設計を外部パートナーと進めたい企業は、[Kuuのエージェント運用支援](https://kuucorp.com/services/ai-ops/)でワークスペース設計からダッシュボード構築まで相談できる。
+
+## 参考
+
+- [Usage and Cost API - Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/usage-cost-api)
+- [Token & Cost Tracking - Langfuse](https://langfuse.com/docs/observability/features/token-and-cost-tracking)
+- [Cost Tracking & Optimization - Helicone](https://docs.helicone.ai/guides/cookbooks/cost-tracking)
+
+## まとめ
+
+AIエージェントのコストは、計測の仕組みを作らない限り請求書が届くまで見えない。Admin APIでワークスペース単位の集計を押さえ、OSSダッシュボードでリクエスト単位の内訳を補完すれば、中小企業でも大きな追加投資なくコストの可視化を実現できる。設計や運用体制の構築に迷ったら、Kuuまでお問い合わせください。
