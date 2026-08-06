@@ -1,0 +1,62 @@
+---
+title: "MCP公式レジストリのnamespace検証と信頼モデル"
+description: "MCP公式レジストリはio.github.*のGitHub OAuthかcom.example形式のDNS TXTでnamespaceを検証するが、コード自体の脆弱性スキャンはnpmやPyPI側に委ねる設計です。"
+date: "2026-08-06"
+lastModified: "2026-08-06"
+tags: ["MCP", "MCPレジストリ", "サプライチェーンセキュリティ", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "intermediate"
+target_query: "MCP公式レジストリはサーバーの信頼性をどう検証しているか"
+sources:
+  - "https://modelcontextprotocol.io/registry/about"
+  - "https://raw.githubusercontent.com/modelcontextprotocol/registry/refs/heads/main/docs/reference/server-json/official-registry-requirements.md"
+  - "https://github.com/modelcontextprotocol/registry"
+pillar: "ai-governance"
+glossary_refs: ["mcp"]
+---
+
+MCPサーバーを社内で使い始めると、まず突き当たるのが「このサーバーは信頼できるのか」という問いだ。2025年9月にプレビュー公開された[MCP](/glossary/mcp/)公式レジストリ（registry.modelcontextprotocol.io）は、Anthropic・GitHub・PulseMCP・Microsoftが支えるメタデータリポジトリとしてこの課題に答えようとしているが、その検証範囲には明確な境界がある。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)のピラーコンテンツに連動しています。エンタープライズでMCPサーバーの選定基準を作る担当者は、[MCPサプライチェーンリスクとABOM](/blog/mcp-supply-chain-risk-abom-governance/)と合わせて読むと依存管理の全体像がつかめる。
+
+## MCP公式レジストリとは何か
+
+> MCP公式レジストリはサーバーのメタデータのみを扱う中央リポジトリで、npm・PyPI等のパッケージ本体は保持しない。
+
+レジストリが保存するのは`server.json`という標準フォーマットのメタデータであり、サーバー名（例: `io.github.user/server-name`）・所在地（npmパッケージ名やリモートURL）・実行方法（コマンド引数や環境変数）を記述する。パッケージのコード自体はnpm・PyPI・NuGet・Cargo・Docker Hub/GHCR/Quay.io/Google Artifact Registry/ACR/MCRなど既存のパッケージレジストリ側にホストされ、MCP公式レジストリはそこへのポインタを提供するだけだ。プライベートネットワーク限定のサーバーや社内プライベートレジストリ経由のパッケージは対象外で、公開されているサーバーのみが登録対象になる。
+
+## namespaceはどう検証されるのか
+
+> namespaceは逆引きDNS形式で表され、`io.github.*`はGitHub OAuth、`com.example`形式はドメインのDNS TXTレコードで所有権を証明する。
+
+`io.github.acme/legal-mcp`のような名前空間は、publisher CLIでGitHub OAuth認証を行い、対象GitHub Organizationのメンバーであることを確認して初めて発行できる。独自ドメインの`com.example/server`形式は、レジストリが発行するトークンをDNS TXTレコードとして登録しドメイン所有を証明する必要がある。加えてパッケージ側にも所有権証明が要求され、公開されているパッケージ本体と登録者の対応関係を偽装できない設計になっている。
+
+## レジストリはコードの安全性まで保証するのか
+
+> 保証しない。脆弱性スキャンはnpm・PyPI・Docker Hubなど下流のパッケージレジストリとダウンストリームのアグリゲーターに委ねられている。
+
+公式ドキュメントは「レジストリはnamespace認証とメタデータホスティングに専念し、コードのセキュリティスキャンはエコシステム側に委ねる」と明記している。つまりnamespace検証をパスしたサーバーであっても、コード自体にRCEやツールポイズニングの脆弱性が含まれていないことは保証されない。Cloud Security Allianceの調査で指摘された、OAuth未実装のMCPインスタンスが多数存在するという構造的リスクは、レジストリ登録の有無とは独立した問題として残る。ホスト・アプリケーションも公式レジストリを直接消費するのではなく、マーケットプレイスなど下流アグリゲーターのOpenAPI準拠実装を経由することが想定されている。
+
+## 企業導入で押さえるべき設計ポイント
+
+> namespace検証は「なりすまし防止」であって「安全性証明」ではない前提で、バージョン固定と独自の脆弱性スキャンを組み合わせる。
+
+エンタープライズでMCP公式レジストリを調達フローに組み込む際は、次の3点を設計に含めるべきだ。
+
+1. **バージョンピン留め**: `server.json`が指すパッケージのバージョンを固定し、自動追従させない。namespaceの持ち主が変わらなくても、リリースされたコードの安全性は毎回別途確認する。
+2. **namespace所有者と実際のベンダーの一致確認**: `io.github.*`ならGitHub Organizationの実体を、`com.example`ならドメイン運用主体を調達時に照合する。
+3. **社内スキャンパイプラインの併設**: レジストリが保証しないコードスキャンを、npm auditやコンテナイメージスキャンなど既存のサプライチェーンセキュリティ基盤に組み込む。
+
+MCPサーバーの認可設計そのものは[MCPエンタープライズ認証設計](/blog/mcp-enterprise-managed-authorization-design/)で扱っているが、レジストリ選定はその前段にあたる調達ガバナンスの一部だ。複数チームがMCPサーバーを選定・接続する体制を統制するには、[RDEサービス](https://kuucorp.com/services/rde/)のような実装支援を通じて、namespace検証を含む調達基準を全社ポリシーとして明文化することが有効だ。
+
+## 参考
+
+- [The MCP Registry](https://modelcontextprotocol.io/registry/about)
+- [Official Registry server.json Requirements](https://raw.githubusercontent.com/modelcontextprotocol/registry/refs/heads/main/docs/reference/server-json/official-registry-requirements.md)
+- [modelcontextprotocol/registry (GitHub)](https://github.com/modelcontextprotocol/registry)
+
+## まとめ
+
+MCP公式レジストリはnamespace認証によって「誰が公開したか」のなりすましを防ぐが、「公開されたコードが安全か」までは保証しない。この境界を理解しないまま調達フローに組み込むと、レジストリ登録済みという事実だけで安全性を誤認するリスクがある。エンタープライズでMCPサーバーの調達・統制体制を設計する際は、namespace検証を入り口の一部として位置づけ、バージョン管理と脆弱性スキャンを独自に重ねる設計が欠かせない。Kuu株式会社では[RDE](https://kuucorp.com/services/rde/)を通じて、MCPサーバー調達を含むエージェントガバナンス基盤の設計を支援している。
