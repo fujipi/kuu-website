@@ -955,6 +955,40 @@
       "status": "published"
     },
     {
+      "slug": "agent-skill-supply-chain-security-signing-sandboxing",
+      "keyword": "エージェントスキル サプライチェーン セキュリティ 署名 サンドボックス",
+      "title_hint": "エージェントスキルのサプライチェーン攻撃を防ぐ設計",
+      "persona": "スキル・拡張機能エコシステムを組織導入するセキュリティアーキテクト・プラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "エージェントスキルのサプライチェーン攻撃はどう防ぐか",
+      "sources": [
+        "https://arxiv.org/pdf/2603.00195",
+        "https://www.runzero.com/blog/openclaw/",
+        "https://www.sonicwall.com/blog/openclaw-auth-token-theft-leading-to-rce-cve-2026-25253"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "mcp-registry-namespace-verification-enterprise-trust",
+      "keyword": "MCP公式レジストリ namespace検証 信頼モデル",
+      "title_hint": "MCP公式レジストリのnamespace検証と信頼モデル",
+      "persona": "MCPサーバーの調達・選定基準を作るエンタープライズのプラットフォームエンジニア・セキュリティアーキテクト",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "protocols",
+      "tech_depth": "intermediate",
+      "target_query": "MCP公式レジストリはサーバーの信頼性をどう検証しているか",
+      "sources": [
+        "https://modelcontextprotocol.io/registry/about",
+        "https://raw.githubusercontent.com/modelcontextprotocol/registry/refs/heads/main/docs/reference/server-json/official-registry-requirements.md",
+        "https://github.com/modelcontextprotocol/registry"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "mcp-tool-poisoning-rug-pull-defense",
       "keyword": "MCP ツール毒殺 Tool Poisoning Rug Pull Cross-Server Shadowing 対策",
       "title_hint": "MCPツール毒殺とRug Pull攻撃への防御設計",
