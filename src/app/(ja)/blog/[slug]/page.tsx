@@ -19,9 +19,10 @@ import { mdToHtml } from "@/lib/mdToHtml";
 import { getAllPostSlugs, getAllPosts, getPostBySlug } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
 import { getPillarForPost } from "@/lib/pillars";
-import { readingTimeMinutes } from "@/lib/readingTime";
+import { readingTimeMinutes, wordCount } from "@/lib/readingTime";
 import { getRelatedPosts, getSeriesPosts } from "@/lib/related";
 import {
+	authorId,
 	BASE_URL,
 	buildBreadcrumb,
 	ORG_PUBLISHER,
@@ -189,12 +190,17 @@ export default async function BlogPostPage({ params }: Props) {
 				width: 1200,
 				height: 630,
 			},
+			// @id は著者アーカイブ (/authors/{slug}/) の Person と共有する。
+			// これが無いと Article の著者と ProfilePage の著者が「別人格の2ノード」に
+			// なるため、ORG_ID / FOUNDER_ID と同じエンティティ統合パターンに揃える。
 			author: {
 				"@type": "Person",
+				"@id": authorId(author.slug),
 				name: author.name,
 				jobTitle: author.role,
-				url: `https://kuucorp.com/authors/${author.slug}/`,
+				url: `${BASE_URL}/authors/${author.slug}/`,
 				knowsAbout: author.expertise,
+				sameAs: author.sameAs,
 				worksFor: ORG_REF,
 			},
 			publisher: ORG_PUBLISHER,
@@ -202,10 +208,10 @@ export default async function BlogPostPage({ params }: Props) {
 			dateModified: post.lastModified,
 			mainEntityOfPage: {
 				"@type": "WebPage",
-				"@id": `https://kuucorp.com/blog/${slug}/`,
+				"@id": `${BASE_URL}/blog/${slug}/`,
 			},
-			url: `https://kuucorp.com/blog/${slug}/`,
-			wordCount: post.content.length,
+			url: `${BASE_URL}/blog/${slug}/`,
+			wordCount: wordCount(post.content),
 			articleSection: post.tags[0] ?? "AIエージェント",
 			keywords: post.tags.join(", "),
 			inLanguage: "ja",
@@ -255,6 +261,10 @@ export default async function BlogPostPage({ params }: Props) {
 							fontFamily: "var(--font-heading)",
 						}}
 					>
+						<Link href="/" style={{ color: "var(--gray-medium)" }}>
+							Home
+						</Link>
+						<span style={{ margin: "0 0.5rem" }}>/</span>
 						<Link href="/blog/" style={{ color: "var(--gray-medium)" }}>
 							Blog
 						</Link>

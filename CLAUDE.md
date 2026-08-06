@@ -106,7 +106,16 @@ series_order: 3                       # 任意。シリーズ内順序
 [本文]
 ```
 
-> `audience` / `track` / `tech_depth` / `sources` は frontmatter にも必ず転記する（カバレッジ計測・検証が frontmatter から行えるようにするため）。これらのフィールドはレンダリング側 (`src/lib/mdx.ts`) では現状読まれないため、追加してもビルドには影響しない。
+> `audience` / `track` / `tech_depth` / `sources` は frontmatter に**必ず**転記する。これらは単なる計測用メタデータではなく、`src/lib/mdx.ts` 経由で読まれて**構造化データの出力内容を直接変える**（`src/app/(ja)/blog/[slug]/page.tsx`）:
+>
+> | フィールド | レンダリングへの影響 |
+> |---|---|
+> | `track` / `tech_depth` | 記事の JSON-LD を `Article` → **`TechArticle`** に昇格させる |
+> | `tech_depth: "deep"` | `proficiencyLevel: "Expert"` を付与（`"intro"` なら `"Beginner"`） |
+> | `sources` | **`citation`**（`WebPage` の配列）として出力。E-E-A-T の裏付けになる |
+> | `audience` + `track` | 記事末尾の `<CtaBox>` の出し分けと `/blog/track/{track}/` アーカイブへの収載 |
+>
+> 未設定だと素の `Article` として出力され、citation も proficiencyLevel も付かない。2026-05-29 以前のレガシー記事 84 件がこの状態にあり、`node scripts/validate-blog.mjs` の `research_protocol` 警告で列挙される。
 
 #### SERP（検索結果）コピーの最適化
 

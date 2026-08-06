@@ -13,16 +13,19 @@ import {
 	getCaseBySlug,
 } from "@/lib/case";
 import { getRelatedCases } from "@/lib/case-related";
+import { buildFaqJsonLd, extractFaqPairs } from "@/lib/faq";
 import { getAllGlossaryTerms } from "@/lib/glossary";
 import { resolveIndustryGroup } from "@/lib/industries";
 import { mdToHtml } from "@/lib/mdToHtml";
 import { getMainNav } from "@/lib/navigation";
+import { wordCount } from "@/lib/readingTime";
 import {
 	BASE_URL,
 	buildBreadcrumb,
 	ORG_PUBLISHER,
 	ORG_REF,
 	resolveOgImage,
+	SITE_NAME,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 
@@ -38,11 +41,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 	const { slug } = await params;
 	const c = getCaseBySlug(slug);
 	if (!c) return { title: "ユースケースが見つかりません" };
+	// title はブランド接尾辞を付けない（seo.ts が title.absolute でレイアウトの
+	// テンプレートを抑止済み。付けると SERP の表示幅を実タイトルから奪う）。
 	return seoMetadata({
-		title: `${c.title} | Case | Kuu株式会社`,
+		title: c.title,
 		description: c.description,
 		path: `/case/${slug}/`,
 		markdownPath: `/case/${slug}/index.md`,
+		article: {
+			publishedTime: c.date,
+			modifiedTime: c.lastModified || c.date,
+			authors: [SITE_NAME],
+			tags: c.tags,
+		},
 	});
 }
 
@@ -92,7 +103,10 @@ export default async function CaseDetailPage({ params }: Props) {
 	const hasSummary =
 		c.objectives.length > 0 || c.measures.length > 0 || c.effects.length > 0;
 
-	const jsonLd = [
+	// sources は URL と散文が混在する。構造化データに載せるのは URL のみ。
+	const citationUrls = c.sources.filter((s) => /^https?:\/\//.test(s));
+
+	const jsonLd: Record<string, unknown>[] = [
 		{
 			"@context": "https://schema.org",
 			"@type": "Article",
@@ -113,6 +127,21 @@ export default async function CaseDetailPage({ params }: Props) {
 			datePublished: c.date,
 			dateModified: c.lastModified || c.date,
 			keywords: c.tags.join(", "),
+			wordCount: wordCount(c.content),
+			...(citationUrls.length > 0
+				? {
+						citation: citationUrls.map((src) => ({
+							"@type": "WebPage",
+							url: src,
+						})),
+					}
+				: {}),
+			// 想定業種／想定業務を主題として明示する（Case は業務別ユースケース集のため、
+			// 業種・業務がそのまま記事の主題になる）
+			...(c.industry ? { about: { "@type": "Thing", name: c.industry } } : {}),
+			...(c.useCase
+				? { audience: { "@type": "Audience", audienceType: c.useCase } }
+				: {}),
 			author: ORG_REF,
 			publisher: ORG_PUBLISHER,
 			mainEntityOfPage: { "@type": "WebPage", "@id": url },
@@ -128,6 +157,12 @@ export default async function CaseDetailPage({ params }: Props) {
 			{ name: c.title, path: `/case/${slug}/` },
 		]),
 	];
+
+	// 質問形見出し＋直後の回答が2ペア以上ある記事のみ FAQPage を付与（blog と同一ロジック）
+	const faqPairs = extractFaqPairs(c.content);
+	if (faqPairs) {
+		jsonLd.push(buildFaqJsonLd(faqPairs));
+	}
 
 	return (
 		<>
@@ -154,6 +189,8 @@ export default async function CaseDetailPage({ params }: Props) {
 						<Link href="/case/" style={{ color: "var(--gray-medium)" }}>
 							Case
 						</Link>
+						<span style={{ margin: "0 0.5rem" }}>/</span>
+						<span>{c.title}</span>
 					</nav>
 
 					<h1
@@ -355,9 +392,17 @@ export default async function CaseDetailPage({ params }: Props) {
 						>
 							<h2 className="section-label">調査の出典・需要根拠</h2>
 							<ul className="case-sources">
-								{c.sources.map((s) => (
-									<li key={s}>{s}</li>
-								))}
+								{c.sources.map((s) =>
+									/^https?:\/\//.test(s) ? (
+										<li key={s}>
+											<a href={s} target="_blank" rel="noopener noreferrer">
+												{s}
+											</a>
+										</li>
+									) : (
+										<li key={s}>{s}</li>
+									),
+								)}
 							</ul>
 						</section>
 					)}

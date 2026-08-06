@@ -28,17 +28,25 @@
  *
  * 警告（warning、exit 0 のまま report のみ）:
  *   - 本文中の /services/ リンク欠落（既存に 2 件存在するため hard にしない）
+ *   - `## 参考` H2 + frontmatter sources ≥ 2（research_protocol）。2026-05-29 以降の
+ *     新レジーム 121 件は 100% 充足、レガシー 84 件が未設置のため warning に留める。
+ *     sources は citation JSON-LD になるため、欠けると構造化データが一段薄くなる。
  *   - 近接重複（near_duplicate）: title 文字 bigram 類似・共有タグ・target_query 一致で
  *     既存記事とテーマ重複する新規記事を警告。NEAR_DUP_ALLOWLIST で併存ペアを除外。
+ *   - SERP コピー（title 32字超過 / description 70字未満）
  *
  * 不採用（CLAUDE.md「バリデーション基準」には残るが機械 gate にしない）:
- *   - 本文 1,600〜2,400字（既存 50 件が範囲外。深い技術記事は超過する）
- *   - `## 参考` H2 + sources ≥ 2（既存 93 件は本文に参考セクション未設置）
- *   - frontmatter audience / track / tech_depth / sources 必須化（移行前の旧 93 記
- *     事は未設定で blog-coverage-report.mjs もヒューリスティック分類している）
- *   - Direct-Answer Block 40-60字（既存に逸脱多数。誤検知リスク高）
+ *   - 本文 1,600〜2,400字（205 件中 38 件しか収まらない。中央値 3,418 字で、
+ *     深い技術記事は上限を超える。上限側のルール見直しが先）
+ *   - frontmatter audience / track / tech_depth / sources 必須化（レガシー 84 件が
+ *     未設定で blog-coverage-report.mjs もヒューリスティック分類している。
+ *     backfill 完了後に hard 化を再検討）
+ *   - Direct-Answer Block 40-60字（配置は 98.0% だが長さは 58.9% しか収まらない）
  *   - 本文レベルの意味的重複検出（誤検知リスク高、AI 判定が必要）。ただし
  *     title/タグ/target_query ベースの近接重複は warning として採用（上記「警告」）。
+ *
+ * 件数はすべて 2026-08-06 / 母数 205 件の実測。判定を見直すときは必ず取り直すこと
+ * （前回計測は母数 94 件で、そのままでは結論が変わっている項目がある）。
  *
  * fictional チェック・実在企業 deny-list は Blog では入れない（Blog は実在企業を正当
  * に論評するメディアで、Case とはスコープが逆。詳細は本ファイル末尾 NOTE 参照）。
@@ -134,10 +142,7 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-sonnet5-enterprise-agentic-design",
 		],
 		// MCP OAuth 2.1スコープ設計（enterprise/deep・仕様準拠）と MCP認証移行ガイド（smb/intermediate・APIキーからの移行実務）: audience・tech_depthが異なる正当な併存
-		[
-			"mcp-security-oauth-scope-design",
-			"mcp-auth-apikey-to-oauth-smb",
-		],
+		["mcp-security-oauth-scope-design", "mcp-auth-apikey-to-oauth-smb"],
 		// データ感度ゾーニング・コンテキスト汚染防止（セキュリティ設計）と コンテキストエンジニアリング・トークン予算管理（効率化設計）: 「コンテキスト」という語が共通するが主題がセキュリティvs効率で全く異なる正当な併存
 		[
 			"agent-data-isolation-context-zoning-smb",
@@ -295,6 +300,25 @@ for (const file of files) {
 		});
 	}
 
+	// (warning) リサーチプロトコル準拠。`## 参考` H2 と frontmatter sources ≥ 2。
+	// 2026-05-29 以降の新レジーム 121 件は 100% 満たしており、レガシー 84 件のみ
+	// 未設置。hard gate にすると既存が落ちて deploy が止まるため警告に留める
+	// （backfill 完了後に hard 化を再検討）。
+	// sources は citation JSON-LD になるため、欠けると構造化データが一段薄くなる。
+	{
+		const nSources = Array.isArray(data.sources) ? data.sources.length : 0;
+		const hasSanko = /^## 参考\s*$/m.test(content || "");
+		if (!hasSanko || nSources < 2) {
+			warnings.push({
+				file,
+				kind: "research_protocol",
+				message: `リサーチプロトコル未充足（\`## 参考\` H2: ${
+					hasSanko ? "有" : "無"
+				} / frontmatter sources: ${nSources} 件）。新規生成では一次情報源を 2 件以上記録すること。`,
+			});
+		}
+	}
+
 	// (warning) SERP コピー品質。CLAUDE.md の「SERP（検索結果）コピーの最適化」
 	// 基準（title 全角32字以内 / description 70〜120字）の下限側を警告で出す。
 	// 既存記事に該当があり得るため hard gate にはしない（デプロイは止めない）。
@@ -419,23 +443,32 @@ process.exit(0);
  *
  * 採用 / 不採用一覧
  * =================
- * | 項目                                          | 採否    | 既存全件 PASS 件数（94中） |
- * | --------------------------------------------- | ------- | -------------------------- |
- * | frontmatter title / description / date / tags | hard    | 94                         |
- * | description ≤ 120 字                          | hard    | 94                         |
- * | tags 1〜4 個                                  | hard    | 94                         |
- * | 本文 H2 ≥ 3                                   | hard    | 94                         |
- * | 禁止フレーズ未使用                            | hard    | 94                         |
- * | slug 重複なし                                 | hard    | 94                         |
- * | audience=enterprise → /services/rde/ 言及     | hard    | 94（既存に enterprise が 0 件のため発火せず） |
- * | /services/ 内部リンク ≥ 1                     | warning | 92（what-is-ai-agent と why-agent-governance が欠落） |
- * | タグ増殖（1記事のみのタグ）                   | warning | 集計1件のみ（タグページは3記事未満で noindex のため再利用を促す） |
- * | 本文 1,600〜2,400 字                          | 不採用  | 44（50 件が超過。深い技術記事は到達できない） |
- * | `## 参考` H2 + sources ≥ 2                    | 不採用  | 1（既存 93 件には未設置）  |
- * | DAB 40〜60 字                                 | 不採用  | 96.2%（誤検知リスク高）    |
- * | frontmatter audience/track/tech_depth/sources | 不採用  | 1（移行前 93 記事が未設定）|
+ * 最終計測 2026-08-06 / 母数 205 件（前回計測時の 94 件から倍増しているため、
+ * 判定を見直す際は必ず現在の実測を取り直すこと）。
+ *
+ * | 項目                                          | 採否    | 既存 PASS 件数（205中） |
+ * | --------------------------------------------- | ------- | ----------------------- |
+ * | frontmatter title / description / date / tags | hard    | 205                     |
+ * | description ≤ 120 字                          | hard    | 205                     |
+ * | tags 1〜4 個                                  | hard    | 205                     |
+ * | 本文 H2 ≥ 3                                   | hard    | 205                     |
+ * | 禁止フレーズ未使用                            | hard    | 205                     |
+ * | slug 重複なし                                 | hard    | 205                     |
+ * | audience=enterprise → /services/rde/ 言及     | hard    | 205（enterprise 47 件が全て言及。**このゲートは既に稼働中**） |
+ * | /services/ 内部リンク ≥ 1                     | warning | 203（what-is-ai-agent と why-agent-governance が欠落） |
+ * | タグ増殖（1記事のみのタグ）                   | warning | 集計のみ（タグページは3記事未満で noindex のため再利用を促す） |
+ * | `## 参考` H2 + sources ≥ 2                    | warning | 121（2026-05-29 以降の新レジームは 100%。レガシー 84 件が未設置） |
+ * | 本文 1,600〜2,400 字                          | 不採用  | 38（中央値 3,418 字。深い技術記事は上限に収まらない。上限側のルール見直しが先） |
+ * | DAB 40〜60 字                                 | 不採用  | 配置は 98.0%（830/847 H2）だが**長さは 58.9% しか収まらない**（中央値 59・最大 153）。hard gate だと 4 割が落ちる |
+ * | frontmatter audience/track/tech_depth/sources | 不採用  | 121（レガシー 84 件が未設定。backfill 後に hard 化を再検討） |
  *
  * 「不採用」項目は CLAUDE.md の人間向け執筆チェックリストには残るが、ここで機械 gate
  * にすると既存記事が落ちて deploy が止まるため対象外とした。新規生成側で守るべき項目
  * として CLAUDE.md / Blog routine プロンプトでカバーする。
+ *
+ * 注: `audience`/`track`/`tech_depth`/`sources` は「レンダリングに影響しない任意の
+ * メタデータ」ではない。track / tech_depth は Article→TechArticle 昇格と
+ * proficiencyLevel を、sources は citation JSON-LD を、audience は CtaBox と
+ * /blog/track/ アーカイブを駆動する（src/app/(ja)/blog/[slug]/page.tsx）。
+ * 未設定のレガシー 84 件は構造化データが一段薄いまま出力されている。
  */
