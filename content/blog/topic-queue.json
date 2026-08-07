@@ -1022,6 +1022,57 @@
         "https://github.com/invariantlabs-ai/mcp-injection-experiments"
       ],
       "status": "published"
+    },
+    {
+      "slug": "mcp-tool-schema-drift-contract-testing",
+      "keyword": "MCP ツール スキーマドリフト コントラクトテスト",
+      "title_hint": "MCPツールのスキーマドリフト検知——コントラクトテスト設計",
+      "persona": "MCPサーバーを運用するバックエンドエンジニア・プラットフォームエンジニア（evaluation track手薄領域を補充）",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "MCPツールのスキーマドリフトはどう検知・防止すればよいか",
+      "sources": [
+        "https://modelcontextprotocol.io/specification/2025-06-18/server/tools",
+        "https://specmatic.io/updates/testing-mcp-servers-how-specmatic-mcp-auto-test-catches-schema-drift-and-automates-regression/",
+        "https://www.digitalapplied.com/blog/vercel-ai-sdk-mcp-tool-drift-fingerprint-security-2026"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "serverless-agent-runtime-design-smb",
+      "keyword": "AIエージェント サーバーレス実行基盤 コールドスタート 状態管理",
+      "title_hint": "AIエージェントのサーバーレス実行基盤設計——コールドスタートと状態管理",
+      "persona": "社内にインフラ専任者を置けない中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "platform-infra",
+      "tech_depth": "intermediate",
+      "target_query": "AIエージェントはサーバーレス基盤（Cloudflare Workers、AWS Lambda）でどう実行設計すればよいか",
+      "sources": [
+        "https://developers.cloudflare.com/agents/",
+        "https://developers.cloudflare.com/workers/platform/pricing/",
+        "https://aws.amazon.com/lambda/pricing/"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "self-hosted-llm-inference-stack-vllm-sglang",
+      "keyword": "セルフホストLLM推論エンジン vLLM SGLang テンソル並列",
+      "title_hint": "セルフホストLLM推論スタック——vLLM/SGLang選定",
+      "persona": "自社GPUクラスタでエージェント推論を運用するプラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "自社でLLMを推論ホスティングする場合、vLLMとSGLangはどう選べばよいか",
+      "sources": [
+        "https://docs.vllm.ai/en/latest/serving/parallelism_scaling/",
+        "https://docs.vllm.ai/en/v0.9.1/serving/distributed_serving.html",
+        "https://arxiv.org/pdf/2312.07104"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
