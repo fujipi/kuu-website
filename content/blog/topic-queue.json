@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-agent-skills-smb-guide",
+      "keyword": "Claude Agent Skills SKILL.md 中小企業",
+      "title_hint": "Claude Agent Skillsとは何か——中小企業の活用法",
+      "persona": "エンジニア不在でAI活用を進める中小企業のIT担当・経営者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claude Agent Skillsとは何か、中小企業はどう使えばよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+        "https://www.anthropic.com/news/claude-for-small-business"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

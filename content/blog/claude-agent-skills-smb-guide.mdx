@@ -1,0 +1,65 @@
+---
+title: "Claude Agent Skillsとは何か——中小企業の活用法"
+description: "Claude Agent SkillsはSKILL.mdに指示・スクリプトをまとめ、必要な時だけ読み込ませる拡張機能です。Claude for Small Businessは15種のSkillsを標準搭載します。"
+date: "2026-08-07"
+lastModified: "2026-08-07"
+tags: ["Claude Agent Skills", "SKILL.md", "中小企業", "業務自動化"]
+author: "kuu-engineering"
+audience: "smb"
+track: "model-capability"
+tech_depth: "intermediate"
+target_query: "Claude Agent Skillsとは何か、中小企業はどう使えばよいか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"
+  - "https://www.anthropic.com/news/claude-for-small-business"
+pillar: "ai-governance"
+---
+
+「毎回同じ手順をChatGPTやClaudeに説明し直している」——請求書処理や議事録作成のたびにプロンプトを書き直す作業は、中小企業のAI活用でよくある摩耗ポイントだ。Claude Agent Skillsは、この繰り返し説明のコストをなくす仕組みとして設計されている。
+
+## Claude Agent Skillsとは何か
+
+> Agent Skillsは指示・スクリプト・資料をSKILL.mdというファイルにまとめ、必要な場面でClaudeが自動的に読み込む拡張機能だ。
+
+Agent Skillsは、Claudeに特定業務の専門知識を持たせるための「モジュール」だ。Anthropicの公式ドキュメントによれば、Skillはワークフロー・ベストプラクティス・実行スクリプトをディレクトリにまとめ、新しいチームメンバー向けのオンボーディング資料のように構成する。一度作れば、以後の会話で同じ指示を繰り返す必要がなくなる。
+
+技術的な核心は「段階的開示（progressive disclosure）」だ。Claudeは起動時、各SkillのYAMLメタデータ（名前と説明、約100トークン）だけを読み込む。リクエストがSkillの説明文と一致した時点で初めてSKILL.md本体（5,000トークン未満）を読み込み、さらにスクリプトや参考資料はコードがコンテキストに入らず実行結果だけを受け取る。このため大量のSkillを導入してもコンテキストを圧迫しない。
+
+## MCPやプロンプトと何が違うのか
+
+> MCPが外部システムへの接続経路を提供するのに対し、Skillsはその接続をどう使うかの手順・判断基準を渡す点で役割が異なる。
+
+[MCP](/glossary/mcp/)がツール呼び出しの「配線」（どのAPIをどう叩くか）を定義するのに対し、Skillは「その配線をどう使うべきか」という手順知識を渡す。一回限りの会話内指示（プロンプト）と違い、Skillは一度アップロードすれば毎回の会話で自動的に呼び出される点も異なる。両者は排他的ではなく、MCPで接続した会計システムをSkillの手順書に沿って操作する、という組み合わせが実務では多い。
+
+## 中小企業はSkillsをどう使えるか
+
+> Claude for Small Businessは15の定型業務向けワークフローと15のSkillsを標準搭載し、承認制で実行する。
+
+2026年5月13日、Anthropicは中小企業向けの「Claude for Small Business」を発表した。Claude Cowork上で稼働し、経営者が特定した時間のかかる定型業務をもとにした15のワークフローと15のSkillsを標準搭載する。QuickBooks・PayPal・HubSpot・Canva・DocuSign・Google Workspace・Microsoft 365と接続でき、給与計算・請求書の督促・見込み客の優先順位付け・キャンペーン管理などを実行対象とする。共同創業者のDaniela Amodei氏は、深夜まで残っていた作業をClaudeが引き受けると説明している。
+
+導入のハードルが低い理由は、Skillの作成・アップロードにエンジニアが不要な点にある。claude.aiの設定画面からZIPファイルをアップロードするだけで、自社の見積書フォーマットや承認フローをSkill化できる。
+
+## Skills導入で気をつけたいポイントは何か
+
+> 公式ドキュメントは信頼できる作成元のSkillのみを使い、外部URLを取得するSkillは特に慎重に監査すべきと明記している。
+
+Skillはコード実行とファイルアクセスの権限をClaudeに与える仕組みでもある。Anthropicのセキュリティガイダンスは、自作または公式提供以外のSkillを使う場合、SKILL.md本体・付随スクリプト・画像まで含めて内容を精査するよう求めている。特に外部URLからデータを取得するSkillは、取得内容に悪意ある指示が混入するリスクがあるため注意が必要だ。
+
+実務では次の3点を運用ルールに組み込むとよい。
+
+1. **作成元を限定する**：社内で作成したSkillと、Anthropic公式提供のSkill以外は原則導入しない
+2. **承認フローを残す**：Claude for Small Businessも計画への承認を挟む設計になっている。自動実行の範囲を広げすぎない
+3. **共有範囲を確認する**：claude.aiにアップロードしたSkillはユーザー個人単位で管理者による一元管理ができない。API経由であればワークスペース単位で共有できる
+
+Skill運用のルール設計や導入支援は[Kuu株式会社のai-ops（/services/ai-ops/）](/services/ai-ops/)で相談できる。
+
+## 参考
+
+- [Agent Skills — Claude Docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Introducing Claude for Small Business — Anthropic](https://www.anthropic.com/news/claude-for-small-business)
+
+## まとめ
+
+Claude Agent Skillsは、SKILL.mdに手順とスクリプトをまとめ、必要な場面だけ読み込ませることで繰り返し指示のコストをなくす拡張機能だ。Claude for Small Businessでは15種のSkillsが会計・営業・マーケティング業務に標準搭載され、エンジニア不要で自社業務にも拡張できる。一方でコード実行権限を伴うため、作成元の限定と承認フローの維持が導入の前提になる。
+
+Skillの導入設計・ガバナンス整備に関するご相談は[Kuu株式会社のai-ops](/services/ai-ops/)まで。
