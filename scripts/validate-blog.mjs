@@ -153,6 +153,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"mcp-supply-chain-risk-abom-governance",
 			"agent-skill-supply-chain-security-signing-sandboxing",
 		],
+		// オートスケーリング設計（キュー深度/TTFT/KVキャッシュのスケール判断・platform-infra）と オンライン評価のトラフィックサンプリング（本番評価の抽出方法論・evaluation）: title類似は語彙の重なりのみで主題は別トラック、正当な併存
+		[
+			"agent-autoscaling-capacity-planning-design",
+			"online-evaluation-production-traffic-sampling",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

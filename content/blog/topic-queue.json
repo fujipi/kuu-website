@@ -497,6 +497,23 @@
   ],
   "topics_from_keyword_bank": [
     {
+      "slug": "agent-autoscaling-capacity-planning-design",
+      "keyword": "AIエージェント基盤 オートスケーリング キャパシティプランニング",
+      "title_hint": "AIエージェント基盤のオートスケーリング設計——キュー深度とレイテンシSLOに基づくスケール戦略",
+      "persona": "マルチエージェント基盤のスケーリングを設計するプラットフォームエンジニア・SRE",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "AIエージェント基盤のオートスケーリングはどう設計すればよいか",
+      "sources": [
+        "https://docs.cloud.google.com/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling",
+        "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html",
+        "https://www.together.ai/blog/autoscaling-endpoints-for-llm-inference"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "agent-platform-managed-vs-selfhost-decision-smb",
       "keyword": "エージェント基盤 マネージドサービス セルフホスト 中小企業",
       "title_hint": "中小企業のエージェント基盤選定——マネージドかセルフホストか",

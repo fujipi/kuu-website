@@ -1,0 +1,67 @@
+---
+title: "AIエージェント基盤のオートスケーリング設計"
+description: "AIエージェント基盤のオートスケーリングは、キュー深度・p90 TTFT・KVキャッシュ使用率の3シグナルで設計します。CPU使用率だけでは検知が遅れる理由と、Kubernetes HPAでの実装手順を解説します。"
+date: "2026-08-07"
+lastModified: "2026-08-07"
+tags: ["AIエージェント", "オートスケーリング", "キャパシティプランニング", "プラットフォーム基盤"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "deep"
+target_query: "AIエージェント基盤のオートスケーリングはどう設計すればよいか"
+sources:
+  - "https://docs.cloud.google.com/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling"
+  - "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html"
+  - "https://www.together.ai/blog/autoscaling-endpoints-for-llm-inference"
+pillar: "ai-governance"
+---
+
+夜間バッチのつもりで動かしていたエージェントワークフローが、朝のピーク時間帯にリクエストを詰まらせる。CPU使用率のグラフは平常時と変わらないのに、p99レイテンシだけが跳ね上がっている——[AIエージェントの可観測性](/blog/agent-observability-tracing-instrumentation/)を計装したチームがまず突き当たるのが、この「メトリクスは正常なのに体感が悪い」というギャップだ。原因は多くの場合、Webアプリ向けに設計されたCPU/メモリ基準のオートスケーリングを、LLM呼び出しが中心のエージェントワークロードにそのまま流用していることにある。
+
+本記事は[AIエージェントガバナンス](/ai-governance/)の基盤設計レイヤーを扱う。[推論コストの最適化](/blog/inference-cost-optimization-batch-cache-routing/)や[サーバーレス/エッジ運用](/blog/serverless-edge-agent-deployment-smb/)と合わせて、スケーリング設計の土台として参照してほしい。
+
+## AIエージェント基盤のオートスケーリングとは何か
+
+> エージェント基盤のオートスケーリングは、I/O待ちが支配的なLLM呼び出しの負荷特性に合わせてレプリカ数を調整する仕組みです。
+
+一般的なWebアプリのオートスケーリングは、CPU使用率やリクエスト数を見てレプリカを増減させる。しかしエージェントのワークロードは「ツールを呼び、LLMの応答を待つ」というI/O待ちが処理時間の大半を占め、CPUはほとんど使われないまま接続だけが滞留する。この特性のずれが、CPU基準のスケーリングを機能不全にする根本原因になる。
+
+## なぜCPU使用率ベースの判断は遅れるのか
+
+> CPU使用率はLLM呼び出し中はほぼ変化しないため、リクエストが詰まり始めてから検知するまでにタイムラグが生じます。
+
+Google CloudのGKE向けベストプラクティスは、LLM推論ワークロードのオートスケーリングにCPUやメモリではなくリクエストキューの深さ・GPU使用率・p95レイテンシを使うべきだと明記している。エージェントの各ステップはLLM APIへのネットワーク呼び出しを待つ時間が大半で、Pod内のCPUは待機状態のまま推移する。この間にキューには次々とリクエストが積み上がっていくが、CPUベースのHorizontal Pod Autoscaler（HPA）はその兆候を捉えられず、スケールアウトの判断が体感で遅れる。結果としてレイテンシSLOに違反してから初めてアラートが上がる、という後追いの運用になりやすい。
+
+## どの3シグナルでスケール判断を設計すべきか
+
+> キュー深度・p90 TTFT・KVキャッシュ使用率を組み合わせることで、遅延が顕在化する前にスケールアウトできます。
+
+実務では単一の指標ではなく複数シグナルを組み合わせた設計が推奨される。
+
+1. **キュー深度（Queue Depth）**: 処理待ちリクエスト数を先行指標として使う。Together AIのブログは、キューサイズの閾値を3〜5から始め、目標レイテンシに達するまで段階的に引き上げる運用を推奨している。
+2. **インフライト同時実行数（Concurrency）**: レプリカあたりの処理中リクエスト数を目標値（例: 8）に保つ方式で、需要超過を早期に検知できるリーディング指標として扱える。
+3. **p90 TTFT（Time to First Token）とKVキャッシュ使用率**: TTFTをSLA順守のトリガーに、KVキャッシュ使用率を「これ以上は詰め込めない」というハードな上限として扱う。3つを揃えることで、キュー深度が正常でもGPUが高負荷という盲点を塞げる。
+
+## Kubernetes HPAとカスタムメトリクスでどう実装するか
+
+> Kubernetes HPAはv1.6以降カスタムメトリクスに対応しており、キュー深度などのアプリケーション指標を外部から供給できます。
+
+Kubernetes HPAは標準ではCPU/メモリしか見ないが、Custom MetricsおよびExternal Metrics APIを介せば、Prometheusなどが収集したキュー深度やレイテンシをスケール判断に使える。実装の骨格は次の3ステップになる。
+
+1. エージェントランタイムからキュー深度・TTFT・トークン数をOpenTelemetry形式でエクスポートする。AWSのAmazon Bedrock AgentCoreはADOT（AWS Distro for OpenTelemetry）SDKでの計装を前提とした標準メトリクスを提供しており、参考実装として設計しやすい。
+2. Prometheus AdapterなどでカスタムメトリクスをKubernetes Metrics APIに登録する。
+3. HPAのメトリクス定義にキュー深度としきい値を指定し、GPU使用率トリガーと併用するデュアルトリガー構成にする。GPU使用率トリガーは「既存レプリカが飽和した」タイミングで発火し、キュー深度トリガーは「GPU使用率は中程度でもリクエストが積み上がっている」ケースを補足する。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+自前でHPAとカスタムメトリクスパイプラインを構築・運用する体制がない中小企業は、[サーバーレス/エッジ基盤](/blog/serverless-edge-agent-deployment-smb/)やAmazon Bedrock AgentCoreのようなマネージド型のスケーリングを既定にし、キュー深度の監視だけを自前で追加する構成が現実的だ。エンタープライズでは、複数チームがGPUプールを共有するマルチテナント構成での[分離設計](/blog/multitenant-agent-isolation-design/)や、リージョン障害時のフェイルオーバーを見据えたキャパシティ予約が論点になる。KEDA/Knativeによるスケールツーゼロやマルチリージョン展開まで踏み込む場合は、[RDE](https://kuucorp.com/services/rde/)のような専門支援を組み合わせて設計する価値がある。
+
+## 参考
+
+- [Best practices for autoscaling LLM inference workloads with GPUs on GKE](https://docs.cloud.google.com/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling)
+- [Observe your agent applications on Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability.html)
+- [Autoscaling endpoints for LLM inference](https://www.together.ai/blog/autoscaling-endpoints-for-llm-inference)
+
+## まとめ
+
+AIエージェント基盤のオートスケーリングは、CPU使用率という間違ったシグナルを見ている限り必ず後手に回る。キュー深度・同時実行数・p90 TTFT・KVキャッシュ使用率という4つの指標を組み合わせ、体感遅延が起きる前にスケールアウトする設計に切り替えることが出発点になる。自社の基盤にどのシグナルを計装し、どこからマネージドサービスに任せるべきか整理したい場合は、Kuu株式会社の[AI Ops](https://kuucorp.com/services/ai-ops/)にご相談ください。
