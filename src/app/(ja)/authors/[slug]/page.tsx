@@ -9,6 +9,8 @@ import { getAllAuthors, getAuthorBySlug } from "@/lib/authors";
 import { getAllPosts } from "@/lib/mdx";
 import { getMainNav } from "@/lib/navigation";
 import {
+	authorId,
+	BASE_URL,
 	buildBreadcrumb,
 	ORG_REF,
 	generateMetadata as seoMetadata,
@@ -46,7 +48,7 @@ export default async function AuthorPage({ params }: Props) {
 	const { slug } = await params;
 	const author = getAuthorBySlug(slug);
 	const posts = getAllPosts().filter((p) => p.author === slug);
-	const url = `https://kuucorp.com/authors/${slug}/`;
+	const url = `${BASE_URL}/authors/${slug}/`;
 
 	const jsonLd = [
 		{
@@ -54,6 +56,8 @@ export default async function AuthorPage({ params }: Props) {
 			"@type": "ProfilePage",
 			mainEntity: {
 				"@type": "Person",
+				// 記事側の author と同一 `@id` を共有し、単一の著者エンティティに統合する
+				"@id": authorId(slug),
 				name: author.name,
 				jobTitle: author.role,
 				description: author.bio,
@@ -68,7 +72,7 @@ export default async function AuthorPage({ params }: Props) {
 				itemListElement: posts.map((p, i) => ({
 					"@type": "ListItem",
 					position: i + 1,
-					url: `https://kuucorp.com/blog/${p.slug}/`,
+					url: `${BASE_URL}/blog/${p.slug}/`,
 					name: p.title,
 				})),
 			},

@@ -6,7 +6,11 @@ import Header from "@/components/Header";
 import JsonLd from "@/components/JsonLd";
 import Stars from "@/components/Stars";
 import { getMainNav } from "@/lib/navigation";
-import { buildBreadcrumb, generateMetadata as seoMetadata } from "@/lib/seo";
+import {
+	BASE_URL,
+	buildBreadcrumb,
+	generateMetadata as seoMetadata,
+} from "@/lib/seo";
 import { tagDescription } from "@/lib/tagDescriptions";
 import { getAllTags, getPostsByTagSlug } from "@/lib/tags";
 
@@ -71,7 +75,7 @@ export default async function TagArchivePage({ params }: Props) {
 	}
 
 	const description = tagDescription(tag, posts.length);
-	const url = `https://kuucorp.com/blog/tags/${slug}/`;
+	const url = `${BASE_URL}/blog/tags/${slug}/`;
 
 	const jsonLd = [
 		{
@@ -82,7 +86,7 @@ export default async function TagArchivePage({ params }: Props) {
 			url,
 			isPartOf: {
 				"@type": "WebSite",
-				url: "https://kuucorp.com",
+				url: BASE_URL,
 				name: "Kuu株式会社",
 			},
 			mainEntity: {
@@ -91,7 +95,7 @@ export default async function TagArchivePage({ params }: Props) {
 				itemListElement: posts.map((p, i) => ({
 					"@type": "ListItem",
 					position: i + 1,
-					url: `https://kuucorp.com/blog/${p.slug}/`,
+					url: `${BASE_URL}/blog/${p.slug}/`,
 					name: p.title,
 				})),
 			},

@@ -16,6 +16,14 @@ export const ORG_ID = `${BASE_URL}/#organization`;
 export const WEBSITE_ID = `${BASE_URL}/#website`;
 
 /**
+ * 著者の正準 Person `@id`。記事の `author` と著者アーカイブ (/authors/{slug}/) の
+ * ProfilePage `mainEntity` の双方で共有し、同一の著者エンティティに解決させる。
+ */
+export function authorId(slug: string): string {
+	return `${BASE_URL}/authors/${slug}/#person`;
+}
+
+/**
  * Organization への軽量参照（`provider` / `author` / `worksFor` 用）。
  * `@id` で正準ノード（BASE_ORG / トップページの Organization）に解決される。
  */
@@ -201,6 +209,11 @@ export function generateMetadata({
 						},
 					}
 				: {}),
+			// NOTE: フィード（feed.xml / feed-case.xml 等）はここで宣言しない。
+			// Next のメタデータはフィールド単位の浅いマージで、ページ側の `alternates`
+			// がレイアウトの宣言を丸ごと置き換えてしまうため、フィードは
+			// src/app/(ja)/layout.tsx が <head> 内の <link> として直接出力している
+			// （そちらはマージの影響を受けない）。ここに足すと二重出力になる。
 			...(markdownPath
 				? { types: { "text/markdown": `${BASE_URL}${markdownPath}` } }
 				: {}),
