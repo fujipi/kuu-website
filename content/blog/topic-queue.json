@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "computer-use-agent-smb-screen-automation",
+      "keyword": "マルチモーダル エージェント computer use 画面操作",
+      "title_hint": "Claude Computer Useで画面操作を自動化する——エンジニア不在の中小企業が始める入門",
+      "persona": "IT担当・DX推進担当（社内にエンジニアがいない中小企業）",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がエンジニアなしでClaude Computer Useをどう使えばよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/computer-use",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
