@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "computer-use-multimodal-agent-smb-guide",
+      "keyword": "computer use マルチモーダルエージェント 中小企業 画面操作",
+      "title_hint": "中小企業のためのcomputer use入門——画面操作エージェントで基幹システムを自動化する",
+      "persona": "IT担当のいない中小企業の経営者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がcomputer use（画面操作AIエージェント）をどう業務に活用できるか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
