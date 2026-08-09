@@ -1,0 +1,93 @@
+---
+title: "ClaudeのPDF処理で帳票OCRを低コスト内製化する設計"
+description: "Claude Haiku 4.5のPDFネイティブ処理を使えば、請求書OCRはBatch API併用で1万ページ月4,000円台まで内製化できます。設計手順とコスト試算を解説します。"
+date: "2026-08-09"
+lastModified: "2026-08-09"
+tags: ["PDF処理", "OCR", "Claude Haiku 4.5", "帳票自動化"]
+author: "kuu-engineering"
+audience: "smb"
+track: "model-capability"
+tech_depth: "intermediate"
+target_query: "Claude PDFネイティブ処理で請求書・帳票OCRを低コストに導入するにはどうすればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/pdf-support"
+  - "https://platform.claude.com/docs/en/build-with-claude/vision"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
+pillar: "ai-governance"
+---
+
+請求書や納品書の入力作業を、専用OCRソフトの年間ライセンス費用に見合うほどの量がないまま放置している中小企業は多い。Claudeのネイティブ PDF 処理を使えば、専用OCR製品を導入せずに、既存のAPI課金だけで帳票のデータ化を内製化できる。設計のポイントとコストの実際を見ていく。
+
+## 帳票OCRになぜClaudeのPDFネイティブ処理が向くのか
+
+> Claudeは全アクティブモデルがPDFをテキストと画像の両方として解析でき、フォーマットが会社ごとに異なる帳票でもレイアウト崩れに強い。
+
+従来型のOCRエンジンは文字認識と項目抽出が別工程になりやすく、帳票フォーマットが取引先ごとに違うと抽出ロジックを個別にチューニングする必要があった。Claudeは各ページを画像とテキストの両方で受け取り、罫線・表・手書きに近いレイアウトも含めて文脈から意味を理解する。そのため「取引先名の位置が右上か左上か」といった帳票差異を、個別ルール無しである程度吸収できる。
+
+PDFの要件は、リクエスト全体で最大32MB・1ページあたり600ページ（コンテキストが1Mトークン未満のモデルでは100ページ）までとされている。中小企業が扱う月次の請求書・納品書の量であれば、この上限に達することはまずない。
+
+## Files APIとVision処理、どちらで実装すべきか
+
+> 繰り返し参照する帳票はFiles APIでfile_idを発行し、都度base64エンコードするより通信量と実装コストを抑えられる。
+
+PDFの渡し方は3通りある。URL参照、base64エンコードした`document`ブロック、そしてFiles API経由の`file_id`参照だ。単発の解析ならbase64で十分だが、月次で数百〜数千件の帳票を継続的に処理する運用では、Files API（ベータ）を使い、アップロード後に返る`file_id`を使い回す設計が適している。
+
+```python
+with open("invoice.pdf", "rb") as f:
+    file_upload = client.beta.files.upload(
+        file=("invoice.pdf", f, "application/pdf")
+    )
+
+message = client.beta.messages.create(
+    model="claude-haiku-4-5",
+    max_tokens=1024,
+    betas=["files-api-2025-04-14"],
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "document", "source": {"type": "file", "file_id": file_upload.id}},
+            {"type": "text", "text": "この請求書から発行日・請求元・金額をJSONで抽出して"},
+        ],
+    }],
+)
+```
+
+抽出結果をそのまま基幹システムに連携するなら、自由記述のテキストではなく[Function calling](/blog/function-calling-structured-output-tool-design/)でJSON Schemaを定義し、ツール呼び出しの引数として構造化出力させる設計にしておくと、後段の連携が安定する。
+
+## 帳票1万ページ処理の費用はどれくらいか
+
+> PDFはテキスト抽出で1ページ1,500〜3,000トークン、画像分は標準解像度で最大1,568ビジュアルトークンが加算される。
+
+Claudeの公式ドキュメントによると、PDFの1ページあたりのテキストトークンは内容密度に応じて1,500〜3,000トークン。加えて各ページは画像としても処理されるため、Vision APIと同じ計算式（`⌈幅/28⌉ × ⌈高さ/28⌉`ビジュアルトークン）が上乗せされる。Claude Haiku 4.5が該当する標準解像度ティアでは、1画像あたり最大1,568トークンが上限となる。A4スキャンの帳票はこの上限付近まで達することが多いため、1ページあたりの合計は概ね3,000〜4,500トークンとみておくと安全だ。
+
+月5,000件・平均2ページの請求書（合計1万ページ）を、Haiku 4.5（標準API: 入力$1/出力$5 per MTok）で処理する場合の試算は次の通り。
+
+| 処理方式 | 入力トークン概算 | 出力トークン概算 | 月額費用概算 |
+|---|---|---|---|
+| 通常のMessages API | 4,000万トークン | 300万トークン | 約$55（入力$40+出力$15） |
+| Batch API（50%割引） | 4,000万トークン | 300万トークン | 約$27.5（入力$20+出力$7.5） |
+
+Batch APIは入出力とも50%割引となるため、リアルタイム応答が不要な月次バッチ処理であれば費用はほぼ半減する。1万ページ・5,000件の請求書処理が月30ドル弱、為替を150円/ドル程度で見積もっても月4,000円台に収まる計算になる。よりコストを抑えたい場合は、[Batch APIとプロンプトキャッシュの併用設計](/blog/inference-cost-optimization-batch-cache-routing/)も検討するとよい。
+
+## 本番運用で気をつけるべき精度・設計のポイントは何か
+
+> 手書き文字や低解像度スキャンは誤読リスクがあるため、金額など重要項目は人間による確認フローを残す設計にする。
+
+Claudeのビジョン機能は低品質・回転・極端に小さい画像で誤認識する可能性があると公式に明記されている。帳票OCRを内製化する際は、以下の設計を組み合わせてリスクを抑えるべきだ。
+
+1. **抽出結果の信頼度チェック**: 金額・日付など基幹連携に直結する項目は、抽出後に正規表現や桁数チェックで機械的に検証する
+2. **人間によるサンプル確認**: 導入初期は一定割合を目視確認し、誤読パターンを洗い出す
+3. **スキャン品質の底上げ**: 可能な範囲でページを正立させ、解像度を確保してからアップロードする（回転・低解像度は誤読要因になる）
+4. **最終承認は人が行う**: 支払い処理など金銭が絡む判断はAIの抽出結果を参考情報とし、最終承認は必ず人が行う運用にする
+
+これらを踏まえたうえで、[Claude Haiku 4.5の低コスト運用設計](/blog/claude-haiku45-low-cost-agent/)と組み合わせれば、専用OCR製品を導入せずに帳票処理を内製化する余地は十分にある。
+
+## 参考
+
+- [PDF support - Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/pdf-support)
+- [Vision - Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/vision)
+- [Pricing - Claude Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
+
+## まとめ
+
+Claudeのネイティブ PDF 処理は、専用OCR製品を導入するほどの量がない中小企業でも、既存のAPI課金だけで帳票のデータ化を内製化できる選択肢になる。Files APIで運用の手間を減らし、Batch APIで費用を抑え、金額など重要項目は人によるチェックを残す——この3点を押さえれば、月数千円規模で継続的な帳票自動化が実現できる。設計や運用体制の相談は[Kuu株式会社のAIエージェント運用支援](https://kuucorp.com/services/ai-ops/)まで。

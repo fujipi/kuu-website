@@ -1073,6 +1073,23 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-pdf-native-document-ocr-smb",
+      "keyword": "Claude PDFネイティブ処理 帳票OCR 中小企業",
+      "title_hint": "ClaudeのPDF処理で帳票OCRを低コスト内製化する設計",
+      "persona": "請求書・帳票のデータ入力工数を減らしたい中小企業のIT担当者・管理部門責任者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claude PDFネイティブ処理で請求書・帳票OCRを低コストに導入するにはどうすればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/build-with-claude/pdf-support",
+        "https://platform.claude.com/docs/en/build-with-claude/vision",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
