@@ -1058,6 +1058,23 @@
       "status": "published"
     },
     {
+      "slug": "agent-eval-flaky-nondeterminism-reproducibility-design",
+      "keyword": "エージェント評価 フレーキー 非決定性 再現性 統計的検証",
+      "title_hint": "エージェント評価のフレーキーテスト対策——非決定性と再現性設計",
+      "persona": "本番エージェントのCI/CD評価パイプラインを設計するプラットフォームエンジニア・SRE",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "AIエージェント評価のフレーキー(非決定性)問題はどう設計で解決するか",
+      "sources": [
+        "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+        "https://arxiv.org/html/2605.10516",
+        "https://arxiv.org/html/2605.28840"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "self-hosted-llm-inference-stack-vllm-sglang",
       "keyword": "セルフホストLLM推論エンジン vLLM SGLang テンソル並列",
       "title_hint": "セルフホストLLM推論スタック——vLLM/SGLang選定",
