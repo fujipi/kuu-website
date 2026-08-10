@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-sonnet5-smb-agent-guide",
+      "keyword": "Claude Sonnet 5 中小企業 エージェント開発 活用",
+      "title_hint": "Claude Sonnet 5で始める中小企業のエージェント開発",
+      "persona": "中小企業のIT担当・DX推進担当（エンジニア数名規模でエージェント開発を検討中）",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がClaude Sonnet 5をエージェント開発にどう活用すればよいか",
+      "sources": [
+        "https://www.anthropic.com/news/claude-sonnet-5",
+        "https://platform.claude.com/docs/en/build-with-claude/context-windows"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
