@@ -1,0 +1,83 @@
+---
+title: "Agent Skillsの設計——SKILL.mdと段階的開示"
+description: "Agent SkillsはSKILL.mdをメタデータ・本文・参考ファイルの3層に分け、起動時は約100トークンのみ読み込む段階的開示でコンテキストを節約します。中小企業がSkillを設計する際の実装指針を解説します。"
+date: "2026-08-10"
+lastModified: "2026-08-10"
+tags: ["Agent Skills", "SKILL.md", "AIエージェント", "設計"]
+author: "kuu-engineering"
+audience: "smb"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Agent SkillsのSKILL.mdはどう設計すればコンテキストを節約できるか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"
+  - "https://agentskills.io/specification"
+pillar: "ai-governance"
+---
+
+「業務ごとに毎回同じ指示をClaudeに書き直している」——AIエージェント導入が進んだ中小企業ほど、この非効率にぶつかります。Anthropicが提供する**Agent Skills**は、この繰り返しを「1度作れば自動で呼び出される」仕組みに変える機能です。
+
+Agent Skillsの核心は**SKILL.md**というファイル形式と、それを支える**段階的開示（progressive disclosure）**というアーキテクチャにあります。仕組みを理解せずに使うと、SKILLを増やすほどコンテキストを圧迫すると誤解しがちですが、実際の設計はその逆を狙っています。本記事ではSKILL.mdの構造と、中小企業がSkillを自作する際の設計指針を解説します。
+
+## Agent Skillsとは何か
+
+> Agent Skillsは指示・メタデータ・付属ファイルをパッケージ化し、Claudeが必要な場面で自動的に読み込むモジュール型の能力拡張です。
+
+Agent Skillsは、ワークフローやベストプラクティス、参考資料をディレクトリ単位でまとめ、Claudeがリクエスト内容に応じて自動的に呼び出す仕組みです。会話ごとに同じ指示を書く「プロンプト」とは異なり、Skillは一度作れば以降のやり取りで繰り返し使われます。Claude Code・Claude API・claude.aiのいずれでも、カスタムSkillをディレクトリまたはZIPとして追加すれば、Claudeが関連するリクエストを検知して自動的に活用します。Claude Codeではプロジェクト単位で`.claude/skills/`配下に置くだけで検出されます。
+
+## SKILL.mdはどう設計するか——3層のトークン予算
+
+> SKILL.mdはYAMLフロントマター（name・description必須）とMarkdown本文で構成され、本文は5,000トークン未満を目安にします。
+
+SKILL.mdの必須フィールドは`name`と`description`の2つだけです。`name`は64文字以内で英小文字・数字・ハイフンのみ、`description`は1,024文字以内で「何をするか」と「いつ使うべきか」の両方を含める必要があります。
+
+```yaml
+---
+name: invoice-processing
+description: 請求書PDFから金額・取引先・支払期日を抽出し、経理システム向けCSVに変換する。請求書やインボイスの処理を依頼されたときに使う。
+---
+
+# 請求書処理
+
+## 手順
+1. PDFから明細行を抽出する
+2. 取引先名を顧客マスタと突き合わせる
+3. CSVテンプレートに整形して出力する
+```
+
+公式仕様は本文を500行未満、5,000トークン未満に収めることを推奨しています。詳細な手順やAPIリファレンスは`REFERENCE.md`のような別ファイルに分離し、SKILL.md本体は「概要・使う場面・手順の骨格」に絞るのが設計の要点です。
+
+## 段階的開示はなぜコンテキストを節約できるか
+
+> 段階的開示はメタデータ（約100トークン）・本文（発動時のみ）・参考ファイル（参照時のみ）の3層で、未使用のSkillはコンテキストにほぼ影響しません。
+
+Agent SkillsのアーキテクチャはLevel 1〜3の3段階でコンテキストに読み込まれます。
+
+| レベル | 読み込みタイミング | トークンコスト | 内容 |
+|---|---|---|---|
+| Level 1: メタデータ | 常時（起動時） | Skill 1件あたり約100トークン | `name`・`description` |
+| Level 2: 本文 | Skill発動時のみ | 5,000トークン未満が目安 | SKILL.mdの手順・ガイダンス |
+| Level 3: 参考資料 | 参照時のみ | 未使用なら0トークン | 追加Markdown・スクリプト・データ |
+
+この設計により、数十本のSkillを登録しても、実際に使われないSkillは名前と説明の約100トークンしか消費しません。Claudeはbashコマンドでファイルシステム上のSKILL.mdを読み込み、必要な参考ファイルだけを個別に開く仕組みのため、束ねられた資料が多いほど有利にすらなります。スクリプトを実行した場合もコード自体はコンテキストに入らず、実行結果のみが読み込まれます。
+
+## 中小企業がAgent Skillsを設計する際の実践ポイント
+
+> descriptionに「何をするか」と「使う場面」を具体的に書くことが、誤発動を防ぐ最大のポイントです。
+
+Skillの発動判定は`description`とユーザーの依頼内容の照合で行われるため、曖昧な説明文はSkillが呼ばれない、または無関係な場面で呼ばれる原因になります。「請求書処理」だけでなく「請求書・インボイス・支払期日という語が出たときに使う」まで書き込むと精度が上がります。
+
+業務別に複数のSkillを用意する場合は、共通ロジックをコード（スクリプト）に切り出し、SKILL.md側は手順の骨格に留めると保守がしやすくなります。また、外部から取得したSkillを使う場合は、SKILL.mdと同梱スクリプトの中身を必ず確認してください。信頼できない配布元のSkillは、意図しないbashコマンドやネットワークアクセスを指示に含む可能性があり、[MCPのツール毒殺・Rug Pull攻撃](/blog/mcp-tool-poisoning-rug-pull-defense/)と同様のサプライチェーンリスクがあります。組織展開する際の署名・サンドボックス設計は[エージェントスキルのサプライチェーンセキュリティ](/blog/agent-skill-supply-chain-security-signing-sandboxing/)も参照してください。
+
+社内のExcel集計・議事録フォーマット・問い合わせ分類など、繰り返し発生する定型業務から着手すると効果を実感しやすい機能です。Skillの設計・運用体制の整備は[Kuuの運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/)でも支援しています。
+
+## 参考
+
+- [Agent Skills — Claude Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Agent Skills Specification（agentskills.io）](https://agentskills.io/specification)
+
+## まとめ
+
+Agent Skillsは、SKILL.mdのメタデータ・本文・参考資料を3層に分け、必要になった段階でのみコンテキストへ読み込む段階的開示によって、Skillを増やしてもトークン消費を抑える設計です。`description`を具体的に書くこと、本文を5,000トークン未満に保ち詳細は別ファイルへ分離すること、そして信頼できない配布元のSkillは中身を確認することが、中小企業がSkillを自作・運用する際の実践ポイントです。
+
+Agent Skillsの導入設計やガバナンス体制の構築については、[Kuuの運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/)にご相談ください。

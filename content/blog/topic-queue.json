@@ -1058,6 +1058,22 @@
       "status": "published"
     },
     {
+      "slug": "agent-skills-progressive-disclosure-design-smb",
+      "keyword": "Agent Skills SKILL.md 段階的開示 トークン予算",
+      "title_hint": "Agent Skillsの設計——SKILL.mdと段階的開示",
+      "persona": "社内の定型業務をAgent Skillsで自動化したい中小企業のIT担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "deep",
+      "target_query": "Agent SkillsのSKILL.mdはどう設計すればコンテキストを節約できるか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+        "https://agentskills.io/specification"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "self-hosted-llm-inference-stack-vllm-sglang",
       "keyword": "セルフホストLLM推論エンジン vLLM SGLang テンソル並列",
       "title_hint": "セルフホストLLM推論スタック——vLLM/SGLang選定",
