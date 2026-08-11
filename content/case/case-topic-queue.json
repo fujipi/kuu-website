@@ -269,6 +269,15 @@
       "industry": "士業・土地家屋調査士事務所",
       "use_case": "表題登記書類のドラフト生成・筆界確認資料整理・現地立会いスケジュール管理の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "minpaku-guest-communication-agent",
+      "keyword": "民泊 住宅宿泊管理業 ゲスト対応 清掃調整 宿泊者名簿 AIエージェント",
+      "title_hint": "民泊運営のゲスト対応・清掃調整をAIエージェントに——管理業者の一次対応をこう速める",
+      "persona": "住宅宿泊管理業者の運営責任者",
+      "industry": "住宅宿泊管理業（民泊運営代行）",
+      "use_case": "ゲスト一次対応・清掃調整・宿泊者名簿管理の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
@@ -283,5 +292,5 @@
     "コールセンター FAQ ナレッジ AIエージェント",
     "経理 請求書 突合 支払処理 AIエージェント"
   ],
-  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-02時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
+  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-11時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
 }
