@@ -497,6 +497,23 @@
   ],
   "topics_from_keyword_bank": [
     {
+      "slug": "claude-sonnet5-business-guide-sme",
+      "keyword": "Claude Opus Sonnet Haiku ツール使用 性能 比較",
+      "title_hint": "Claude Sonnet 5の使い方——中小企業のモデル選定",
+      "persona": "中小企業のIT担当・経営者（Claudeモデルの使い分けを検討している担当者）",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claude Sonnet 5は中小企業の業務でどう使えばよいか",
+      "sources": [
+        "https://www.anthropic.com/news/claude-sonnet-5",
+        "https://www.anthropic.com/claude/sonnet",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
+    },
+    {
       "slug": "agent-autoscaling-capacity-planning-design",
       "keyword": "AIエージェント基盤 オートスケーリング キャパシティプランニング",
       "title_hint": "AIエージェント基盤のオートスケーリング設計——キュー深度とレイテンシSLOに基づくスケール戦略",

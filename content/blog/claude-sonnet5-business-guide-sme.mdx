@@ -1,0 +1,55 @@
+---
+title: "Claude Sonnet 5の使い方——中小企業のモデル選定"
+description: "Claude Sonnet 5は入力$2/出力$10（2026年8月まで）でOpus 4.8に迫る性能を出す主力モデルです。中小企業が使うべき業務とHaiku/Opusとの使い分け基準を解説します。"
+date: "2026-08-11"
+lastModified: "2026-08-11"
+tags: ["Claude Sonnet 5", "生成AI", "モデル選定", "業務効率化"]
+author: "kuu-editorial"
+audience: "smb"
+track: "model-capability"
+tech_depth: "intermediate"
+target_query: "Claude Sonnet 5は中小企業の業務でどう使えばよいか"
+sources:
+  - "https://www.anthropic.com/news/claude-sonnet-5"
+  - "https://www.anthropic.com/claude/sonnet"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
+pillar: "ai-governance"
+---
+
+「新しいモデルが出たけれど、結局どれを使えばいいのか」——Claudeを業務に取り入れた中小企業の担当者が、モデルが更新されるたびに直面する問いです。2026年6月に登場した**Claude Sonnet 5**は、これまで上位モデルでなければ出せなかった精度をSonnet価格帯に持ち込んだことで、選定基準そのものを見直す必要があります。[エージェントガバナンス](/glossary/agent-governance/)の観点では、モデル選定は業務の精度要件・コスト・リスクを結びつける意思決定です。
+
+## Claude Sonnet 5とは何か
+
+> Claude Sonnet 5は入力$2/出力$10という価格帯で、Opus 4.8に迫る性能を出す主力モデルです。
+
+AnthropicはSonnet 5を「最もエージェント的なSonnet」と位置づけています。コーディング・ツール使用・コンピュータユース（画面操作)の各評価でSonnet 4.6を上回り、推論を強めた条件下ではOpus 4.8の性能に近づく水準まで来ています。コンテキストウィンドウは1Mトークンまで対応し、[Claude Sonnet 4.6の業務活用](/blog/claude-sonnet46-business-guide/)で紹介した日常業務の大半をより高い精度でカバーできます。APIのモデルIDは`claude-sonnet-5`です。
+
+## 中小企業はSonnet 5をどの業務に使うべきか
+
+> 多段階のコーディングや長文書レビューなど、途中で止まらずやり切る業務にSonnet 5は向いています。
+
+Anthropicは早期テスターの声として「以前のSonnetモデルなら止まっていたはずの複雑なタスクを最後まで終わらせる」点を挙げています。具体的には、契約書や提案書など数十ページの長文書を通しでレビューする作業、Webフォームや社内システムを操作して情報を収集する業務、問い合わせ対応で複数ターンにわたって文脈を保持するカスタマーサポートなどが好相性です。ツール使用の判断精度が上がったことで、人がプロンプトを細かく調整しなくても自己修正しながらタスクを完了しやすくなっています。
+
+## Haiku 4.5・Opus 5とどう使い分けるか
+
+> 定型作業はHaiku 4.5、通常業務はSonnet 5、経営判断はOpus 5という3段構成が基本です。
+
+Anthropicの公式価格表では、Haiku 4.5が入力$1/出力$5、Opus 5が入力$5/出力$25です（いずれも100万トークンあたり）。[Claude Haiku 4.5の低コスト活用](/blog/claude-haiku45-low-cost-agent/)で解説した高頻度・単純作業（問い合わせの一次分類など）はHaiku 4.5に任せ、[Claude Opus 4.7の活用](/blog/claude-opus4-business-guide-sme/)で扱った経営分析や契約審査のような誤りのコストが高い業務はOpus 5に回す構成が費用対効果を最大化します。Sonnet 5はその中間、つまり日常業務の主力モデルとして位置づけるのが基本方針です。
+
+## 導入時に見ておくべきコスト設計とガバナンス
+
+> プロンプトキャッシュで最大90%、バッチ処理で50%のコスト削減が可能で、業務量に応じた設計がコスト管理の鍵になります。
+
+Anthropicの公式価格ページによれば、プロンプトキャッシュのキャッシュ読み取りは基本入力価格の0.1倍、バッチAPIは入出力とも50%割引です。同ページが示す試算例では、Haiku 4.5で1万件の問い合わせ対応を処理した場合のコストは約$37（1件あたり1円未満）とされており、モデルを業務量・リスクに応じて振り分けるほどコスト差が拡大します。どの業務にどのモデルを割り当てるかを最初に設計し、モデル更新のたびに見直す運用ルールを持つことが、[エージェントガバナンス](/glossary/agent-governance/)の実務そのものです。Kuuの[AIエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)では、モデル選定から運用設計・継続改善までを一貫して支援しています。
+
+## 参考
+
+- [Introducing Claude Sonnet 5 - Anthropic](https://www.anthropic.com/news/claude-sonnet-5)
+- [Claude Sonnet - Anthropic](https://www.anthropic.com/claude/sonnet)
+- [Pricing - Claude Docs](https://platform.claude.com/docs/en/about-claude/pricing)
+
+## まとめ
+
+Claude Sonnet 5は、これまで上位モデルの領域だった精度をSonnet価格帯に引き下げたことで、中小企業の日常業務における主力モデルの位置づけが明確になりました。Haiku 4.5・Opus 5との3段構成で業務を振り分ければ、精度とコストの両立が可能です。
+
+どの業務にどのモデルを割り当てるか、モデル更新のたびに何を見直すべきか——設計と運用の両面から、Kuuの[AIエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)にご相談ください。
