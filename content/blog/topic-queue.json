@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-vision-document-processing-design-smb",
+      "keyword": "Claude Vision 画像認識 帳票 書類処理 実装設計",
+      "title_hint": "Claude Vision帳票処理ガイド——解像度とコスト設計",
+      "persona": "帳票・書類のデジタル化を検討する中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claudeの画像認識機能で帳票・書類処理を実装するにはどう設計すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/build-with-claude/vision",
+        "https://platform.claude.com/docs/en/build-with-claude/pdf-support"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
