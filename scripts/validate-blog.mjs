@@ -91,6 +91,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 		["agent-governance-framework", "agent-governance-checklist"],
 		["ai-risk-management-sme", "ai-risk-assessment-template"],
 		["ai-agent-roi-measurement", "ai-agent-evaluation-kpi"],
+		// enterprise(deep・サンドボックス/IAM設計)版とsmb(intermediate・着手ガイド)版: audience・tech_depth・切り口が異なる正当な併存
+		[
+			"computer-use-api-sandbox-iam-design",
+			"computer-use-smb-automation-patterns",
+		],
 		// enterprise(deep)版とsmb(intermediate)版: 9軸フレームワーク焦点・audience・tech_depthが異なる正当な併存
 		[
 			"llm-as-a-judge-agent-evaluation-enterprise",

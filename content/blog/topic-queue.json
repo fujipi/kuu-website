@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "computer-use-smb-automation-patterns",
+      "keyword": "Computer Use 画面操作AI 中小企業",
+      "title_hint": "Computer Use、中小企業の使いどころ3パターン",
+      "persona": "社内にエンジニアがいない中小企業のIT担当・DX推進担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Computer Use（画面操作AI）は中小企業の業務自動化にどう使えるか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
