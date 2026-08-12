@@ -269,6 +269,15 @@
       "industry": "士業・土地家屋調査士事務所",
       "use_case": "表題登記書類のドラフト生成・筆界確認資料整理・現地立会いスケジュール管理の補助自動化",
       "status": "published"
+    },
+    {
+      "slug": "recycle-shop-purchase-agent",
+      "keyword": "リサイクルショップ 古物商 買取 本人確認 古物台帳 AIエージェント",
+      "title_hint": "リサイクルショップの買取記録をAIエージェントに——古物台帳の事務をこう減らす",
+      "persona": "リサイクルショップの店長",
+      "industry": "リサイクルショップ・古物商",
+      "use_case": "買取査定支援・本人確認記録・古物台帳管理の補助自動化",
+      "status": "published"
     }
   ],
   "keyword_bank": [
@@ -283,5 +292,5 @@
     "コールセンター FAQ ナレッジ AIエージェント",
     "経理 請求書 突合 支払処理 AIエージェント"
   ],
-  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-02時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
+  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-12時点で確認、recycle-shop-purchase-agentを追加）。次回生成時もキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
 }
