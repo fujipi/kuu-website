@@ -1073,6 +1073,22 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "computer-use-tool-smb-adoption-guide",
+      "keyword": "マルチモーダル エージェント computer use 画面操作",
+      "title_hint": "AIに画面操作を任せる——中小企業のComputer Use入門",
+      "persona": "エンジニアがいない中小企業のIT担当・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がClaude Computer Use機能をどう使い始めればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool",
+        "https://www.anthropic.com/news/claude-for-small-business"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
