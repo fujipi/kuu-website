@@ -1073,6 +1073,23 @@
         "https://arxiv.org/pdf/2312.07104"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-skills-skillmd-progressive-disclosure-design",
+      "keyword": "Agent Skills SKILL.md プログレッシブ開示 設計",
+      "title_hint": "Agent Skills設計——SKILL.mdの3階層構造",
+      "persona": "社内にインフラ専任者を置けない中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "architecture",
+      "tech_depth": "deep",
+      "target_query": "Agent Skills（SKILL.md）はどう設計すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices",
+        "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

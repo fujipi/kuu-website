@@ -1,0 +1,84 @@
+---
+title: "Agent Skills設計——SKILL.mdの3階層構造"
+description: "Agent SkillsはSKILL.mdをメタデータ・指示・リソースの3階層に分け、常時ロードは約100トークンに抑えます。中小企業がSKILL.md本文500行以内で業務手順を再利用する設計手順を解説します。"
+date: "2026-08-13"
+lastModified: "2026-08-13"
+tags: ["Agent Skills", "SKILL.md", "プログレッシブ開示", "AIエージェント設計"]
+author: "kuu-engineering"
+audience: "smb"
+track: "architecture"
+tech_depth: "deep"
+target_query: "Agent Skills（SKILL.md）はどう設計すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices"
+  - "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
+pillar: "ai-governance"
+---
+
+「同じ業務手順を毎回チャットで説明し直している」「担当者が変わるたびに、AIへの指示の仕方をゼロから教えている」——中小企業でAIエージェントを日常業務に組み込むほど、この繰り返しコストが目立ってきます。プロンプトに手順を書き足すたびに会話は長くなり、肝心の指示が埋もれていきます。
+
+Anthropicが提供する**Agent Skills**は、この「毎回説明し直す」問題をフォルダ単位の再利用可能な知識パッケージとして解決する仕組みです。本記事ではSKILL.mdの構造と設計原則を、公式ドキュメントに基づいて解説します。
+
+## Agent Skillsとは何か
+
+> Agent Skillsは指示・スクリプト・参照資料をフォルダにまとめ、必要な時だけAIに読み込ませる再利用可能な拡張機能です。
+
+Agent Skillsは、ワークフローや業務知識をパッケージ化してClaudeに渡す仕組みです。会話ごとに同じ指示を繰り返す代わりに、一度作成したSkillを複数の会話・複数のタスクで自動的に呼び出せます。claude.ai・Claude API・Claude Codeのいずれでも動作し、Claude Codeでは`.claude/skills/`配下にフォルダを置くだけで、APIへのアップロードなしに利用できます。
+
+PowerPoint・Excel・Word・PDFの定型処理はAnthropicが提供する組み込みSkillでカバーされていますが、真価を発揮するのは自社の業務手順・命名規則・判断基準を組み込んだ**カスタムSkill**です。
+
+## SKILL.mdはどう構成するのか
+
+> SKILL.mdは`name`と`description`の2つのYAMLフィールドが必須で、本文は500行以内に収めるのが推奨です。
+
+Skillの実体はSKILL.mdという1ファイルのMarkdownです。冒頭のYAMLフロントマターに必須なのは`name`（64文字以内・英小文字数字ハイフンのみ）と`description`（1,024文字以内）の2フィールドだけです。
+
+```yaml
+---
+name: reviewing-quotations
+description: 見積書の金額・条件を社内規定と照合してレビューする。見積書作成や金額確認を依頼されたときに使う。
+---
+```
+
+`description`の書き方が呼び出し精度を左右します。「何をするSkillか」と「いつ使うべきか」の両方を三人称で明記することが公式ガイドの原則です。100件を超えるSkillが同時に登録されている環境では、この一文だけでClaudeが選択対象を絞り込むため、「文書を処理する」のような曖昧な表現は避け、具体的なトリガー語を含めます。
+
+本文にはSkillの本体である手順・判断基準を書き、必要に応じて`scripts/`配下に実行スクリプト、`reference.md`のような参照ファイルを追加します。参照ファイルはSKILL.mdから1階層以内でリンクすることが推奨されており、ネストが深いとClaudeが`head`コマンドなどで内容を部分的にしか読まず、情報を見落とすリスクが生じます。
+
+## プログレッシブ開示はなぜ3階層に分かれているのか
+
+> メタデータは常時ロードで約100トークン、SKILL.md本文はトリガー時のみ5,000トークン未満、参照ファイルは実際に読むまで0トークンという3段階でコンテキストを節約します。
+
+Agent Skillsの設計思想の中心は**プログレッシブ開示**（progressive disclosure）です。3つの層に分けて必要な分だけをコンテキストウィンドウに読み込みます。
+
+| 階層 | 読み込みタイミング | 目安トークン数 | 内容 |
+|---|---|---|---|
+| メタデータ | 常時（起動時） | 約100トークン/Skill | `name`と`description` |
+| SKILL.md本文 | Skillが呼び出された時 | 5,000トークン未満 | 手順・判断基準の本体 |
+| 参照ファイル・スクリプト | 必要になった時のみ | 参照するまで0 | 詳細資料・実行コード |
+
+この設計により、Skillを何十個登録してもコンテキストを圧迫しません。スクリプトを実行する場合はコード自体を読み込ませず、bashで実行して出力だけをコンテキストに戻すため、決定的な処理ほどSkillにスクリプトとして持たせる方が生成コードより効率的です。Anthropicのエンジニアリング記事は、Skillsを[MCP](/glossary/mcp/)の代替ではなく、外部ツールを操作する複雑なワークフローを教える補完的な仕組みと位置づけています。
+
+## 中小企業がAgent Skillsを設計する際の注意点は何か
+
+> 信頼できる作成元のSkillだけを使い、自由度の高さをタスクの再現性に応じて調整することが実務上の要点です。
+
+エンジニアを専任で置けない中小企業がAgent Skillsを導入する際は、次の3点を押さえると失敗が減ります。
+
+**1. 出所不明のSkillは使わない**: Skillはコード実行を含むため、悪意ある指示が埋め込まれていれば意図しないファイル操作やデータ流出につながります。自社で作成したSkill、またはAnthropic公式のSkillに限定するのが公式ガイドの推奨です。第三者配布のSkillを使う場合は、SKILL.mdとスクリプトの中身を必ず事前に確認してください。サプライチェーンの観点は[エージェントスキルのサプライチェーン攻撃を防ぐ設計](/blog/agent-skill-supply-chain-security-signing-sandboxing/)も参照してください。
+
+**2. 手順の「自由度」をタスクに合わせる**: 見積書レビューのように毎回同じ判断基準を適用すべき業務は、実行するスクリプトを明示して自由度を絞ります。逆に文章の推敲のように複数の正解がある業務は、大枠の方針だけを書いて余白を残します。
+
+**3. 最初は少数のSkillから始める**: いきなり10個のSkillを作るより、日常的に繰り返している1〜2業務をSkill化し、実際にClaudeがどう呼び出すかを観察してから拡張する方が、[エージェントガバナンス](/glossary/agent-governance/)の観点でも管理しやすくなります。
+
+## 参考
+
+- [Agent Skills（Claude Platform公式ドキュメント）](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Skill authoring best practices（Claude Platform公式ドキュメント）](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+- [Equipping agents for the real world with Agent Skills（Anthropic Engineering）](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+
+## まとめ
+
+Agent Skillsは、業務手順を毎回説明し直す代わりに、フォルダ単位の再利用可能な知識としてAIに渡す仕組みです。SKILL.mdのフロントマターとプログレッシブ開示の3階層構造を理解すれば、専任エンジニアがいない体制でも自社の業務Skillを設計・運用できます。
+
+Kuuでは[運用管理サービス（AI Ops）](/services/ai-ops/)を通じて、Agent SkillsのようなAIエージェント拡張機能の設計・ガバナンス体制構築を支援しています。どの業務からSkill化すべきか迷う段階でのご相談も歓迎です。
