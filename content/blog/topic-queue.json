@@ -1090,6 +1090,22 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-5-family-model-selection-smb",
+      "keyword": "Claude Opus Sonnet Haiku ツール使用 性能 比較",
+      "title_hint": "Opus5・Sonnet5・Haiku4.5の選び方とコスト設計",
+      "persona": "IT担当・DX推進担当（Claudeモデルの選定・コスト設計を検討している中小企業）",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "deep",
+      "target_query": "中小企業はClaude Opus 5・Sonnet 5・Haiku 4.5をどう使い分ければよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/about-claude/models/overview",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
