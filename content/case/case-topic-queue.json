@@ -283,5 +283,5 @@
     "コールセンター FAQ ナレッジ AIエージェント",
     "経理 請求書 突合 支払処理 AIエージェント"
   ],
-  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-02時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。"
+  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-13時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。2026-08-13にフォールバック2で「paid-nursing-home-inquiry-agent」（有料老人ホームの入居相談・空室管理）を新規考案・公開済み。"
 }
