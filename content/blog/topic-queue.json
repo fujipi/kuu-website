@@ -1090,6 +1090,22 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-native-pdf-processing-smb",
+      "keyword": "Claude PDF ネイティブ処理 AI-OCR 書類処理",
+      "title_hint": "ClaudeのPDF理解機能でAI-OCRを代替する設計",
+      "persona": "社内にエンジニアがいない中小企業のIT担当・DX推進担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claude(LLM)のPDF/画像理解機能はAI-OCRの代替になるか、中小企業はどう実装すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/build-with-claude/pdf-support",
+        "https://platform.claude.com/docs/en/build-with-claude/vision"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
