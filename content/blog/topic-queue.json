@@ -1090,6 +1090,23 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-approval-workflow-async-callback-design",
+      "keyword": "ヒューマンインザループ 承認フロー 設計",
+      "title_hint": "承認フロー非同期設計——コールバックトークンとエスカレーション",
+      "persona": "マルチエージェント構成の承認・監査基盤を設計するエンタープライズのプラットフォームエンジニア・アーキテクト",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "architecture",
+      "tech_depth": "deep",
+      "target_query": "AIエージェントの承認フロー（ヒューマンインザループ）はどう設計すればよいか",
+      "sources": [
+        "https://www.anthropic.com/engineering/building-effective-agents",
+        "https://www.anthropic.com/news/measuring-agent-autonomy",
+        "https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
