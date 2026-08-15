@@ -1090,6 +1090,22 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-sonnet5-smb-business-guide",
+      "keyword": "Claude Sonnet 5 中小企業 業務活用 判断基準",
+      "title_hint": "Claude Sonnet 5は中小企業でどう使うべきか",
+      "persona": "AI導入コストの判断基準を知りたい中小企業のIT担当者・経営者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "Claude Sonnet 5は中小企業のどんな業務に使えるか",
+      "sources": [
+        "https://www.anthropic.com/news/claude-sonnet-5",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

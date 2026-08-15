@@ -136,6 +136,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-opus48-enterprise-agentic-design",
 			"claude-opus5-enterprise-agent-design",
 		],
+		// Claude Sonnet 4.6（旧モデル・business guide）と Sonnet 5（新モデル・$2/$10恒久化・smb向け判断基準）: モデル世代が異なる正当な併存（Opus 4/4.8/5と同じバージョン別記事パターン）
+		[
+			"claude-sonnet46-business-guide",
+			"claude-sonnet5-smb-business-guide",
+		],
 		// Claude Opus 5（enterprise/deep）と Sonnet 5（enterprise/deep）: 異なるモデルファミリーの設計指針で正当な併存
 		[
 			"claude-opus5-enterprise-agent-design",
