@@ -1,0 +1,67 @@
+---
+title: "Computer Use導入、中小企業はCoworkから始める"
+description: "Computer Use（画面操作AI）は、追加インフラなしで動くClaude Coworkから始めるのが中小企業の現実解です。API実装時のトークン単価や承認モード設計も解説します。"
+date: "2026-08-16"
+lastModified: "2026-08-16"
+tags: ["computer use", "Claude Cowork", "中小企業", "model-capability"]
+author: "kuu-engineering"
+audience: "smb"
+track: "model-capability"
+tech_depth: "intermediate"
+target_query: "中小企業がComputer Use（画面操作AI）を導入するには、CoworkとAPI実装のどちらを選ぶべきか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
+  - "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork"
+pillar: "ai-governance"
+---
+
+「APIのない古い社内システムをAIに操作させたいが、専任のインフラ担当者がいない」——中小企業のIT担当者からよく聞く悩みです。Computer Use（画面操作AI）自体はAnthropicが公開している技術ですが、本番運用にはサンドボックスVMの構築や権限設計が伴うため、これまでは大企業向けの選択肢と見られていました。2026年に入り、Claude Coworkの登場でこの前提が変わりつつあります。
+
+## Computer Useとは何か
+
+> Computer Useは画面操作をAIに任せる機能で、Claude 4.x系モデルで利用できます。
+
+Computer UseはAnthropicのMessages APIが提供するツールの一種で、Claudeが画面を見て（スクリーンショット）、次の操作（クリック・入力・スクロール）を判断し、実行結果を再度確認するというループで動きます。[エージェントガバナンス](/glossary/agent-governance/)の観点では、APIを持たない古い業務システムや取引先ポータルへの対応手段として位置づけられます。
+
+自前でAPI実装する場合、ツール定義だけで1リクエストあたり735トークンが加算され、システムプロンプトにも466〜499トークンのオーバーヘッドが乗ります。これに加えてスクリーンショット画像のトークンも発生するため、素朴に組むと想定より費用がかさみやすい機能です。
+
+## 中小企業はCoworkとAPI実装のどちらから始めるべきか
+
+> インフラ専任者がいない中小企業は、サンドボックスVMの構築が不要なClaude Coworkから着手するのが現実的です。
+
+Computer Useを使う経路は大きく2つあります。ひとつはAPIを直接呼び、自社でVMやコンテナのサンドボックスを用意してClaudeの操作を実行させる方法。もうひとつはClaude Coworkを使い、Anthropicのクラウド環境とデスクトップアプリ経由でローカルのファイル・ブラウザにアクセスさせる方法です。
+
+前者はエンタープライズ向けの設計判断（解像度とモデルティアの最適化、IAM設計など）が必要で、インフラ担当者がいない体制には荷が重い選択です。後者のCoworkはPro・Max・Team・Enterpriseの有料プランで利用でき、VMを自前で構築する必要がありません。Claudeがローカルのブラウザやファイルを操作する際は、常時起動したデスクトップアプリを経由する設計になっており、アクセス範囲はデスクトップアプリの接続状態に紐づきます。
+
+## Claude Coworkの承認モードとコスト感覚をどう設計するか
+
+> CoworkはManual・Auto・Skipの3段階で、操作ごとの承認範囲を業務に応じて設定できます。
+
+Coworkにはタスク実行時の自律度を制御する3つの承認モードがあります。Manualはクリックや入力のたびに確認を求め、Autoは安全性をClaudeが自己チェックしたうえで進め、Skipは確認なしに実行します。導入初期は範囲の広いSkipではなく、請求書処理や顧客情報の入力といったリスクの高い操作にはManualを割り当て、定型的な情報収集や下書き作成にはAutoを使うといった業務単位の切り分けが現実的です。
+
+コスト面では、CoworkはAPIの通常チャットより計算量の多いタスクを裏側で実行するため、利用枠の消費が速い点に留意が必要です。API単体で試算する場合、Claude Sonnet 5は入力$2・出力$10（100万トークンあたり）が標準価格で、画面操作を伴うタスクは通常のテキスト対話よりトークン消費が多くなります。少人数チームでまず試すなら、Coworkの範囲内で運用しコストの肌感をつかんでから、業務量が増えた段階でAPI実装を検討する順序が無理がありません。
+
+## API実装に進むタイミングをどう見極めるか
+
+> 同一操作を数百件以上繰り返す、複数システムを横断させたい場合はAPI実装への移行を検討する目安です。
+
+CoworkはAnthropicの管理下で動くぶん、細かいモデルティアの使い分けや大量バッチ処理には向きません。以下のいずれかに当てはまる段階で、API実装への移行を検討します。
+
+- 同一の画面操作タスクを月次で数百件以上繰り返し、コストをモデル・解像度単位で最適化したい
+- 社内の複数システムを横断してオーケストレーションする必要がある
+- 承認フローや監査ログを自社のシステムに統合したい
+
+移行時は、ERPのような密なグリッド操作にはClaude Opus 5、標準的なWebフォームにはClaude Sonnet 5というようにタスクの複雑さでモデルを使い分けると、コストと精度のバランスを取りやすくなります。[マルチエージェント構成の規模別アーキテクチャ](/blog/multi-agent-architecture-sme/)も、体制が大きくなった際の設計判断として参考になります。
+
+## 参考
+
+- [Computer use tool – Claude Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
+- [Pricing – Claude Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
+- [Get started with Claude Cowork – Claude Help Center](https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork)
+
+## まとめ
+
+Computer Useは中小企業にとってもう「無縁の技術」ではありません。サンドボックスVMを自前で構築するAPI実装ではなく、Claude Coworkの承認モードを業務ごとに切り分けて使うところから始めれば、専任のインフラ担当者がいなくても画面操作の自動化を試せます。業務量とリスクの高まりに応じてAPI実装へ段階的に移行する設計を、最初から視野に入れておくとよいでしょう。
+
+AIエージェントの導入設計・運用体制の構築は、[Kuu株式会社のAI Opsサービス](https://kuucorp.com/services/ai-ops/)でご相談ください。

@@ -1090,6 +1090,23 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "computer-use-smb-cowork-adoption-guide",
+      "keyword": "マルチモーダル エージェント computer use 画面操作",
+      "title_hint": "Computer Use導入、中小企業はCoworkから始める",
+      "persona": "インフラ専任者がいない中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がComputer Use（画面操作AI）を導入するには、CoworkとAPI実装のどちらを選ぶべきか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool",
+        "https://platform.claude.com/docs/en/about-claude/pricing",
+        "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {
