@@ -1075,6 +1075,23 @@
       "status": "published"
     },
     {
+      "slug": "claude-model-selection-smb-starting-point",
+      "keyword": "Claudeモデル選定 中小企業 効率重視 開始基準",
+      "title_hint": "中小企業のClaudeモデル選定——効率重視で始める実践基準",
+      "persona": "評価専任チームを持たない中小企業のIT担当者・開発者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がAIエージェントに使うClaudeモデルはどう選べばよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/about-claude/models/choosing-a-model",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published",
+      "note": "keyword_bank の model-capability 4語は既存記事で網羅済みのため、blog-coverage-report.mjs で判明した model-capability×smb の実質ギャップ（既存13記事が全てenterprise/both）をWeb調査で新規考案"
+    },
+    {
       "slug": "agent-skills-skillmd-progressive-disclosure-design",
       "keyword": "Agent Skills SKILL.md プログレッシブ開示 設計",
       "title_hint": "Agent Skills設計——SKILL.mdの3階層構造",
