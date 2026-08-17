@@ -493,6 +493,24 @@
       "funnel_stage": "consideration",
       "sources": [],
       "glossary_refs": ["agent-observability"]
+    },
+    {
+      "slug": "ai-content-provenance-c2pa-smb-implementation",
+      "keyword": "C2PA Content Credentials AI生成コンテンツ 来歴 中小企業",
+      "title_hint": "AI生成コンテンツの来歴表示、中小企業はC2PAにどこまで対応すべきか",
+      "persona": "AI生成コンテンツを公開する中小企業の広報・マーケティング担当とそれを支えるIT担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はAI生成コンテンツの来歴表示（C2PA/SynthID）にどう技術的に対応すればよいか",
+      "sources": [
+        "https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html",
+        "https://deepmind.google/models/synthid/",
+        "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [

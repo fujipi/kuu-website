@@ -1,0 +1,58 @@
+---
+title: "AI生成コンテンツの来歴表示——中小企業のC2PA対応点"
+description: "中小企業はC2PA暗号署名の独自実装までは不要で、生成AIツールのメタデータ記録機能を使う範囲で大半に対応できる。EU AI Act第50条は2026年8月2日に施行済みだ。"
+date: "2026-08-17"
+lastModified: "2026-08-17"
+tags: ["C2PA", "AIガバナンス", "コンプライアンス", "SynthID"]
+author: "kuu-editorial"
+audience: "smb"
+track: "governance-tech"
+tech_depth: "intermediate"
+sources:
+  - "https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html"
+  - "https://deepmind.google/models/synthid/"
+  - "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng"
+  - "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50"
+pillar: "ai-governance"
+---
+
+AIで作った画像やテキストを自社サイトやSNSに載せている中小企業は多いが、「それがAI生成物だとどう技術的に示すか」まで考えている担当者は少ない。2026年8月2日、EU AI Act第50条の透明性義務が施行され、AI生成コンテンツの開示が法的な論点になった。国内向け事業でも取引先からの信頼確保という観点で無視できない。
+
+[エージェントガバナンス](/glossary/agent-governance/)の一部として、コンテンツの来歴（provenance）をどう技術的に担保するかを整理する。
+
+## C2PAとは何か
+
+> C2PAはAI生成コンテンツの生成元・編集履歴を暗号署名付きメタデータとして埋め込む業界標準規格だ。
+
+C2PA（Coalition for Content Provenance and Authenticity）は、画像・動画・音声・テキストに「誰が」「どのAIモデルで」「どう加工したか」を記録する仕様だ。最新のC2PA技術仕様v2.4では、アサーション（個別の記録）・クレーム（アサーションの束）・署名の3層構造でマニフェストを構成し、`c2pa.ai-disclosure`アサーションでAIモデルの関与を機械可読に記録する。OpenAIはDALL·E 3生成画像にC2PAメタデータを埋め込んでおり、Adobeなど主要な生成AIツールもContent Credentials対応を進めている。
+
+## SynthIDとの違いは何か
+
+> C2PAはメタデータへの記録、SynthIDはコンテンツ自体への電子透かし埋め込みという異なる技術手段で来歴を示す。
+
+Google DeepMindのSynthIDは、画像・音声・動画・テキストの生成時に人間には知覚できない電子透かしを埋め込む方式だ。C2PAが外部メタデータとして「タグ付け」するのに対し、SynthIDはコンテンツのピクセルやトークン分布そのものに信号を埋め込むため、圧縮やトリミングを経ても検出できる。ただしSynthIDはそれを採用したモデルの出力にしか効かず、対応外のツールで作った生成物は検出対象にならない。両者は競合ではなく、メタデータ層と透かし層で補完し合う関係にある。
+
+## 中小企業はどの範囲まで対応すべきか
+
+> 中小企業は暗号署名基盤を自前で持たず、既存ツールのメタデータ保持機能を有効化する範囲で大半のケースに対応できる。
+
+C2PA準拠のクレーム生成・署名検証エンジンをゼロから実装するには、X.509証明書基盤やJUMBF埋め込み処理など専門的な開発リソースが要る。中小企業がまず着手すべきは次の3点だ。
+
+1. 使用中の生成AIツール（画像生成・文書作成）がContent CredentialsやSynthIDに対応しているか確認し、メタデータを削除せずそのまま公開する
+2. AI生成・AI加工コンテンツを公開する際、EU AI Act第50条が求める水準で人間にも分かる形で開示する（脚注・キャプション等）
+3. 画像編集・SNS投稿時にメタデータを意図せず剥がすツールを使っていないか確認する
+
+暗号署名の独自実装が必要になるのは、自社が生成AIモデルを提供する側になる場合や、大量のコンテンツ来歴を取引先に対して契約上保証する必要がある場合に限られる。多くの中小企業はそこまで到達しない。
+
+[EU AI Actの日本企業への影響](/blog/eu-ai-act-japan-business-guide/)も合わせて確認し、開示義務の対象範囲を業種ごとに見極めてほしい。
+
+## 参考
+
+- [C2PA Technical Specification 2.4](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html)
+- [SynthID – Google DeepMind](https://deepmind.google/models/synthid/)
+- [Regulation (EU) 2024/1689 (AI Act) – EUR-Lex](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng)
+- [Article 50: Transparency obligations – AI Act Service Desk](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)
+
+## まとめ
+
+C2PAはメタデータ層、SynthIDは透かし層でAI生成コンテンツの来歴を示す、異なるが補完的な技術だ。中小企業にとっての現実的な対応は、暗号署名基盤を独自構築することではなく、既存ツールのメタデータ機能を無効化せず活用し、法令が求める水準で人間にも開示することにある。自社のコンテンツ運用フローに来歴管理をどう組み込むか整理したい場合は、[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)から相談できる。
