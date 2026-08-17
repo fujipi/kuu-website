@@ -1107,6 +1107,23 @@
         "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"
       ],
       "status": "published"
+    },
+    {
+      "slug": "inspect-ai-agent-evaluation-framework",
+      "keyword": "Inspect AI UK AISI 評価フレームワーク エージェント安全性",
+      "title_hint": "Inspect AIでエージェント評価基盤を設計する——UK AISI発OSSフレームワークのTask/Solver/Scorer構成",
+      "persona": "エージェント評価パイプラインを設計するバックエンド/プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "Inspect AIでエージェント評価基盤はどう設計すればよいか",
+      "sources": [
+        "https://inspect.aisi.org.uk/tasks.html",
+        "https://github.com/UKGovernmentBEIS/inspect_ai",
+        "https://www.aisi.gov.uk/blog/inspect-evals"
+      ],
+      "status": "published"
     }
   ],
   "keyword_bank": {

@@ -1,0 +1,71 @@
+---
+title: "Inspect AIでエージェント評価基盤を設計する"
+description: "Inspect AIはUK AISI製のOSS評価フレームワークで、Task・Solver・Scorerの3層構成とサンドボックス実行でエージェント評価を再現可能にします。MITライセンスで200超の公開評価を利用できます。"
+date: "2026-08-17"
+lastModified: "2026-08-17"
+tags: ["エージェント評価", "Inspect AI", "評価フレームワーク", "AI安全性"]
+author: "kuu-engineering"
+audience: "both"
+track: "evaluation"
+tech_depth: "deep"
+target_query: "Inspect AIでエージェント評価基盤はどう設計すればよいか"
+sources:
+  - "https://inspect.aisi.org.uk/tasks.html"
+  - "https://github.com/UKGovernmentBEIS/inspect_ai"
+  - "https://www.aisi.gov.uk/blog/inspect-evals"
+pillar: "ai-governance"
+---
+
+自社エージェントの評価スクリプトが、モデルを差し替えるたびに壊れる。ジャッジのプロンプトとスコアリングロジックが評価ケースごとにコピペで散らばり、誰も全体像を把握できなくなっている——[エージェント評価フレームワーク](/blog/agent-eval-framework-comparison-ragas-deepeval-braintrust/)の選定に悩むチームが最終的に行き着く不満は、たいていこの「配線の複雑化」に集約される。
+
+Inspect AIは、この配線を標準化するために英国のAI Security Institute（AISI）が公開したOSS評価フレームワークだ。[エージェントガバナンス](/ai-governance/)の観点では、評価パイプライン自体の再現性・監査可能性も統制対象になる。本記事ではInspect AIのアーキテクチャと、既存の評価スタックとの使い分けを解説する。
+
+## Inspect AIとは何か——AISI発のOSS評価フレームワーク
+
+> Inspect AIはAISIがMITライセンスで公開するPythonフレームワークで、モデル・エージェントの評価を再現可能な形で構築・実行するための標準基盤です。
+
+frontier modelの事前デプロイ評価という高い再現性要求から生まれた設計思想が特徴だ。単発スクリプトの寄せ集めではなく、評価ロジックをPythonパッケージとして構成・共有できる点が、社内で評価ケースが増殖して破綻するチームへの直接的な解決策になる。GitHubリポジトリはUKGovernmentBEIS/inspect_aiで公開され、200件を超える公開評価セット（Inspect Evals）がすぐに利用できる。
+
+## Task・Solver・Scorerはどう連携するか
+
+> 評価は「データセット」「Solver（解答戦略）」「Scorer（採点）」の3要素を`@task`デコレータで束ねた単位として定義します。
+
+Taskはデータセット・Solver・Scorerを組み合わせる「レシピ」だ。Solverは単純な単発プロンプトから、ツールを呼びながら推論を繰り返すエージェントループまで差し替え可能で、`react()`のようなエージェント用Solverがツール使用ループを直接オーケストレーションする。Scorerはテキスト一致から、別のLLMに採点させるmodel-graded評価まで対応する。
+
+```python
+@task
+def customer_support_eval():
+    return Task(
+        dataset=json_dataset("cases.jsonl"),
+        solver=react(tools=[search_kb(), escalate()]),
+        scorer=model_graded_fact(),
+    )
+```
+
+設定はtaskのデフォルト値→`task_with()`による上書き→環境変数→`eval()`呼び出しやCLIフラグの順で優先度が積み重なる階層構造になっており、ソースコードを書き換えずにパラメータを差し替えられる。
+
+## エージェント評価のツール実行はどう隔離するか
+
+> 未検証コードやツール呼び出しはSandbox機構によってホスト環境から隔離実行され、評価の安全性と再現性を両立します。
+
+エージェント評価ではモデルにbashやPythonの実行、Web APIの呼び出しを許可するケースが多く、ホスト環境を汚染・破壊するリスクが常につきまとう。Inspect AIはSandbox機構でこれらのツール実行を隔離し、セットアップ・クリーンアップのフェーズを評価タスクの一部として明示的に定義できる。[プロンプトインジェクションの多層防御](/blog/prompt-injection-layered-defense-architecture/)と同様、評価環境自体への権限分離設計が評価結果の信頼性を左右する。
+
+## 既存の評価スタックとどう使い分けるか
+
+> RAGやプロダクション監視に強いRAGAS・DeepEvalに対し、Inspect AIは安全性・能力評価の再現性と監査可能性に強みを持ちます。
+
+[RAGAS・DeepEval・Braintrustの比較](/blog/agent-eval-framework-comparison-ragas-deepeval-braintrust/)で扱ったツール群は、本番トラフィックの継続監視やRAG品質のチューニングに最適化されている。一方Inspect AIは、モデル更新前の能力・安全性のベンチマーキングや、レッドチーミングに近い評価シナリオの構築に向く設計思想を持つ。両者は代替関係ではなく、開発サイクルの異なるフェーズを担う補完関係にあると捉えるのが実務的だ。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+自前の評価基盤を持たない中小企業でも、Inspect Evalsの公開評価セットをそのまま流用すれば、ゼロからルーブリックを設計せずにベンチマーキングを始められる。エンタープライズでは、複数チームが共通のTask定義を再利用できるようPythonパッケージとして社内配布し、Sandboxの実行基盤をKubernetesクラスタ上に統一することが論点になる。モデル更新のたびに評価スイートを回す体制構築まで踏み込む場合は、[RDE](https://kuucorp.com/services/rde/)のような専門支援と組み合わせる価値がある。
+
+## 参考
+
+- [Tasks — Inspect AI](https://inspect.aisi.org.uk/tasks.html)
+- [GitHub — UKGovernmentBEIS/inspect_ai](https://github.com/UKGovernmentBEIS/inspect_ai)
+- [Announcing Inspect Evals — AISI](https://www.aisi.gov.uk/blog/inspect-evals)
+
+## まとめ
+
+Inspect AIは、評価ロジックの散逸という多くのチームが抱える構造的な問題に対し、Task・Solver・Scorerという標準化された3層構成で応える。Sandbox機構によるツール実行の隔離は、エージェント評価特有のリスクに正面から向き合った設計だ。RAGASやDeepEvalのような本番監視系ツールと組み合わせ、開発フェーズごとに評価スタックを使い分けることが実務上の落としどころになる。自社の評価パイプライン設計については、Kuu株式会社の[AI Ops](https://kuucorp.com/services/ai-ops/)にご相談ください。
