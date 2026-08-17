@@ -25,6 +25,9 @@
  *   6. content/blog 内での slug 重複
  *   7. frontmatter の audience が `enterprise` なのに本文に /services/rde/ への
  *      言及が無い（audience 設定時のみ発火。新規生成での事故防止）
+ *   8. 価格の数値を書いているのに sources に公式 pricing ドキュメントが無い
+ *      （PRICE_SOURCE_CUTOFF 以降の date を持つ記事のみ発火）。裏取り無しの
+ *      価格記述が本番に出るのを止める。詳細は PRICE_SOURCE_CUTOFF の定義を参照
  *
  * 警告（warning、exit 0 のまま report のみ）:
  *   - 本文中の /services/ リンク欠落（既存に 2 件存在するため hard にしない）
@@ -81,6 +84,33 @@ const BANNED_PHRASES = [
 	"今後も",
 	"いかがでしたでしょうか",
 ];
+
+/**
+ * 価格の数値を書く記事に、公式 pricing ドキュメントを sources として要求する
+ * 基準日。この日付以降の `date` を持つ記事が対象になる（violation / exit 1）。
+ *
+ * 導入の経緯: 2026-08 の滞留事故で不採用にした Sonnet 5 記事3本は、同じ価格に
+ * ついて「8/31までの導入価格」「8月まで」「8月に恒久化」という相互に矛盾する
+ * 記述を持っていた。生成側の Routine が allowed_tools に WebSearch / WebFetch を
+ * 持たず、pricing ページを確認する手段が無かったことが原因。裏取り無しの数値が
+ * 本番に出るのを機械的に止める。
+ *
+ * 既存記事の backfill が済んだら、この日付を過去（例 "2000-01-01"）に倒すことで
+ * 全件を hard gate 化できる。2026-08-17 時点で価格を書く既存 12 本はすべて
+ * pricing doc を sources に持つため、実質いつでも倒せる状態にある。
+ */
+const PRICE_SOURCE_CUTOFF = "2026-08-18";
+
+/** 公式 pricing ドキュメントとして認める URL */
+const PRICING_DOC = /platform\.claude\.com\/docs\/[^\s"']*about-claude\/pricing|claude\.com\/pricing|anthropic\.com\/pricing/;
+
+/**
+ * 「価格の数値を主張している」と判定する正規表現。
+ * $5/MTok・入力 $2・$3.00/百万トークン・$2/$10 などの記法を拾う。
+ * 「数千円」「1/5のコスト」のような相対表現は対象外（裏取りを要さないため）。
+ */
+const PRICE_CLAIM =
+	/\$\s?[0-9]+(?:\.[0-9]+)?\s*(?:\/\s*(?:百万|100万|1M|M\b|MTok)|・)|(?:入力|出力)\s*\$\s?[0-9]|\$[0-9.]+\s*\/\s*\$[0-9.]+/;
 
 /**
  * 意図的に併存させる近接記事ペア（読者層・切り口が明確に異なるもの）。
@@ -296,6 +326,37 @@ for (const file of files) {
 				kind: "service_link_audience_mismatch",
 				message: `audience: "enterprise" だが本文に /services/rde/ への言及が無い（CLAUDE.md service_link マッピング参照）。`,
 			});
+		}
+	}
+
+	// (8) 価格の数値を書くなら公式 pricing ドキュメントを sources に持つこと。
+	// PRICE_SOURCE_CUTOFF 以降の date を持つ記事のみが対象（既存記事を落とさない）。
+	// 裏取り無しの価格記述が本番に出るのを止めるゲート。
+	{
+		const articleDate = typeof data.date === "string" ? data.date : "";
+		if (articleDate && articleDate >= PRICE_SOURCE_CUTOFF) {
+			const haystack = [
+				typeof data.description === "string" ? data.description : "",
+				content || "",
+			].join("\n");
+			const priceLines = haystack
+				.split(/\r?\n/)
+				.filter((l) => PRICE_CLAIM.test(l));
+			if (priceLines.length > 0) {
+				const srcs = Array.isArray(data.sources) ? data.sources : [];
+				if (!srcs.some((s) => PRICING_DOC.test(String(s)))) {
+					violations.push({
+						file,
+						kind: "price_source_missing",
+						message: `価格の数値を ${priceLines.length} 箇所で記載しているが、sources に公式 pricing ドキュメントが無い（例: ${priceLines[0]
+							.trim()
+							.slice(
+								0,
+								60,
+							)}）。https://platform.claude.com/docs/en/about-claude/pricing を確認して sources に追加するか、数値を落とすこと。`,
+					});
+				}
+			}
 		}
 	}
 

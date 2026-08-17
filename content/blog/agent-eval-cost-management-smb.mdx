@@ -13,6 +13,7 @@ sources:
   - "https://arxiv.org/html/2604.13717"
   - "https://arxiv.org/pdf/2602.15481"
   - "https://www.metacto.com/blogs/anthropic-api-pricing-a-full-breakdown-of-costs-and-integration"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
 pillar: "ai-governance"
 ---
 
@@ -31,12 +32,12 @@ eval を初めて導入したチームが陥りやすいのが「高性能モデ
 | 評価プロンプト（ルーブリック + 会話履歴） | 2,000〜3,000 |
 | judge の採点出力（スコア + 理由） | 300〜500 |
 
-Sonnet クラス（約$3.00/百万入力トークン）で1件2,500入力・400出力と仮定すると:
-- 入力: 2,500 × $3.00 / 1,000,000 = $0.0075
-- 出力: 400 × $15.00 / 1,000,000 = $0.006
-- 合計: 1件あたり約$0.014（2円）
+Claude Sonnet 5（入力 $2.00・出力 $10.00 / 百万トークン）で1件2,500入力・400出力と仮定すると:
+- 入力: 2,500 × $2.00 / 1,000,000 = $0.005
+- 出力: 400 × $10.00 / 1,000,000 = $0.004
+- 合計: 1件あたり約$0.009（1.4円）
 
-月10万件を全件評価すると約$1,400（21万円）。これは明らかに過剰です。コスト管理の核心は「どのモデルで」「何件を」採点するかの設計にあります。
+月10万件を全件評価すると約$900（13万円）。これは明らかに過剰です。コスト管理の核心は「どのモデルで」「何件を」採点するかの設計にあります。
 
 ## コスト効率の高い judge モデルはどれか
 
@@ -118,10 +119,10 @@ CI パイプラインに組み込む回帰テストは、ゴールデンデー�
 |---|---|---|---|
 | 本番サンプリング（10%） | 1,000 | $0.0045 | $4.50（675円） |
 | CI回帰テスト（100件×週2回） | 800 | $0.0045 | $3.60（540円） |
-| 境界値再採点（Sonnet、20%） | 360 | $0.014 | $5.04（756円） |
-| **合計** | 2,160 | — | **$13.14（約2,000円）** |
+| 境界値再採点（Sonnet 5、20%） | 360 | $0.009 | $3.24（486円） |
+| **合計** | 2,160 | — | **$11.34（約1,700円）** |
 
-月2,000〜3,000円で継続評価が回る計算になります。本番トラフィックが月10万件規模でも、サンプリングによってコストはほぼ変わりません。
+月1,700〜3,000円で継続評価が回る計算になります。本番トラフィックが月10万件規模でも、サンプリングによってコストはほぼ変わりません。
 
 ## 評価コストを Langfuse でどう可視化するか
 
@@ -177,6 +178,7 @@ def check_eval_budget():
 - [On Cost-Effective LLM-as-a-Judge Improvement Techniques](https://arxiv.org/html/2604.13717)
 - [LLM-as-Judge on a Budget](https://arxiv.org/pdf/2602.15481)
 - [Anthropic Claude API Pricing: Every Model, Token Rate, And Cost Lever](https://www.metacto.com/blogs/anthropic-api-pricing-a-full-breakdown-of-costs-and-integration)
+- [Pricing — Anthropic Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
 
 ## まとめ
 

@@ -13,10 +13,11 @@ sources:
   - "https://www.anthropic.com/news/claude-sonnet-5"
   - "https://platform.claude.com/docs/en/docs/about-claude/models/overview"
   - "https://www.anthropic.com/claude/sonnet"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
 pillar: "ai-governance"
 ---
 
-エンタープライズのエージェント基盤を設計する際、Claude Sonnet 5の登場（2026年6月30日）が選択肢を根本的に変えた。従来Opus 4.8でなければ安定しなかった長タスクチェーン実行が、Sonnet価格（標準$3/MTok）で得られるようになった。Adaptive Thinkingとeffortパラメータによる推論深度の制御、Batch APIの300kトークン出力、プロンプトキャッシュの組み合わせが、エンタープライズ規模のコスト設計を大きく変える。
+エンタープライズのエージェント基盤を設計する際、Claude Sonnet 5の登場（2026年6月30日）が選択肢を根本的に変えた。従来Opus 4.8でなければ安定しなかった長タスクチェーン実行が、Sonnet価格（入力$2/MTok）で得られるようになった。Adaptive Thinkingとeffortパラメータによる推論深度の制御、Batch APIの300kトークン出力、プロンプトキャッシュの組み合わせが、エンタープライズ規模のコスト設計を大きく変える。
 
 ## Claude Sonnet 5とは何か
 
@@ -29,8 +30,7 @@ Claude Sonnet 5（モデルID：`claude-sonnet-5`）は、Anthropicが2026年6�
 | コンテキストウィンドウ | 1M トークン（約55万語） |
 | 最大出力（Messages API） | 128k トークン |
 | 最大出力（Batch API） | 300k トークン（ベータヘッダー使用） |
-| 価格（イントロ・2026年8月31日まで） | 入力 $2/MTok・出力 $10/MTok |
-| 価格（標準） | 入力 $3/MTok・出力 $15/MTok |
+| 価格 | 入力 $2/MTok・出力 $10/MTok |
 | Adaptive Thinking | あり（effortパラメータで制御） |
 | Extended Thinking | なし |
 | プロンプトキャッシュ割引 | 最大90% |
@@ -81,7 +81,7 @@ Extended ThinkingとAdaptive Thinkingの機能上の違いについては[Extend
 |---|---|---|---|---|
 | Claude Fable 5 | `claude-fable-5` | $10/MTok | 128k | 長期エージェント・最高品質判断 |
 | Claude Opus 4.8 | `claude-opus-4-8` | $5/MTok | 128k | 複雑なコーディング・設計判断 |
-| Claude Sonnet 5 | `claude-sonnet-5` | $3/MTok | 128k（Batch:300k） | 複合ワークフロー実行・標準判断 |
+| Claude Sonnet 5 | `claude-sonnet-5` | $2/MTok | 128k（Batch:300k） | 複合ワークフロー実行・標準判断 |
 | Claude Haiku 4.5 | `claude-haiku-4-5` | $1/MTok | 64k | 高頻度分類・ルーティング・要約 |
 
 エンタープライズのマルチエージェント構成では、**OrchestratorにSonnet 5またはOpus 4.8、SubagentにHaiku 4.5**を配置するパターンが費用対効果に優れる。計画・設計フェーズに高度な判断が集中する用途ではFable 5をOrchestrator層に置き、Sonnet 5を実行層に下ろす三層構成も有効だ。
@@ -109,6 +109,7 @@ Batch APIを利用すると通常の50%の価格で処理できる。さらに`o
 - [Introducing Claude Sonnet 5 – Anthropic](https://www.anthropic.com/news/claude-sonnet-5)
 - [Claude Models Overview – Anthropic Platform Docs](https://platform.claude.com/docs/en/docs/about-claude/models/overview)
 - [Claude Sonnet – Anthropic](https://www.anthropic.com/claude/sonnet)
+- [Pricing — Anthropic Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
 
 ## まとめ
 

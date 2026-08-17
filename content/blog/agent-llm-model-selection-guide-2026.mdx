@@ -14,6 +14,7 @@ sources:
   - "https://www.vellum.ai/blog/claude-fable-5-and-mythos-5-benchmarks-explained"
   - "https://tech-insider.org/claude-vs-chatgpt-vs-gemini-2026/"
   - "https://iternal.ai/llm-selection-guide"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
 ---
 
 エージェントが複数のツール呼び出しを連鎖させる設計では、LLMモデルの選択が品質・コスト・レイテンシのすべてを左右します。1回の自律タスクが数十ステップに及ぶ場合、モデルの精度差が累積して最終出力の品質に直接影響します。2026年7月時点で主要フロンティアモデルはClaude Fable 5・GPT-5.5・Gemini 3.1 Proの3系統に集約されており、用途別の使い分けとタスクルーティング設計が本番エージェントの標準形となっています。
@@ -36,7 +37,7 @@ sources:
 
 **2. コスト効率（$/Mトークン）**
 
-2026年7月時点の目安: Gemini 3.1 Proは約$2/M入力トークンと最も低コストで、Claude Fable 5・GPT-5.5は約$5/M前後と約2.5倍の差があります。多ステップエージェントではコスト差が累積するため、タスク複雑度別に最適モデルを割り当てるルーティング設計が有効です。
+2026年7月時点の目安: Gemini 3.1 Proは約$2/M入力トークンと最も低コストで、Claude Fable 5は$10/Mと5倍の開きがあります。多ステップエージェントではコスト差が累積するため、タスク複雑度別に最適モデルを割り当てるルーティング設計が有効です。
 
 **3. コンテキスト長**
 
@@ -48,8 +49,8 @@ sources:
 
 | モデル | 主な強み | SWE-bench Verified | 入力コスト目安 |
 |---|---|---|---|
-| Claude Fable 5 | コーディング・長期分析・自律エージェント | 95.0% | 約$5/M |
-| Claude Opus 4.8 | 高精度推論・コーディング | — | 約$15/M |
+| Claude Fable 5 | コーディング・長期分析・自律エージェント | 95.0% | $10/M |
+| Claude Opus 4.8 | 高精度推論・コーディング | — | $5/M |
 | GPT-5.5 | computer use・マルチモーダル・汎用 | 88.7% | 約$5/M |
 | Gemini 3.1 Pro | 高ボリューム・長コンテキスト・科学推論 | 80.6% | 約$2/M |
 | DeepSeek V4 | 低コスト・標準タスク | — | 数分の1〜 |
@@ -86,6 +87,7 @@ sources:
 - [Claude Fable 5 & Claude Mythos 5 Full Benchmark Breakdown — Vellum AI](https://www.vellum.ai/blog/claude-fable-5-and-mythos-5-benchmarks-explained)
 - [Claude vs ChatGPT vs Gemini 2026 — Tech Insider](https://tech-insider.org/claude-vs-chatgpt-vs-gemini-2026/)
 - [LLM Comparison 2026: 30+ Models Benchmarked — iternal.ai](https://iternal.ai/llm-selection-guide)
+- [Pricing — Anthropic Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
 
 ## まとめ
 
