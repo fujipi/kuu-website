@@ -22,6 +22,22 @@
  * 保たれていた状態に機械的なバックストップを付ける趣旨であり、既存を落とさない。
  * 逆に言えば、ここを緩める前に既存が壊れていないかを必ず確認すること。
  *
+ * 警告（warning、exit 0 のまま report のみ）:
+ *   - 近接重複（near_duplicate）: industry / use_case の文字 bigram 類似で、既存
+ *     ケースと業種・業務が重なる新規ケースを警告する。Blog 側 validate-blog.mjs の
+ *     near_duplicate と対になる仕組みだが、Case は title ではなく industry /
+ *     use_case で比較する（Case のタイトルは業種名を含まないことがあるため）。
+ *     併存させたいペアは NEAR_DUP_ALLOWLIST で除外する。
+ *
+ *     2026-08 の滞留事故（PR #97〜#121）で破棄した15本のうち Case 側の重複は
+ *     どの機械チェックにも掛からなかった。#104 と #113 は industry が完全一致し
+ *     use_case もほぼ重なっていたが、fictional・deny-list・スキーマ検査を素通り
+ *     している。人間のレビューが挟まらない自動マージ経路
+ *     （.github/workflows/auto-merge-content.yml）では、この型の重複がそのまま
+ *     本番に出るため機械検出を入れた。hard gate にしない理由は Blog 側と同じで、
+ *     誤検知で deploy が止まる被害のほうが大きいため。自動マージ側は「新規追加
+ *     ファイルにこの警告が付いたらマージしない」という形で使う。
+ *
  * あえて検査しないもの:
  *   - sources URL の疎通（HTTP ステータス）: 外部サイトの一時的な 503・レート制限・
  *     UA ブロックでサイト全体のデプロイが止まるため、CI の hard gate にはしない。
@@ -72,6 +88,18 @@ const files = fs
 const violations = []; // { file, kind, message } — exit 1
 const warnings = []; // { file, kind, message } — 表示のみ、exit 0
 const seenSlugs = new Map(); // slug -> file
+const metas = []; // { slug, industry, useCase } — near_duplicate 検出用
+
+/**
+ * 意図的に併存させる近接ケースのペア（業種は近いが業務が明確に異なるもの）。
+ * near_duplicate 警告から除外する。順序非依存。
+ */
+const NEAR_DUP_ALLOWLIST = new Set(
+	[
+		// 現時点で該当なし。併存させる正当な理由があるペアをここに追加する。
+		// 例: ["care-facility-record-agent", "clinic-reservation-followup-agent"],
+	].map((pair) => pair.slice().sort().join("|")),
+);
 
 /** 必須の文字列フィールド */
 const REQUIRED_STRINGS = ["title", "industry", "use_case", "future_outlook"];
@@ -140,6 +168,13 @@ for (const file of files) {
 	}
 
 	const { data, content, matter: rawFrontmatter } = parsed;
+
+	// near_duplicate 検出用のメタ収集（判定は本ループの後でまとめて行う）
+	metas.push({
+		slug: file.replace(/\.(mdx|md)$/, ""),
+		industry: typeof data.industry === "string" ? data.industry : "",
+		useCase: typeof data.use_case === "string" ? data.use_case : "",
+	});
 
 	// (1) fictional: true 必須
 	if (data.fictional !== true) {
@@ -304,6 +339,64 @@ for (const file of files) {
 		});
 	} else {
 		seenSlugs.set(slug, file);
+	}
+}
+
+// 近接重複検出（warning のみ・exit 1 にしない）。Blog 側 validate-blog.mjs の
+// near_duplicate と対になる仕組みで、Case は title ではなく industry / use_case で
+// 比較する（Case のタイトルは業種名を含まないことがあり、業種軸のほうが実態に近い）。
+//
+// 導入の経緯: 2026-08 の滞留事故（PR #97〜#121）で破棄した15本のうち、Case 側の
+// 重複はどの機械チェックにも掛からなかった。#104 と #113 は industry が完全一致し
+// use_case もほぼ重なっていたが、fictional・deny-list・スキーマ検査を素通りした。
+// 人間のレビューが挟まらない自動マージ経路（.github/workflows/auto-merge-content.yml）
+// では、この型の重複がそのまま本番に出るため機械検出を入れる。
+//
+// hard gate にしない理由は Blog 側と同じ: 誤検知で deploy が止まる被害が大きい。
+// 自動マージ側は「新規追加ファイルにこの警告が付いたらマージしない」で使う。
+function caseBigrams(s) {
+	const chars = (s || "")
+		.toLowerCase()
+		.replace(/[\s「」『』（）()、。・:：,.\-—_　/]/g, "");
+	const grams = [];
+	for (let i = 0; i < chars.length - 1; i++) grams.push(chars.slice(i, i + 2));
+	return grams;
+}
+function caseJaccard(a, b) {
+	const A = new Set(a);
+	const B = new Set(b);
+	if (A.size === 0 || B.size === 0) return 0;
+	let inter = 0;
+	for (const x of A) if (B.has(x)) inter++;
+	return inter / (A.size + B.size - inter);
+}
+for (let i = 0; i < metas.length; i++) {
+	for (let j = i + 1; j < metas.length; j++) {
+		const a = metas[i];
+		const b = metas[j];
+		if (NEAR_DUP_ALLOWLIST.has([a.slug, b.slug].sort().join("|"))) continue;
+		const indSim = caseJaccard(caseBigrams(a.industry), caseBigrams(b.industry));
+		const ucSim = caseJaccard(caseBigrams(a.useCase), caseBigrams(b.useCase));
+		// 閾値は main 上の 79 件と、#122 で不採用にした既知の重複3ペアで較正した
+		// （2026-08-17 実測）:
+		//   既知の重複  #104/#113 ind=1.00 uc=0.43 ／ #101/main ind=0.78 uc=0.41
+		//              #107/#120 ind=1.00 uc=0.23
+		//   既存の最大  ind=0.56（care-facility-record ×
+		//              clinic-reservation-followup、uc=0.03 で業務は明確に別）
+		// この規則で既知3ペアを全検出し、既存 79 件の誤検知は 0 件。
+		// industry がほぼ同一（>=0.80）なら use_case を問わず警告する。業種が同じで
+		// 切り口だけ違う記事は、新規に立てるより既存記事への追記が適切なことが多い。
+		if (indSim >= 0.8 || (indSim >= 0.6 && ucSim >= 0.3)) {
+			warnings.push({
+				file: `${a.slug}.mdx`,
+				kind: "near_duplicate",
+				message: `「${b.slug}」と業種・業務が高類似（industry類似=${indSim.toFixed(
+					2,
+				)}, use_case類似=${ucSim.toFixed(
+					2,
+				)}）。新規なら既存記事の更新に切替、正当な併存なら NEAR_DUP_ALLOWLIST に追加。`,
+			});
+		}
 	}
 }
 
