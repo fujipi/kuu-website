@@ -163,6 +163,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-autoscaling-capacity-planning-design",
 			"online-evaluation-production-traffic-sampling",
 		],
+		// Claude Agent SDK最小実装（プログラムからのエージェント構築手順・architecture）と Agent Skills（SKILL.mdによる機能拡張・model-capability）: title類似は「Claude Agent」「中小企業」の語彙重なりのみで、SDKとSkillsは別機能・別トラックの正当な併存
+		[
+			"claude-agent-sdk-minimum-implementation-smb",
+			"claude-agent-skills-smb-guide",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

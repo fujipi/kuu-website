@@ -1124,7 +1124,109 @@
         "https://www.aisi.gov.uk/blog/inspect-evals"
       ],
       "status": "published"
-    }
+    },
+    {
+          "slug": "claude-agent-skills-smb-guide",
+          "keyword": "Claude Agent Skills SKILL.md 中小企業",
+          "title_hint": "Claude Agent Skillsとは何か——中小企業の活用法",
+          "persona": "エンジニア不在でAI活用を進める中小企業のIT担当・経営者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "model-capability",
+          "tech_depth": "intermediate",
+          "target_query": "Claude Agent Skillsとは何か、中小企業はどう使えばよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+            "https://www.anthropic.com/news/claude-for-small-business"
+          ],
+          "status": "published"
+        },
+    {
+          "slug": "claude-pdf-native-document-ocr-smb",
+          "keyword": "Claude PDFネイティブ処理 帳票OCR 中小企業",
+          "title_hint": "ClaudeのPDF処理で帳票OCRを低コスト内製化する設計",
+          "persona": "請求書・帳票のデータ入力工数を減らしたい中小企業のIT担当者・管理部門責任者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "model-capability",
+          "tech_depth": "intermediate",
+          "target_query": "Claude PDFネイティブ処理で請求書・帳票OCRを低コストに導入するにはどうすればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/pdf-support",
+            "https://platform.claude.com/docs/en/build-with-claude/vision",
+            "https://platform.claude.com/docs/en/about-claude/pricing"
+          ],
+          "status": "published"
+        },
+    {
+          "slug": "agent-eval-flaky-nondeterminism-reproducibility-design",
+          "keyword": "エージェント評価 フレーキー 非決定性 再現性 統計的検証",
+          "title_hint": "エージェント評価のフレーキーテスト対策——非決定性と再現性設計",
+          "persona": "本番エージェントのCI/CD評価パイプラインを設計するプラットフォームエンジニア・SRE",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "evaluation",
+          "tech_depth": "deep",
+          "target_query": "AIエージェント評価のフレーキー(非決定性)問題はどう設計で解決するか",
+          "sources": [
+            "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+            "https://arxiv.org/html/2605.10516",
+            "https://arxiv.org/html/2605.28840"
+          ],
+          "status": "published"
+        },
+    {
+          "slug": "agent-approval-workflow-async-callback-design",
+          "keyword": "ヒューマンインザループ 承認フロー 設計",
+          "title_hint": "承認フロー非同期設計——コールバックトークンとエスカレーション",
+          "persona": "マルチエージェント構成の承認・監査基盤を設計するエンタープライズのプラットフォームエンジニア・アーキテクト",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "architecture",
+          "tech_depth": "deep",
+          "target_query": "AIエージェントの承認フロー（ヒューマンインザループ）はどう設計すればよいか",
+          "sources": [
+            "https://www.anthropic.com/engineering/building-effective-agents",
+            "https://www.anthropic.com/news/measuring-agent-autonomy",
+            "https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html"
+          ],
+          "status": "published"
+        },
+    {
+          "slug": "computer-use-smb-cowork-adoption-guide",
+          "keyword": "マルチモーダル エージェント computer use 画面操作",
+          "title_hint": "Computer Use導入、中小企業はCoworkから始める",
+          "persona": "インフラ専任者がいない中小企業のIT担当者・DX推進担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "model-capability",
+          "tech_depth": "intermediate",
+          "target_query": "中小企業がComputer Use（画面操作AI）を導入するには、CoworkとAPI実装のどちらを選ぶべきか",
+          "sources": [
+            "https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool",
+            "https://platform.claude.com/docs/en/about-claude/pricing",
+            "https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork"
+          ],
+          "status": "published"
+        },
+    {
+          "slug": "agent-eval-annotation-guidelines-iaa-design",
+          "keyword": "エージェント評価 ラベリング体制 アノテーター間一致度 IAA",
+          "title_hint": "エージェント評価のラベリング体制設計とIAA指標選定",
+          "persona": "評価パイプラインを設計するエンタープライズのプラットフォームエンジニア・評価責任者",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "evaluation",
+          "tech_depth": "deep",
+          "target_query": "AIエージェント評価のラベリング体制とアノテーター間一致度（IAA）指標はどう設計すればよいか",
+          "sources": [
+            "https://anthropic.com/engineering/demystifying-evals-for-ai-agents",
+            "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests",
+            "https://arxiv.org/html/2603.06865"
+          ],
+          "status": "published",
+          "note": "blog-coverage-report.mjs で evaluation trackが全track中最少（22件）と判明。keyword_bank の evaluation 4語（9軸評価/回帰テスト/オンライン評価/KPIメトリクス）は既存記事で網羅済みのため、ラベリング体制・IAA指標選定という未カバーの切り口をWeb調査で新規考案"
+        }
   ],
   "keyword_bank": {
     "_comment": "track別の技術キーワード。キュー枯渇時は scripts/blog-coverage-report.mjs で本数の少ないトラック/読者層を優先して選定する。audience は keyword の語彙（IAM/SSO/VPC/マルチテナント等=enterprise）から判定する。業務・業種・ROI・補助金・規程テンプレ等は Case / Case Studies の領域のため本バンクには含めない。",
