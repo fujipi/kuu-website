@@ -1,0 +1,213 @@
+
+# 自動生成コンテンツPRの自動マージ（滞留の保険）
+#
+# Blog / Case の自動生成は「生成 → main 直 push → deploy.yml が本番反映」まで
+# 人手を介さない設計。しかし実行環境に指定ブランチ（outcome branch）が設定されて
+# いると claude/* ブランチ + draft PR に倒れることがあり、deploy.yml は
+# push to main でしか発火しないため、その分は本番に反映されないまま滞留する
+# （2026-08 に PR #97〜#121 の25本が滞留し、うち15本がテーマ重複で破棄になった）。
+#
+# ルーティンの指定ブランチは Routine が http_api 経由で作成されているため
+# エージェントから解除できず、Routine 編集画面にも該当項目が無い。そこで、
+# ブランチ側に倒れても本番に反映されるよう第2経路を用意し、どちらに倒れても
+# 手動介入が不要な状態にする。
+#
+# 対象条件（gate ジョブ・すべて満たすときのみ verify-and-merge に進む）:
+#   1. 同一リポジトリの PR である（fork からの PR は対象外）
+#   2. head ブランチが自動生成ルーティンの3系統のいずれかで始まる
+#   3. base が main
+#   4. PR 作成者がリポジトリ所有者
+#   5. 変更ファイルが content/ 配下のみ（scripts/ や src/ を触る PR は人間レビューへ。
+#      validator 自体を弱める変更が無人でマージされるのを防ぐ）
+#
+# 条件を満たさない PR は verify-and-merge が skip され、open のまま残る（落とさない）。
+
+name: Auto-merge generated content
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# topic-queue.json の同一箇所を触る PR が並走するとマージ後に競合するため直列化する
+concurrency:
+  group: auto-merge-content
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.check.outputs.eligible }}
+    steps:
+      - name: Check PR eligibility
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          REPO_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          reason=""
+
+          if [ "$HEAD_REPO" != "$REPO" ]; then
+            reason="fork からの PR ($HEAD_REPO)"
+          elif [ "$BASE_REF" != "main" ]; then
+            reason="base が main ではない ($BASE_REF)"
+          elif [ "$PR_AUTHOR" != "$REPO_OWNER" ]; then
+            reason="作成者がリポジトリ所有者ではない ($PR_AUTHOR)"
+          else
+            case "$HEAD_REF" in
+              claude/kind-darwin*|claude/eloquent-cerf*|claude/nifty-knuth*) ;;
+              *) reason="自動生成ルーティンのブランチではない ($HEAD_REF)" ;;
+            esac
+          fi
+
+          # 変更ファイルの範囲チェック。これが中心的な安全条件。
+          if [ -z "$reason" ]; then
+            changed=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json files --jq '.files[].path')
+            echo "変更ファイル:"; echo "$changed" | sed 's/^/  /'
+            outside=$(echo "$changed" | grep -v '^content/' || true)
+            if [ -n "$outside" ]; then
+              reason="content/ 以外を含む: $(echo "$outside" | tr '\n' ' ')"
+            fi
+          fi
+
+          if [ -n "$reason" ]; then
+            echo "::notice::自動マージの対象外です（人間のレビューへ回します）: $reason"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::自動マージの対象です: $HEAD_REF"
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify-and-merge:
+    needs: gate
+    if: needs.gate.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 以下は deploy.yml と同じゲート。ここで落ちるものは main に入れない。
+      - name: Lint & typecheck
+        run: |
+          pnpm exec biome check src/
+          pnpm exec tsc --noEmit
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Validate case content (safety gate)
+        run: pnpm validate:case
+
+      - name: Validate blog content (safety gate)
+        run: pnpm validate:blog
+
+      # 自動マージ専用の追加ゲート。
+      #
+      # validate-blog.mjs / validate-case.mjs の near_duplicate は warning（exit 0）で
+      # あり、deploy.yml はこれを通してしまう。人間がマージしていた頃はレビューで
+      # 止められたが、自動マージではテーマ重複記事がそのまま本番に出る。実際
+      # 2026-08 の滞留事故では 25本中15本がテーマ重複で、これを無検査で通すと事故を
+      # 自動化することになる。
+      #
+      # そこで「この PR で新規追加された記事」に near_duplicate 警告が付いている
+      # 場合のみ自動マージを止め、人間の判断に回す。既存記事の警告では止めない
+      # （レガシー記事の警告で全ての自動反映が止まるのを防ぐため）。
+      #
+      # Blog は title / tag / target_query、Case は industry / use_case で判定する。
+      # 判定軸が違うため両方の validator の出力を見る必要がある。
+      - name: Block auto-merge on theme duplication
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          added=$(git diff --name-only --diff-filter=A "$BASE_SHA...$HEAD_SHA" -- 'content/blog/*.mdx' 'content/case/*.mdx')
+          if [ -z "$added" ]; then
+            echo "新規追加された記事はありません。重複チェックをスキップします。"
+            exit 0
+          fi
+          echo "新規追加された記事:"; echo "$added" | sed 's/^/  /'
+
+          report="$(node scripts/validate-blog.mjs 2>&1 || true)
+          $(node scripts/validate-case.mjs 2>&1 || true)"
+          hit=""
+          for f in $added; do
+            base=$(basename "$f")
+            if echo "$report" | grep -F "$base [near_duplicate]" >/dev/null 2>&1; then
+              hit="${hit}${base}\n"
+            fi
+          done
+
+          if [ -n "$hit" ]; then
+            echo
+            echo "以下の新規記事に near_duplicate 警告が出ています:"
+            printf "%b" "$hit" | sed 's/^/  /'
+            echo
+            echo "$report" | grep -F "[near_duplicate]" || true
+            echo
+            echo "::error::テーマ重複の疑いがあるため自動マージを中止しました。既存記事の更新に切り替えるか、正当な併存なら NEAR_DUP_ALLOWLIST に登録してください。"
+            exit 1
+          fi
+          echo "新規記事に near_duplicate 警告はありません。"
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check internal links (safety gate)
+        run: node scripts/check-internal-links.mjs
+
+      - name: Merge into main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # draft のままではマージできないため先に ready にする（既に ready なら無視）
+          gh pr ready "$PR_NUMBER" || true
+          gh pr merge "$PR_NUMBER" --squash --delete-branch
+          echo "::notice::PR #$PR_NUMBER を main にマージしました。deploy.yml が本番反映を行います。"
+
+      - name: Comment on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "自動マージを試みましたが、検証ゲートで停止したため main には入れていません。
+
+[実行ログ]($RUN_URL) を確認してください。この PR は open のまま残しています。
+
+テーマ重複（near_duplicate）で止まった場合は、既存記事の更新に切り替えるか、正当に併存させるなら \`scripts/validate-blog.mjs\` の \`NEAR_DUP_ALLOWLIST\` にペアと理由を追記してください。
+
+---
+_Generated by [Claude Code](https://claude.ai/code)_"
