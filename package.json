@@ -12,6 +12,7 @@
     "test": "vitest run",
     "check:links": "node scripts/check-internal-links.mjs",
     "coverage:blog": "node scripts/blog-coverage-report.mjs",
+    "refill:blog": "node scripts/refill-topic-queue.mjs",
     "validate:case": "node scripts/validate-case.mjs",
     "validate:blog": "node scripts/validate-blog.mjs",
     "check:case-sources": "node scripts/check-case-sources.mjs"

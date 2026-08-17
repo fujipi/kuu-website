@@ -47,6 +47,36 @@ pushすると GitHub Actions (deploy.yml) が自動でビルド・デプロイ�
 
 キューが空（全トピックが published）の場合は `keyword_bank`（track別オブジェクト）から自動選定する。その際は `node scripts/blog-coverage-report.mjs` を実行し、track×audience マトリクスで**本数の少ない（空きの大きい）トラック・読者層を優先**して keyword を選び、slugを生成する。
 
+## キューの補充（`pnpm refill:blog`）
+
+> 2026-08 時点でキューは空、`keyword_bank` の34語も全て消化済み。補充が無いとルーティングは毎回その場でテーマを考えることになり、テーマ重複の温床になる。**WebSearch を持つセッション**で以下を回してキューを積んでおく。
+
+補充は「調べるのはエージェント、通すか決めるのは機械」で分担する。一次情報の収集には WebSearch / WebFetch が要るがスクリプトからは呼べないため、検証だけをスクリプトが持つ。
+
+```
+pnpm refill:blog                                  # 補充ブリーフ（何を調べるべきか）
+pnpm refill:blog -- --verbose                     # keyword_bank の消化状況の内訳も表示
+pnpm refill:blog -- --add candidates.json --dry-run  # 検証のみ
+pnpm refill:blog -- --add candidates.json         # 検証して topics に追加（status: queued）
+pnpm refill:blog -- --check                       # 既存キューの健全性検査（slug重複・status更新漏れ）
+```
+
+手順:
+
+1. `pnpm refill:blog` を実行し、「手薄なスロット」（track × audience で記事数が少ない組）を確認する
+2. そのスロットで **WebSearch / WebFetch により一次情報を調べ**、未執筆のテーマを特定する
+3. 候補を JSON 配列で書き、`--add` で追加する
+
+`--add` は以下を機械検証し、**1件でも落ちたら何も書き込まない**（全件成功か全件不採用か）:
+
+- 必須フィールドの有無 / `track`・`audience`・`tech_depth` の enum
+- `service_link` が `audience` のマッピングに沿うこと（`enterprise` → `/services/rde/`）
+- `sources` が2件以上・全行URL・**一次情報源を1件以上含む**（公式ドキュメント・プロトコル仕様・規制原文。ブログやまとめサイトだけでは通らない）
+- `slug` が既存記事・既存キューと衝突しないこと
+- `title_hint` が既存記事とテーマ重複しないこと（`validate-blog.mjs` と同じ 0.27 閾値）
+
+これにより、キューに積まれた時点で裏取り済み・重複なしが保証される。
+
 > **手順3は飛ばさない。** 2026-08 の滞留事故では、生成物が main に反映されないまま同一テーマの再生成が繰り返され、25本中15本がテーマ重複で破棄になった。特に以下は既に複数記事があり重複しやすいので、手を付ける前に必ず既存記事を確認すること。
 >
 > | 重複しやすいテーマ | 既存記事の代表例 |
