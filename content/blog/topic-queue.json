@@ -1244,6 +1244,25 @@
           ],
           "status": "published",
           "note": "blog-coverage-report.mjs で evaluation trackが全track中最少（22件）と判明。keyword_bank の evaluation 4語（9軸評価/回帰テスト/オンライン評価/KPIメトリクス）は既存記事で網羅済みのため、ラベリング体制・IAA指標選定という未カバーの切り口をWeb調査で新規考案"
+        },
+    {
+          "slug": "agent-unbounded-consumption-denial-of-wallet-defense",
+          "keyword": "AIエージェント 暴走コスト denial of wallet Unbounded Consumption",
+          "title_hint": "AIエージェントの暴走コスト対策——ステップ上限とスペンド制御",
+          "persona": "社内にセキュリティ専任チームを持たない中小企業のIT担当者・DX推進担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "security",
+          "tech_depth": "intermediate",
+          "target_query": "中小企業がAIエージェントの暴走コスト（denial of wallet）攻撃をどう防ぐか",
+          "sources": [
+            "https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf",
+            "https://platform.claude.com/docs/en/manage-claude/workspaces",
+            "https://platform.claude.com/docs/en/manage-claude/spend-limits-api",
+            "https://arxiv.org/pdf/2605.05846"
+          ],
+          "status": "published",
+          "note": "blog-coverage-report.mjs で protocols×smb・security×smb がsmb内最少タイと判明。protocolsはMCP関連記事21本で既に飽和のため、security×smb未カバーのdenial of wallet/Unbounded Consumption（OWASP LLM10:2025）をWeb調査で新規考案"
         }
   ],
   "keyword_bank": {

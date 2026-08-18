@@ -1,0 +1,63 @@
+---
+title: "AIエージェントの暴走コスト対策——ステップ上限とスペンド制御"
+description: "AIエージェントは悪意ある入力で無限ループに陥り月次コストが跳ね上がることがある。OWASP LLM10:2025のUnbounded Consumptionと、ステップ上限・Workspaceスペンド制御による防御設計を解説する。"
+date: "2026-08-18"
+lastModified: "2026-08-18"
+tags: ["AIエージェント", "セキュリティ設計", "コスト管理", "OWASP"]
+author: "kuu-engineering"
+audience: "smb"
+track: "security"
+tech_depth: "intermediate"
+target_query: "中小企業がAIエージェントの暴走コスト（denial of wallet）攻撃をどう防ぐか"
+sources:
+  - "https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf"
+  - "https://platform.claude.com/docs/en/manage-claude/workspaces"
+  - "https://platform.claude.com/docs/en/manage-claude/spend-limits-api"
+  - "https://arxiv.org/pdf/2605.05846"
+pillar: "ai-governance"
+---
+
+先月まで月数万円だったAI利用料が、ある日突然数十万円に跳ね上がる——原因を調べると、エージェントが1回のタスクの中で同じツールを数百回呼び出し続けていた。攻撃者が悪意を持って仕込んだわけではなく、通常の問い合わせの中に紛れた入力が、エージェントを終わらない処理ループに誘導していた。タスク自体は「成功」して見えるため、月末の請求書を見るまで誰も気づかない。
+
+これは特殊な事故ではない。[エージェントガバナンス](/glossary/agent-governance/)の観点から見れば、権限管理や監査ログと並んで対策すべき既知のリスク領域だ。本記事では、OWASPが定義する暴走コスト攻撃の仕組みと、中小企業がすぐに実装できる防御設計を整理する。
+
+## AIエージェントの暴走コストはなぜ起きるのか
+
+> 悪意ある入力がエージェントのツール呼び出しを無限ループに誘導し、通常の数百倍のAPIコストを消費させる攻撃が確認されている。
+
+2026年に報告された調査では、攻撃者がプロンプトに終了条件をあいまいにする指示を混ぜることで、エージェントの思考ステップとツール呼び出しの連鎖を継続させ、1クエリあたりのコストを最大658倍に膨らませられることが示された。エージェントは複数ツールを横断する「ループ」の中で動くため、1回の応答で終わる従来のチャットボットと違い、攻撃者は1回の入力で数百回のAPI呼び出しを誘発できる。しかも最終的にタスクは完了するため、出力監視やプロンプトフィルタでは検知しにくい。arXivで報告された「LoopTrap」と呼ばれる終了条件汚染攻撃も、同じ弱点を突く手法として整理されている。
+
+## Unbounded Consumptionとは何か
+
+> OWASPがLLM10:2025として定義する、入力・出力・コンテキスト消費を無制限に許すリスクの総称だ。
+
+OWASPのLLMアプリケーション向けTop 10（2025年版）は、旧来の「Model Denial of Service」を発展させ、10番目のリスクを「Unbounded Consumption（無制限消費）」として再定義した。攻撃ベクトルは主に3つある。①コンテキストウィンドウの上限近くまで入力を繰り返し送りつける、②複雑な指示で処理時間を意図的に引き延ばす、③エージェントのツール呼び出し連鎖を終わらせない。これらは可用性の問題であると同時に、従量課金のAPIでは直接的な金銭被害（denial of wallet）に直結する点が、従来のDoS対策と異なる。
+
+## Claude Workspaceのスペンド制限で何が止められるか
+
+> Claude ConsoleはWorkspace単位でレート制限と月次スペンド上限を設定でき、暴走を早期に遮断できる。
+
+Anthropicの Claude Console では、組織内の各Workspaceに対してモデルティアごとのRPM（1分あたりのリクエスト数）・入出力トークン数のレート制限と、月次スペンド上限をそれぞれ個別に設定できる。上限に達すると該当Workspaceの以降のリクエストは拒否されるため、暴走したエージェントが青天井で課金を続ける事態を止められる。より粒度の細かいユーザー単位のスペンド制御はClaude Enterprise向けのSpend Limits APIで提供されるが、まずWorkspace単位の上限を本番用途と検証用途で分けて設定するだけでも、中小企業が最初に着手できる有効な防御になる。
+
+## アプリケーション層で実装すべき3つの防御
+
+> ステップ数上限・グローバルタイムアウト・コスト異常検知の3層をアプリケーション側に実装する必要がある。
+
+API側の上限だけでは、上限に達するまでの浪費そのものは防げない。アプリケーション層に以下を組み込む。
+
+1. **ステップ数のハード上限**: 1タスクあたりの思考ステップ・ツール呼び出し回数に上限（例: 15回）を設け、到達したらエラーとして強制終了する
+2. **グローバルタイムアウト**: タスク全体に対する実行時間の上限（例: 60秒）を設定し、ループの長さに関わらず処理を打ち切る
+3. **セッション単位のコスト異常検知**: タスクは「成功」する前提で、1セッションあたりのトークン消費に基準値を設け、平常時の数倍を超えたら通知・停止する仕組みを設ける
+
+3点目が特に見落とされやすい。[LLM APIのレート制限対処](/blog/llm-api-rate-limit-handling-smb/)は自社都合の429エラー対策だが、暴走コスト対策は悪意ある入力を前提にした異常検知であり、監視の目的が異なる。
+
+## 参考
+
+- [OWASP Top 10 for LLM Applications 2025](https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf)
+- [Workspaces - Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/workspaces)
+- [Spend Limits API - Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/spend-limits-api)
+- [LoopTrap: Termination Poisoning Attacks on LLM Agents (arXiv)](https://arxiv.org/pdf/2605.05846)
+
+## まとめ
+
+AIエージェントの暴走コストは、従来のDoS対策や自社都合のレート制限対処とは別の脅威モデルとして扱う必要がある。Claude WorkspaceのAPI側スペンド上限と、ステップ数・タイムアウト・異常検知というアプリケーション層の3層防御を組み合わせることで、悪意ある入力によるdenial of wallet攻撃の被害を実行前・実行中の両方で食い止められる。自社のエージェント運用でどこから着手すべきか整理したい場合は、[Kuuのエージェントガバナンス支援](https://kuucorp.com/services/ai-ops/)にご相談ください。
