@@ -1,0 +1,60 @@
+---
+title: "Claude APIで作る最小構成ガードレール実装手順"
+description: "Claude APIのコンテンツモデレーション機能を使えば、中小企業でも専門のML基盤なしにガードレールを最小構成で実装できる。Haiku 4.5なら1万件処理で約37ドルだ。"
+date: "2026-08-18"
+lastModified: "2026-08-18"
+tags: ["ガードレール", "コンテンツモデレーション", "AIガバナンス", "Claude API"]
+author: "kuu-engineering"
+audience: "smb"
+track: "governance-tech"
+tech_depth: "intermediate"
+sources:
+  - "https://platform.claude.com/docs/en/about-claude/use-case-guides/content-moderation"
+  - "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
+pillar: "ai-governance"
+---
+
+AIチャットボットや問い合わせ対応にClaude APIを使い始めた中小企業から「不適切な入力や暴走した出力をどう止めるか」という相談が増えている。専任のセキュリティチームがいなくても、Claude自身を軽量な分類器として使うことで、最小構成のガードレールは組める。
+
+[エージェントガバナンス](/glossary/agent-governance/)の実装点として、Claude APIの公式ドキュメントが示すコンテンツモデレーションとジェイルブレイク対策の設計パターンを整理する。
+
+## Claude APIのコンテンツモデレーションとは何か
+
+> Claudeに軽量モデルで入出力を分類させ、危険度に応じて自動ブロックと人間レビューを振り分ける仕組みだ。
+
+Anthropicの公式ガイドは、Claudeを「違反判定」ではなく「risk_level 0〜3」の段階評価をさせる方式を推奨している。0は無リスク、1は要フラグ、2は人間レビューへのエスカレーション、3は自動ブロックという基準を与え、`risk_level >= 3`のメッセージのみを機械的に止める設計だ。禁止カテゴリの定義文と許可・禁止の具体例をプロンプトに含めるほど、判定精度が上がるとされている。分類には低コストな`claude-haiku-4-5`モデルが推奨されており、意味理解が必要な複雑なポリシーでも再学習なしに規程変更に追随できる点が、専用MLモデルとの違いだ。
+
+## risk_levelスコアリングはどう組み込むか
+
+> 入力・出力それぞれに軽量な分類プロンプトを挟み、`output_config`のJSON Schemaで判定結果を構造化して受け取る。
+
+実装は次の3ステップになる。
+
+1. 禁止カテゴリ（誹謗中傷・違法行為の助長・専門的助言の逸脱など）を定義文付きでプロンプト化する
+2. ユーザー入力とClaudeの出力候補それぞれをHaiku 4.5に渡し、`output_config`で`risk_level`や`is_harmful`などのboolean/数値フィールドのみを返させる
+3. 高頻度・大量処理の場合はメッセージを`<message id>`タグでまとめてBatch APIに投げ、1件ずつ呼び出すより処理コストを抑える
+
+公式試算では月10億件規模の投稿処理でもHaiku 4.5なら月3.61万ドルに収まるとされており、中小企業規模のトラフィック（例: 月1万件の問い合わせ）であれば約37ドル程度が目安になる。
+
+## ジェイルブレイク対策はどう二重化するか
+
+> ユーザーの直接的な誘導と、外部データ経由の間接的な指示注入は別の脅威として設計を分ける必要がある。
+
+Claude APIのガードレール強化ガイドは、脅威モデルを「ユーザー自身が悪意ある入力を作るジェイルブレイク・直接プロンプトインジェクション」と「Web取得結果やメールなど第三者コンテンツに埋め込まれた間接プロンプトインジェクション」に分けて対策を示す。前者にはharmlessness screen（Haikuによる事前判定）と、倫理的境界を明記したシステムプロンプトが有効だ。後者では、外部コンテンツを`tool_result`ブロックにのみ格納し、システムプロンプトや通常の`user`テキストと混在させないこと、さらにJSONエンコードして引用符の閉じ忘れによる「脱出」を防ぐことが推奨されている。
+
+## 中小企業はどこまで自前実装すべきか
+
+> 専用の機械学習基盤や大規模な検知チームを持たずとも、既存APIの範囲で運用レベルのガードレールは組める。
+
+中小企業がまず着手すべきは、(1) 入力へのharmlessness screen、(2) 出力へのrisk_levelスコアリング、(3) 外部データを扱う場合のtool_result隔離、の3点だ。これらはいずれも追加のインフラ投資なしにプロンプト設計とAPI呼び出しの追加だけで実装できる範囲にある。一方で、金融・医療など規制業種で監査証跡や再現性の証明が求められる場合は、判定ログの改ざん防止設計など追加の統制が必要になる。[AIエージェントの権限管理設計](/blog/ai-agent-permission-management-design/)と合わせて、ガードレールを通過した後のツール実行権限も最小化しておきたい。
+
+## 参考
+
+- [Content moderation – Claude Docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/content-moderation)
+- [Mitigate jailbreaks and prompt injections – Claude Platform Docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks)
+- [Pricing – Claude Platform Docs](https://platform.claude.com/docs/en/about-claude/pricing)
+
+## まとめ
+
+Claude APIのコンテンツモデレーション機能は、risk_levelによる段階評価とHaiku 4.5の低コスト判定を組み合わせることで、専門のML基盤を持たない中小企業でも最小構成のガードレールとして機能する。入力のharmlessness screen、出力のrisk_levelスコアリング、外部データのtool_result隔離という3点から着手すれば、追加インフラなしに運用を始められる。自社のAIエージェント運用にガードレール設計を組み込みたい場合は、[Kuuのエージェント運用支援](https://kuucorp.com/services/ai-ops/)から相談できる。

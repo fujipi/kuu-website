@@ -511,6 +511,23 @@
         "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-content-moderation-guardrails-smb-implementation",
+      "keyword": "Claude API コンテンツモデレーション ガードレール 中小企業 実装",
+      "title_hint": "Claude APIのコンテンツモデレーションで作る最小構成ガードレール",
+      "persona": "自社サービスにAIエージェントの出力チェック機構を初めて実装する中小企業のIT担当・開発担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はClaude APIでガードレール（コンテンツモデレーション）をどう最小構成で実装すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/about-claude/use-case-guides/content-moderation",
+        "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks",
+        "https://platform.claude.com/docs/en/about-claude/pricing"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
