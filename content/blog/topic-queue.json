@@ -1299,6 +1299,24 @@
           ],
           "status": "published",
           "note": "blog-coverage-report.mjs で protocols×smb・security×smb がsmb内最少タイと判明。protocolsはMCP関連記事21本で既に飽和のため、security×smb未カバーのdenial of wallet/Unbounded Consumption（OWASP LLM10:2025）をWeb調査で新規考案"
+        },
+    {
+          "slug": "claude-citations-api-rag-grounding-design",
+          "keyword": "Claude Citations API RAG 引用 根拠追跡",
+          "title_hint": "Citations APIで実装する検証可能なRAG引用設計",
+          "persona": "RAGエージェントの根拠追跡・監査ログ設計を担うバックエンドエンジニア・プラットフォームエンジニア",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "model-capability",
+          "tech_depth": "deep",
+          "target_query": "Claude APIでRAGの引用（Citations）はどう実装すればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/citations",
+            "https://platform.claude.com/docs/en/build-with-claude/search-results",
+            "https://claude.com/blog/introducing-citations-api"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件、keyword_bankのmodel-capability 4語も既存記事で網羅済みのため、blog-coverage-report.mjs でmodel-capability×both（7件、最少タイ）と判明した領域をWeb調査で新規考案。既存のMCPサプライチェーン/ABOM記事(mcp-supply-chain-risk-abom-governance)と混同しやすいテーマだが、あちらは依存関係のサプライチェーン統制、本稿はAPIレスポンスの引用根拠付与機構であり主題が異なる"
         }
   ],
   "keyword_bank": {

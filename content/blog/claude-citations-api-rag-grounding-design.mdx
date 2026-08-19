@@ -1,0 +1,106 @@
+---
+title: "Citations APIで実装する検証可能なRAG引用設計"
+description: "Claude Citations APIは引用元テキストをcited_textとして返し出力トークンに加算しない。char_location等3種の引用形式とRAG実装への組み込み方を解説する。"
+date: "2026-08-19"
+lastModified: "2026-08-19"
+tags: ["Citations API", "RAG", "Claude API", "引用設計"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude APIでRAGの引用（Citations）はどう実装すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/citations"
+  - "https://platform.claude.com/docs/en/build-with-claude/search-results"
+  - "https://claude.com/blog/introducing-citations-api"
+pillar: "ai-governance"
+---
+
+RAGエージェントが「この回答はどの文書のどの箇所に基づくのか」を答えられないと、監査でもカスタマー対応でも根拠を追跡できません。プロンプトで「引用元を示してください」と指示する方法は再現性が低く、存在しない引用を生成するリスクも残ります。Claude APIの Citations 機能は、この根拠追跡をAPIレベルの構造化データとして解決します。
+
+引用に基づく検証可能性は[エージェントガバナンス](/glossary/agent-governance/)の技術的な土台の一つです。[エージェントのハルシネーション検知](/blog/agent-hallucination-detection-techniques/)と組み合わせることで、誤情報の検知と根拠提示の両面から回答の信頼性を担保できます。
+
+## Citations APIとは何か——引用はどう返るか
+
+> Citations APIは回答文をcited_textと文書位置のペアで返し、根拠のない主張と根拠付きの主張を構造的に区別する。
+
+Citations を有効にすると、Claude は回答をテキストブロックの配列として返し、ソース文書に基づく箇所には引用情報が付与されます。モデルが内部的に引用を標準フォーマットで出力し、APIがそれを `cited_text`（引用元テキスト）と文書内の位置情報に分解します。プロンプトベースで「原文を引用してください」と指示する方式と違い、`cited_text` は文書に実在するテキストへのポインタであることがAPI側で保証されます。
+
+有効化は `document` コンテンツブロックに `"citations": {"enabled": true}` を指定するだけです。
+
+```json
+{
+  "type": "document",
+  "source": {"type": "text", "media_type": "text/plain", "data": "本文..."},
+  "title": "社内規程",
+  "citations": {"enabled": true}
+}
+```
+
+## 3つの引用ロケーション形式をどう使い分けるか
+
+> 引用位置はプレーンテキストがchar_location、PDFがpage_location、custom_contentがcontent_block_locationの3形式で返る。
+
+文書の種類によって、引用の位置情報フォーマットが変わります。
+
+**プレーンテキスト文書**は文字インデックスで返ります。
+
+```json
+{
+  "type": "char_location",
+  "cited_text": "引用された原文",
+  "document_index": 0,
+  "start_char_index": 0,
+  "end_char_index": 50
+}
+```
+
+**PDF文書**はページ番号で返ります（`start_page_number` は1始まり）。監査ログや契約書のように「何ページ目の記載か」を示す必要がある業務に向いています。
+
+**custom_content文書**はブロックインデックスで返ります。プレーンテキストとPDFはデフォルトで文章単位に自動チャンキングされますが、箇条書きや会議の発言録のように文単位の分割が不適切なコンテンツでは、custom_contentで自前のチャンク境界を指定できます。粒度を制御したい場合はこちらを選びます。
+
+## RAGの動的引用はSearch Resultsでどう実装するか
+
+> search_result コンテンツブロックはツール呼び出しから返した検索結果にも、Web検索と同じ引用形式を自動付与する。
+
+事前に用意した文書ではなく、実行時に検索した結果に引用を付けたい場合は `search_result` コンテンツブロックを使います。カスタムツールが返す検索結果、またはユーザーメッセージ内のトップレベルコンテンツとして直接渡せます。
+
+```json
+{
+  "type": "search_result",
+  "source": "https://internal.example.com/doc/42",
+  "title": "ナレッジベース記事",
+  "content": [{"type": "text", "text": "検索結果の本文"}],
+  "citations": {"enabled": true}
+}
+```
+
+特別なプロンプト指示は不要で、引用を有効にした検索結果を渡せば、その内容に基づく回答テキストに自動で引用が付きます。自前のベクトルDB検索やドキュメント検索を[ツールとして実装](/blog/rag-vs-tool-use-agent-design/)しているエージェントであれば、返り値をこの形式に整えるだけでCitationsの恩恵を受けられます。[ベクトルDB選定](/blog/vector-database-selection-agent-rag/)と組み合わせる設計が一般的です。
+
+## 引用設計をコスト・精度両面でどう最適化するか
+
+> cited_textは出力トークンにも次ターンの入力トークンにも加算されないため、引用を多用してもコスト増にならない。
+
+Citationsのコスト構造には見落としやすい利点があります。`cited_text` フィールドは会話の便宜のために提供される値であり、出力トークンとしてはカウントされません。さらに、その引用を次のターンの会話履歴として渡し戻す際も、入力トークンとして再カウントされません。プロンプトで長い原文の引用を指示する自作実装では出力トークンが膨らみがちですが、Citationsはこの構造的なコスト増を避けられます。
+
+設計上の注意点は2つです。第一に、引用の粒度は文書の性質に合わせてchar_location（テキスト）・page_location（PDF）・content_block_location（custom_content）を使い分けること。第二に、[プロンプトキャッシュ](/blog/prompt-caching-agent-design-context-reuse/)を併用する場合、citationsの有効・無効を切り替えるとキャッシュ全体が無効化される点に注意します。運用中に頻繁にON/OFFを切り替える設計は避け、文書ごとに固定するのが安定します。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**
+まずは既存のFAQやマニュアルをplain textまたはPDFとして渡し、デフォルトの文章単位チャンキングでCitationsを有効化するところから始めます。顧客対応チャットボットに引用元を表示するだけで、回答への信頼度が変わります。[Kuu株式会社のAI運用管理サービス](/services/ai-ops/)では、既存の問い合わせ対応フローへのCitations組み込みを支援しています。
+
+**エンタープライズの場合**
+複数システムから集約した検索結果をsearch_resultで統一的に扱う設計が有効です。監査要件が厳しい業種では、page_locationやcontent_block_locationを保存し、後から「どの版のどの箇所を根拠にしたか」を再現できるログ設計が必要になります。大規模なRAG基盤への組み込みは[Kuuのエンタープライズ向けRDEサービス](/services/rde/)で個別に設計します。
+
+## 参考
+
+- [Citations — Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/citations)
+- [Search results — Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/search-results)
+- [Introducing Citations on the Anthropic API](https://claude.com/blog/introducing-citations-api)
+
+## まとめ
+
+Citations APIは、RAGエージェントの回答に「根拠のある主張」と「根拠のない主張」を構造的に区別する仕組みを提供します。char_location・page_location・content_block_locationの3形式を文書の性質に合わせて選び、動的な検索結果にはsearch_resultを使うことで、事前準備された文書と実行時検索の両方を同じ引用モデルで扱えます。cited_textが出力・入力どちらのトークンにも加算されない設計のため、コストを気にせず引用の網羅性を高められる点も実装上の利点です。
+
+RAGエージェントの根拠追跡・監査ログ設計について相談したい場合は、[Kuuへお問い合わせ](/services/ai-ops/)ください。
