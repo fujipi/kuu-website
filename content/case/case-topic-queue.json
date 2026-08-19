@@ -271,14 +271,14 @@
       "status": "published"
     },
     {
-          "slug": "minpaku-guest-communication-agent",
-          "keyword": "民泊 住宅宿泊管理業 ゲスト対応 清掃調整 宿泊者名簿 AIエージェント",
-          "title_hint": "民泊運営のゲスト対応・清掃調整をAIエージェントに——管理業者の一次対応をこう速める",
-          "persona": "住宅宿泊管理業者の運営責任者",
-          "industry": "住宅宿泊管理業（民泊運営代行）",
-          "use_case": "ゲスト一次対応・清掃調整・宿泊者名簿管理の補助自動化",
-          "status": "published"
-        }
+      "slug": "minpaku-guest-communication-agent",
+      "keyword": "民泊 住宅宿泊管理業 ゲスト対応 清掃調整 宿泊者名簿 AIエージェント",
+      "title_hint": "民泊運営のゲスト対応・清掃調整をAIエージェントに——管理業者の一次対応をこう速める",
+      "persona": "住宅宿泊管理業者の運営責任者",
+      "industry": "住宅宿泊管理業（民泊運営代行）",
+      "use_case": "ゲスト一次対応・清掃調整・宿泊者名簿管理の補助自動化",
+      "status": "published"
+    }
   ],
   "keyword_bank": [
     "卸売 受発注 EDI 代行入力 AIエージェント",
@@ -292,5 +292,5 @@
     "コールセンター FAQ ナレッジ AIエージェント",
     "経理 請求書 突合 支払処理 AIエージェント"
   ],
-  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-17時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。2026-08-13にフォールバック2で「paid-nursing-home-inquiry-agent」（有料老人ホームの入居相談・空室管理）を新規考案・公開済み。2026-08-14にフォールバック2で「supervising-organization-visit-report-agent」（技能実習監理団体の訪問指導・監査記録、育成就労制度移行対応）を新規考案・公開済み。2026-08-15にフォールバック2で「disability-work-support-record-agent」（就労継続支援A型・B型の個別支援計画・工賃管理・実績記録）を新規考案・公開済み。2026-08-07にフォールバック2で「tokutei-ginou-support-report-agent」（特定技能の支援計画実施記録・年次定期届出）を新規考案・公開済み。2026-08-09にフォールバック2で「secondhand-dealer-ledger-agent」（古物商の本人確認記録・古物台帳作成）を新規考案・公開済み。2026-08-16にフォールバック2で「demolition-contractor-asbestos-survey-agent」（解体工事業の石綿事前調査報告・見積書・分別解体記録、2026年1月義務化対応）を新規考案・公開済み。2026-08-17にフォールバック2で「real-estate-appraiser-valuation-report-agent」（不動産鑑定士事務所の鑑定評価書ドラフト作成・取引事例収集整理、不動産鑑定評価基準準拠）を新規考案・公開済み。2026-08-18にフォールバック2で「solar-power-om-inspection-agent」（太陽光発電O&M事業者の点検記録・報告書作成・法定届出書類補助、小規模事業用電気工作物の技術基準適合維持義務対応）を新規考案・公開済み。"
+  "keyword_bank_note": "topics配列・keyword_bank記載テーマは全てpublished記事に対応済み（2026-08-17時点で確認）。次回生成時はキュー・keyword_bankから選ばず、content/case/*.mdxのindustry/use_case軸を確認して未カバー領域をWeb調査で新規考案するフォールバック2を使用すること。2026-08-13にフォールバック2で「paid-nursing-home-inquiry-agent」（有料老人ホームの入居相談・空室管理）を新規考案・公開済み。2026-08-14にフォールバック2で「supervising-organization-visit-report-agent」（技能実習監理団体の訪問指導・監査記録、育成就労制度移行対応）を新規考案・公開済み。2026-08-15にフォールバック2で「disability-work-support-record-agent」（就労継続支援A型・B型の個別支援計画・工賃管理・実績記録）を新規考案・公開済み。2026-08-07にフォールバック2で「tokutei-ginou-support-report-agent」（特定技能の支援計画実施記録・年次定期届出）を新規考案・公開済み。2026-08-09にフォールバック2で「secondhand-dealer-ledger-agent」（古物商の本人確認記録・古物台帳作成）を新規考案・公開済み。2026-08-16にフォールバック2で「demolition-contractor-asbestos-survey-agent」（解体工事業の石綿事前調査報告・見積書・分別解体記録、2026年1月義務化対応）を新規考案・公開済み。2026-08-17にフォールバック2で「real-estate-appraiser-valuation-report-agent」（不動産鑑定士事務所の鑑定評価書ドラフト作成・取引事例収集整理、不動産鑑定評価基準準拠）を新規考案・公開済み。2026-08-18にフォールバック2で「solar-power-om-inspection-agent」（太陽光発電O&M事業者の点検記録・報告書作成・法定届出書類補助、小規模事業用電気工作物の技術基準適合維持義務対応）を新規考案・公開済み。2026-08-19にフォールバック2で「marriage-agency-matching-report-agent」（結婚相談所の会員プロフィール作成・マッチング候補一次選定・活動報告書作成、特定商取引法の特定継続的役務提供及び個人情報保護指針対応）を新規考案・公開済み。"
 }
