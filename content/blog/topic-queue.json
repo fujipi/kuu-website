@@ -989,6 +989,25 @@
       "status": "published"
     },
     {
+      "slug": "ag-ui-protocol-frontend-agent-event-design",
+      "keyword": "AG-UI プロトコル エージェント フロントエンド イベント 状態同期",
+      "title_hint": "AG-UIプロトコル入門——エージェントとUIをつなぐ設計",
+      "persona": "社内向けAI機能のフロントエンド実装を担う中小企業のIT担当者・DX推進担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "protocols",
+      "tech_depth": "intermediate",
+      "target_query": "AG-UIプロトコルとは何か、MCP・A2Aとどう役割が違うか",
+      "sources": [
+        "https://docs.ag-ui.com/introduction",
+        "https://docs.ag-ui.com/agentic-protocols",
+        "https://aws.amazon.com/about-aws/whats-new/2026/03/amazon-bedrock-agentcore-runtime-ag-ui-protocol/",
+        "https://github.com/ag-ui-protocol/ag-ui"
+      ],
+      "status": "published",
+      "note": "blog-coverage-report.mjs で protocols×smb が最少タイと判明。既存protocols記事はMCP/A2Aで飽和のため、フロントエンド接続専用のAG-UIプロトコルという未カバーの切り口をWeb調査で新規考案"
+    },
+    {
       "slug": "a2a-agent-discovery-enterprise-registry-design",
       "keyword": "A2A AgentCard エージェント発見 プライベートレジストリ OAuth2 エンタープライズ",
       "title_hint": "A2A AgentCard発見設計——エンタープライズレジストリとOAuth2統合パターン",
