@@ -1317,6 +1317,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件、keyword_bankのmodel-capability 4語も既存記事で網羅済みのため、blog-coverage-report.mjs でmodel-capability×both（7件、最少タイ）と判明した領域をWeb調査で新規考案。既存のMCPサプライチェーン/ABOM記事(mcp-supply-chain-risk-abom-governance)と混同しやすいテーマだが、あちらは依存関係のサプライチェーン統制、本稿はAPIレスポンスの引用根拠付与機構であり主題が異なる"
+        },
+    {
+          "slug": "agent-kill-switch-emergency-stop-design",
+          "keyword": "AIエージェント キルスイッチ 緊急停止 設計",
+          "title_hint": "AIエージェントの緊急停止設計とキルスイッチ実装",
+          "persona": "マルチエージェント基盤の停止・復旧機構を設計するプラットフォームエンジニア・セキュリティアーキテクト、および最小構成から始めたい中小企業のIT担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "governance-tech",
+          "tech_depth": "deep",
+          "target_query": "AIエージェントの緊急停止（キルスイッチ）はどう技術的に設計すればよいか",
+          "sources": [
+            "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-14",
+            "https://killswitch.md/",
+            "https://code.claude.com/docs/en/agent-sdk/hooks"
+          ],
+          "status": "published",
+          "note": "blog-coverage-report.mjs でgovernance-tech×both（6件）が全track×audienceセル中最少と判明。keyword_bankのgovernance-tech 5語（ポリシーエンジン・監査ログ・ISO42001・ベンダーリスク・ハルシネーション検知）は既存記事で網羅済みのため、停止・復旧機構（キルスイッチ）という未カバーの切り口をWeb調査（EU AI Act第14条・KILLSWITCH.md仕様・Claude Agent SDK hooks）で新規考案。既存のポリシーエンジン記事(agent-runtime-policy-engine-guardrails)とは、あちらがツール呼び出し前の許可/拒否判定、本稿がトリガー検知後のエスカレーション・停止・人間承認による再開という主題で異なる"
         }
   ],
   "keyword_bank": {
