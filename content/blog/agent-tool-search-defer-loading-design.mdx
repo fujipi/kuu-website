@@ -1,0 +1,64 @@
+---
+title: "ツールが増えたら見直す設計——Tool Search入門"
+description: "AIエージェントのツール選択精度は30〜50個を境に低下する。Tool Search Toolのdefer_loadingで中小企業がどう導入基準を設計すべきかを解説する。"
+date: "2026-08-21"
+lastModified: "2026-08-21"
+tags: ["Tool Search Tool", "ツール設計", "エージェントアーキテクチャ", "MCP"]
+author: "kuu-engineering"
+audience: "smb"
+track: "architecture"
+tech_depth: "intermediate"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool"
+  - "https://www.anthropic.com/engineering/writing-tools-for-agents"
+---
+
+Slack・kintone・自社DBと、SaaS統合を1つ増やすたびにエージェントへツールを追加してきた——気づけば20個、30個とツール定義が積み上がり、エージェントが本来使うべきツールを外して別のツールを呼び出すようになった。これはモデルの劣化ではなく、ツールカタログの設計が limits を超えたサインだ。
+
+## ツールをいくつ持たせると精度が落ちるのか
+
+> Claudeのツール選択精度は30〜50個を境に低下し始めると公式ドキュメントが明記している。
+
+Anthropicの[Tool Search Tool公式ドキュメント](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool)は、「Claudeのツール選択能力は30〜50個の利用可能ツールを超えると低下する」と数値を示している。GitHub・Slack・Sentry・Grafana・Splunkのような典型的なマルチサーバー構成では、ツール定義だけで約5.5万トークンを消費し、Claudeが実際の作業に着手する前にコンテキストの大半を使い切ることもある。
+
+エンジニアリング記事「[Writing effective tools for AI agents](https://www.anthropic.com/engineering/writing-tools-for-agents)」も同じ問題を別角度から指摘する。「ツールの数が多いほど良い結果になるわけではない」とし、`list_users` + `list_events` + `create_event` のような分割された操作を `schedule_event` のような単一ツールへ統合することを推奨している。ツール数を減らす設計と、動的に絞り込む仕組みは補完関係にある。
+
+## Tool Search Toolはどう動くのか
+
+> Tool Search Toolはツール定義を検索し、必要な3〜5個だけを都度コンテキストへ展開する仕組みだ。
+
+Tool Search Toolを使うと、全ツール定義を毎リクエスト送信しつつ、頻度の低いツールには `defer_loading: true` を付与できる。この設定は「何をAPIに送るか」ではなく「何をコンテキストウィンドウに載せるか」を制御するフラグだ。deferされたツールはシステムプロンプトのプレフィックスから除外され、Claudeが `tool_search_tool_regex` または `tool_search_tool_bm25` で検索して初めて `tool_reference` として展開される。
+
+2つのバリアントの違いは検索方法にある。regex版はClaudeがPythonの正規表現パターン（最大200文字）を組み立てて検索し、BM25版は自然言語クエリ（最大500文字）で検索する。どちらもツール名・description・引数名・引数descriptionの全フィールドを対象にする。deferされたツールはプロンプトキャッシュのプレフィックスに影響しないため、キャッシュ効率を落とさずにツールカタログを拡張できる点も実装上のメリットだ。
+
+## 中小企業はどう導入判断すればよいか
+
+> ツールが10個未満、または全ツールが毎リクエスト使われるなら標準のツール呼び出しのままでよい。
+
+公式ドキュメントは導入基準を明確に示している。以下のいずれかに該当する場合はTool Search Toolを検討する。
+
+- 利用可能なツールが10個以上ある
+- ツール定義の合計が1万トークンを超えている
+- ツールが増えるにつれて選択精度が落ちていると感じる
+- 複数のMCPサーバーを束ねている（合計200個以上のツール）
+
+逆に、ツールが10個未満で、かつ毎リクエストで全ツールが使われる、または定義が合計100トークン未満と軽量な場合は、標準のツール呼び出しのままで十分だ。ツール数が少ないうちからTool Search Toolを導入すると、検索のレイテンシが純粋なオーバーヘッドになる。[SaaS統合の3パターン](/blog/agent-saas-integration-design-smb/)で紹介した「5件を超えたらMCPサーバー経由へ」という目安と合わせ、「10件を超えたらTool Search Toolへ」を社内の判断基準として持っておくとよい。
+
+## 設計・運用のポイントは何か
+
+> 最頻出の3〜5ツールは非deferで残し、名前空間の一貫性で検索精度を上げるのが実装上の勘所だ。
+
+実装時は次の3点を押さえる。第一に、公式ドキュメントが推奨する通り「最も頻繁に使う3〜5個のツールは `defer_loading` を付けずに残す」。検索を経由せず即座に呼び出せるため、定型タスクのレイテンシを抑えられる。第二に、`github_`・`slack_` のようなプレフィックスで名前空間を統一し、[Function callingのツール定義](/blog/function-calling-structured-output-tool-design/)で解説した命名規則をTool Search Toolの検索精度向上にも転用する。第三に、Claudeが実際にどのツールを発見しているかを[トレースとして記録](/blog/agent-observability-tracing-instrumentation/)し、ヒットしないツールのdescriptionにキーワードを追加して調整する運用サイクルを回す。
+
+[MCPサーバー実装](/blog/mcp-server-implementation-tool-design/)経由でツールを提供している場合は、個別ツールではなく `mcp_toolset` エントリ単位で `defer_loading` を設定できる。サーバーを丸ごとdeferしておき、必要なときだけサーバー全体を展開する構成にすると、MCPサーバーを追加するたびにツールカタログが肥大化する問題を根本的に避けられる。
+
+## 参考
+
+- [Tool search tool — Claude Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool)
+- [Writing effective tools for AI agents — Anthropic Engineering](https://www.anthropic.com/engineering/writing-tools-for-agents)
+
+## まとめ
+
+ツールを追加し続けた結果、エージェントが正しいツールを選べなくなる現象は、30〜50個という具体的な閾値を境に起きる。Tool Search Toolのdefer_loadingは、ツール定義を削らずに選択精度を保つための標準機構であり、ツールが10個を超えた時点で検討を始める価値がある。
+
+ツールカタログの設計や[エージェントガバナンス](/glossary/agent-governance/)の整備をあわせて進めたい場合は、[Kuu株式会社のAIエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)にご相談ください。

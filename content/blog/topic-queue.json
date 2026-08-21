@@ -1351,6 +1351,23 @@
           ],
           "status": "published",
           "note": "blog-coverage-report.mjs でgovernance-tech×both（6件）が全track×audienceセル中最少と判明。keyword_bankのgovernance-tech 5語（ポリシーエンジン・監査ログ・ISO42001・ベンダーリスク・ハルシネーション検知）は既存記事で網羅済みのため、停止・復旧機構（キルスイッチ）という未カバーの切り口をWeb調査（EU AI Act第14条・KILLSWITCH.md仕様・Claude Agent SDK hooks）で新規考案。既存のポリシーエンジン記事(agent-runtime-policy-engine-guardrails)とは、あちらがツール呼び出し前の許可/拒否判定、本稿がトリガー検知後のエスカレーション・停止・人間承認による再開という主題で異なる"
+        },
+    {
+          "slug": "agent-tool-search-defer-loading-design",
+          "keyword": "Tool Search Tool defer_loading ツール選択精度 中小企業",
+          "title_hint": "ツールが増えたら見直す設計——Tool Search入門",
+          "persona": "複数SaaS/MCPサーバーをエージェントに接続していく中小企業のIT担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "architecture",
+          "tech_depth": "intermediate",
+          "target_query": "AIエージェントのツール数が増えたとき、Tool Search Tool（defer_loading）はどう導入すればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool",
+            "https://www.anthropic.com/engineering/writing-tools-for-agents"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。architecture×smb（7件）がarchitecture内で最少タイと判明。既存のSaaS統合記事(agent-saas-integration-design-smb)・Function calling記事(function-calling-structured-output-tool-design)はいずれもツール定義・接続パターンが主題で、ツール数増加時の選択精度劣化とTool Search Tool（defer_loading機構）そのものを深掘りした記事は無かったため、Web調査（Claude公式Tool Search Toolドキュメント・Anthropic Engineering記事）で新規考案"
         }
   ],
   "keyword_bank": {
