@@ -528,6 +528,22 @@
         "https://platform.claude.com/docs/en/about-claude/pricing"
       ],
       "status": "published"
+    },
+    {
+      "slug": "mcp-server-vetting-checklist-smb",
+      "keyword": "MCPサーバー 導入前 セキュリティチェック 中小企業",
+      "title_hint": "サードパーティMCPサーバー導入前チェック——中小企業が確認すべき5点",
+      "persona": "社内のAIエージェントに新しいMCPサーバーを追加したいが、何を確認すべきか分からない中小企業のIT担当者",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "security",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業がサードパーティMCPサーバーを導入する前に何を確認すべきか",
+      "sources": [
+        "https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices",
+        "https://media.defense.gov/2026/Jun/02/2003943289/-1/-1/0/CSI_MCP_SECURITY.PDF"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
