@@ -1,0 +1,60 @@
+---
+title: "MCP Tasks拡張──長時間処理をポーリングで扱う設計"
+description: "MCP 2026-07-28仕様で正式化されたTasksエクステンションは、tasks/getのポーリングとtaskId・ttlMs・5状態のライフサイクルでブロッキング呼び出しを置き換える。実装の要点を整理する。"
+date: "2026-08-22"
+lastModified: "2026-08-22"
+tags: ["MCP", "プロトコル", "AIエージェント", "非同期処理"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+target_query: "MCPでツール呼び出しが長時間かかる場合、どう非同期処理を設計すればよいか"
+sources:
+  - "https://modelcontextprotocol.io/extensions/tasks/overview"
+  - "https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2663-tasks-extension.md"
+  - "https://modelcontextprotocol.io/specification/2026-07-28/changelog"
+---
+
+CI パイプラインの起動、バッチデータ処理、承認待ちのワークフロー——[MCP](/glossary/mcp/)ツール呼び出しの中には数秒では終わらないものがある。接続を張ったまま待つブロッキング方式は、クライアントやプロキシのタイムアウトに阻まれ、切断すれば進捗も結果も失う。この課題に対して2026-07-28確定仕様は、実験的だった旧 tasks 機能を廃止し、正式な拡張機能「Tasks」として作り直した。
+
+MCPサーバー・クライアントを実装するバックエンドエンジニア向けに、Tasks拡張の設計思想と実装時の注意点を整理する。
+
+## MCP Tasks拡張とは何か
+
+> MCP Tasksは、長時間かかるツール呼び出しに対してサーバーが結果の代わりに耐久性のあるタスクハンドルを返し、クライアントがポーリングする拡張機能である。
+
+サーバーはリクエストへの応答として、通常の結果ではなく `resultType: "task"` を持つ `CreateTaskResult` を返せる。中身は一意の `taskId`・初期ステータス・`ttlMs`（保持期限）・`pollIntervalMs`（推奨ポーリング間隔）だ。クライアントは `tasks/get` を呼んでこのハンドルの状態を確認し、完了まで繰り返す。接続が切れてもタスクIDさえ保持していれば、再接続後にポーリングを再開できる。
+
+## なぜブロッキングではなくポーリングを選んだのか
+
+> 旧仕様の `tasks/result` はブロッキング型で、多くのクライアントが避けたい常時接続のSSEストリームを前提にしていた。
+
+2025-11-25仕様の実験的タスク機能は、結果を待つ間クライアントとサーバーの接続を維持する設計だった。しかし多くの実装は永続的なSSEストリームを持ちたくない上、サーバーからクライアントへの一方的なリクエストを禁じる2026仕様の方針（SEP-2260）とも矛盾していた。再設計版は `tasks/get` による純粋なポーリングに一本化し、この矛盾を解消している。同時に `tasks/list` も廃止された。タスクIDをセッションに紐付ける仕組みがステートレス化で失われたため、一覧を返すとタスクIDが総当たりされ他の呼び出し元のタスクが漏洩しかねない、という安全性上の判断による。
+
+## タスクのライフサイクルはどう設計されているか
+
+> タスクは working・input_required・completed・failed・cancelled の5状態を遷移し、後半3つが終端状態として結果を確定させる。
+
+`input_required` は人間承認や追加情報が必要な場面で使う状態で、`tasks/get` の応答に含まれる `inputRequests` に対し、クライアントは `tasks/update` で回答を返す。これは既存のプロトコル内リクエストとは別チャンネルであり、サーバーからの一方的な割り込みを発生させない設計だ。`completed` は `result` フィールドに、`failed` は JSON-RPC エラーを `error` フィールドに格納する。ツール自体が失敗した場合は `isError: true` を伴う `completed` として扱い、プロトコルレベルの障害を示す `failed` とは意味を分けている点に注意したい。
+
+## サーバー実装で何に注意すべきか
+
+> サーバーは `CreateTaskResult` を返す前に、タスクが確実に永続化済みであることを保証しなければならない。
+
+仕様は「`tasks/get` が解決可能になるまで `CreateTaskResult` を返してはならない」と明記する。ここが緩いと、クライアントは「タスクがまだ作成されていない」のか「消えた」のかを判別できず、投機的なリトライを強いられる。一方 `tasks/cancel` への応答は空の確認応答のみでよく、キャンセルは協調的な扱いにとどまる。ワーカーが停止を約束しない以上、タスク状態を即座に返すのは実態と矛盾するためだ。サーバーは `clientCapabilities` で `io.modelcontextprotocol/tasks` を宣言していない相手にタスクを返してはならない。
+
+## クライアント実装で何を保証すべきか
+
+> クライアントは `pollIntervalMs` を尊重してポーリング頻度を抑え、タスクIDをクラッシュ後も再開できるよう永続化する必要がある。
+
+サーバーは `notifications/tasks` によるプッシュ通知にも対応でき、`subscriptions/listen` を通じて購読すればポーリングの往復を省略できる。ただしこれは任意機能であり、ポーリングが既定の動作であることは変わらない。CI連携やバッチ処理、外部ジョブシステムのラッパーなど既にジョブIDを持つバックエンドをMCPサーバー化する際は、`taskId` をそのジョブIDに素直にマッピングできることが多い。耐障害性のあるエージェント基盤を目指すなら、[エージェントの耐久実行設計](/blog/agent-durable-execution-temporal-restate-design/)や[LLMゲートウェイ設計](https://kuucorp.com/services/rde/)と合わせて検討したい。
+
+## 参考
+
+- [Tasks | Model Context Protocol](https://modelcontextprotocol.io/extensions/tasks/overview)
+- [SEP-2663: Tasks Extension](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2663-tasks-extension.md)
+- [Key Changes | Model Context Protocol Specification 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
+
+## まとめ
+
+MCP Tasks拡張は、長時間かかるツール呼び出しを「ブロッキングで待つ」から「耐久性のあるハンドルをポーリングする」設計へ転換した。5状態のライフサイクル・強い整合性を持つタスク作成・協調的なキャンセルという3つの原則を押さえれば、CI連携やバッチ処理、承認待ちワークフローを安全にMCPへ載せられる。自社のMCPサーバー実装やエージェント基盤の非同期設計に不安があれば、Kuu株式会社の[AIエージェント運用](https://kuucorp.com/services/ai-ops/)にご相談いただきたい。

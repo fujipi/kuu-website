@@ -1368,6 +1368,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。architecture×smb（7件）がarchitecture内で最少タイと判明。既存のSaaS統合記事(agent-saas-integration-design-smb)・Function calling記事(function-calling-structured-output-tool-design)はいずれもツール定義・接続パターンが主題で、ツール数増加時の選択精度劣化とTool Search Tool（defer_loading機構）そのものを深掘りした記事は無かったため、Web調査（Claude公式Tool Search Toolドキュメント・Anthropic Engineering記事）で新規考案"
+        },
+        {
+          "slug": "mcp-tasks-extension-long-running-operations-design",
+          "keyword": "MCP Tasks拡張 長時間実行 ポーリング 非同期処理",
+          "title_hint": "MCP Tasks拡張──長時間処理をポーリングで扱う設計",
+          "persona": "MCPサーバー・クライアントを実装するバックエンドエンジニア・プラットフォームエンジニア",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "protocols",
+          "tech_depth": "deep",
+          "target_query": "MCPでツール呼び出しが長時間かかる場合、どう非同期処理を設計すればよいか",
+          "sources": [
+            "https://modelcontextprotocol.io/extensions/tasks/overview",
+            "https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/seps/2663-tasks-extension.md",
+            "https://modelcontextprotocol.io/specification/2026-07-28/changelog"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。protocolsのkeyword_bank在庫4語（MCPリソース/プロンプト/ツール使い分け・OAuthスコープ・A2A相互運用・Function calling）はいずれも既存記事（mcp-primitives-selection-guide/mcp-security-oauth-scope-design/mcp-vs-a2a-protocol-smb-guide/function-calling-structured-output-tool-design 等）と重複するため不採用。2026-07-28確定仕様で旧実験的tasks機能を置き換えた正式拡張「Tasks」（tasks/get ポーリング・5状態ライフサイクル）は既存のprogress/cancellation記事(mcp-progress-cancellation-notification-design)やstateless移行記事(mcp-2026-stateless-spec-migration-guide)と扱う一次資料が別（ext-tasks仕様・SEP-2663）で内容が重複しないため、Web調査で新規考案"
         }
   ],
   "keyword_bank": {
