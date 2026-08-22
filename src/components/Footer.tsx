@@ -106,10 +106,10 @@ export default function Footer({ locale = "ja" }: { locale?: Locale }) {
 								</div>
 								<div className="footer-partner-badge">
 									<Image
-										src="/images/openai-select-partner.svg"
+										src="/images/OpenAI_Select_Partner_Badge.svg"
 										alt="OpenAI Select Partner"
-										width={1153}
-										height={552}
+										width={375}
+										height={177}
 										loading="lazy"
 									/>
 								</div>

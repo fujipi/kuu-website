@@ -854,16 +854,15 @@ footer {
 
 /* OpenAI Select Partner バッジ。
    ブランド規定により色反転・改変不可のため、SECURITY ACTION のような
-   filter: invert(1) も opacity による減光も掛けず、黒版アートワークの
-   まま白プレートに載せる。高さは SECURITY ACTION の 60px に揃える。 */
+   filter: invert(1) も opacity による減光も掛けない。
+   アートワーク自体が白塗りの角丸矩形を持つため背景の敷き直しも不要。
+   高さは SECURITY ACTION の 60px に揃える。 */
 .footer-partner-badge {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	line-height: 0;
 	flex-shrink: 0;
-	background: var(--white);
-	border-radius: 6px;
 }
 .footer-partner-badge img {
 	display: block;
