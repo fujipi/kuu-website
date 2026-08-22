@@ -94,14 +94,25 @@ export default function Footer({ locale = "ja" }: { locale?: Locale }) {
 							))}
 						</ul>
 						{col.heading === "Company" ? (
-							<div className="footer-security-action">
-								<Image
-									src="/images/security_action_futatsuboshi-large_bw.png"
-									alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
-									width={60}
-									height={60}
-									loading="lazy"
-								/>
+							<div className="footer-badges">
+								<div className="footer-security-action">
+									<Image
+										src="/images/security_action_futatsuboshi-large_bw.png"
+										alt="SECURITY ACTION 二つ星（セキュリティ対策自己宣言）"
+										width={60}
+										height={60}
+										loading="lazy"
+									/>
+								</div>
+								<div className="footer-partner-badge">
+									<Image
+										src="/images/openai-select-partner.svg"
+										alt="OpenAI Select Partner"
+										width={1153}
+										height={552}
+										loading="lazy"
+									/>
+								</div>
 							</div>
 						) : null}
 					</div>
@@ -125,15 +136,6 @@ export default function Footer({ locale = "ja" }: { locale?: Locale }) {
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>
-				<div className="footer-partner-badge">
-					<Image
-						src="/images/openai-select-partner.svg"
-						alt="OpenAI Select Partner"
-						width={1153}
-						height={552}
-						loading="lazy"
-					/>
-				</div>
 			</div>
 		</footer>
 	);

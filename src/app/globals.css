@@ -843,9 +843,19 @@ footer {
 	letter-spacing: 0.05em;
 }
 
+/* Company カラム下部の認証・パートナーバッジ列 */
+.footer-badges {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-top: 1.25rem;
+}
+
 /* OpenAI Select Partner バッジ。
    ブランド規定により色反転・改変不可のため、SECURITY ACTION のような
-   filter: invert(1) は使わず、黒版アートワークのまま白プレートに載せる。 */
+   filter: invert(1) も opacity による減光も掛けず、黒版アートワークの
+   まま白プレートに載せる。高さは SECURITY ACTION の 60px に揃える。 */
 .footer-partner-badge {
 	display: inline-flex;
 	align-items: center;
@@ -857,7 +867,7 @@ footer {
 }
 .footer-partner-badge img {
 	display: block;
-	height: 44px;
+	height: 60px;
 	width: auto;
 }
 
@@ -866,7 +876,6 @@ footer {
 	align-items: center;
 	justify-content: center;
 	line-height: 0;
-	margin-top: 1.25rem;
 	opacity: 0.55;
 	transition: opacity 0.3s;
 }
@@ -1634,15 +1643,7 @@ footer {
 	.footer-bottom {
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 1rem;
-	}
-
-	/* 1カラム化した際は、最下部にコピーライトが来る従来の並びを保つ */
-	.footer-partner-badge {
-		order: -1;
-	}
-	.footer-partner-badge img {
-		height: 38px;
+		gap: 0.75rem;
 	}
 
 	.page-content {
