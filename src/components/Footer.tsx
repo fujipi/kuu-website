@@ -125,6 +125,15 @@ export default function Footer({ locale = "ja" }: { locale?: Locale }) {
 			</div>
 			<div className="footer-bottom">
 				<div className="footer-copy">&copy; 2026 Kuu Inc.</div>
+				<div className="footer-partner-badge">
+					<Image
+						src="/images/openai-select-partner.svg"
+						alt="OpenAI Select Partner"
+						width={1153}
+						height={552}
+						loading="lazy"
+					/>
+				</div>
 			</div>
 		</footer>
 	);
