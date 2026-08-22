@@ -1386,6 +1386,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。protocolsのkeyword_bank在庫4語（MCPリソース/プロンプト/ツール使い分け・OAuthスコープ・A2A相互運用・Function calling）はいずれも既存記事（mcp-primitives-selection-guide/mcp-security-oauth-scope-design/mcp-vs-a2a-protocol-smb-guide/function-calling-structured-output-tool-design 等）と重複するため不採用。2026-07-28確定仕様で旧実験的tasks機能を置き換えた正式拡張「Tasks」（tasks/get ポーリング・5状態ライフサイクル）は既存のprogress/cancellation記事(mcp-progress-cancellation-notification-design)やstateless移行記事(mcp-2026-stateless-spec-migration-guide)と扱う一次資料が別（ext-tasks仕様・SEP-2663）で内容が重複しないため、Web調査で新規考案"
+        },
+        {
+          "slug": "eu-ai-act-post-market-monitoring-agent-technical-design",
+          "keyword": "EU AI Act 第72条 市販後監視 エージェント基盤 実装",
+          "title_hint": "AI Act第72条の市販後監視をエージェント基盤に実装する",
+          "persona": "高リスクAIシステムの規制対応を担うエンタープライズのプラットフォームエンジニア・セキュリティアーキテクト",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "governance-tech",
+          "tech_depth": "deep",
+          "target_query": "EU AI Actの市販後監視システムはエージェント基盤にどう実装すればよいか",
+          "sources": [
+            "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-72",
+            "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-73",
+            "https://docs.modulos.ai/frameworks/eu-ai-act/post-market-monitoring"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。governance-tech×enterprise（7件）がgovernance-tech内で最少タイと判明。keyword_bankのgovernance-tech 5語は既存記事（ai-agent-hallucination-governance/audit-log-tamper-proof-schema-design/ai-model-procurement-vendor-risk-evaluation/iso-42001-technical-controls-implementation 等）と重複するため不採用。既存のagent-incident-response-playbook（内部インシデント対応の5フェーズ）とは異なり、本稿はEU AI Act第72条が定める規制上の市販後監視システムそのものの技術実装（データ収集設計・技術文書統合・第73条報告期限との接続）が主題で内容が重複しないため、Web調査（EU AI Act公式サービスデスクの第72条・第73条原文）で新規考案"
         }
   ],
   "keyword_bank": {
