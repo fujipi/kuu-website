@@ -91,6 +91,10 @@ const config = {
 		// 検索専用ページは廃止し検索窓を Blog/Case に移設。/search/ は /blog/ への
 		// リダイレクトスタブ（noindex）として残るため sitemap から除外。
 		"/search",
+		// PWA マニフェストは out/ 直下の実ファイル。next-sitemap がルートとして
+		// 拾うと trailingSlash 設定により /manifest.webmanifest/ を出力してしまい、
+		// 実在しない URL（404）を sitemap で申告することになるため除外する。
+		"/manifest.webmanifest",
 	],
 	additionalSitemaps: [],
 	robotsTxtOptions: {

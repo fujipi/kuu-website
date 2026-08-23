@@ -13,7 +13,7 @@ import {
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-import { getAllTags } from "@/lib/tags";
+import { getAllTags, TAG_MIN_POSTS } from "@/lib/tags";
 import { resolveTrack, TRACK_INFO, TRACK_SLUGS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = seoMetadata({
@@ -25,7 +25,10 @@ export const metadata: Metadata = seoMetadata({
 
 export default function BlogListPage() {
 	const allPosts = getAllPosts();
-	const tags = getAllTags().slice(0, 12);
+	// noindex の薄いタグ（TAG_MIN_POSTS 未満）はリンクしない
+	const tags = getAllTags()
+		.filter((t) => t.count >= TAG_MIN_POSTS)
+		.slice(0, 12);
 	const tracks = TRACK_SLUGS.map((slug) => ({
 		slug,
 		label: TRACK_INFO[slug].label,
