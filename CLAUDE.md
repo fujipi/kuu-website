@@ -236,6 +236,7 @@ node scripts/validate-blog.mjs   # または pnpm validate:blog
 - [ ] frontmatter 必須フィールド完備（title, description, date, tags, **audience, track, tech_depth**）
 - [ ] description が120字以内
 - [ ] tags が1〜4個
+- [ ] **タグは既存タグを再利用する**（新語を作らない）。`pnpm validate:blog` の `tag_sprawl` 警告が示すとおり、1記事しか付いていないタグはアーカイブが noindex になり、クロール予算だけを消費する。既存タグ一覧は `node scripts/blog-coverage-report.mjs` か `content/blog/*.mdx` の tags を参照し、**同じ概念に表記ゆれを作らない**（「Computer Use」と「computer use」は同じ slug に潰れる）。新語タグは、その語で今後3本以上書く見込みがある場合に限る
 - [ ] 本文が1,600〜2,400字
 - [ ] H2が3個以上
 - [ ] 各H2直下にDirect-Answer Block（40〜60字）を配置（「まとめ」「参考」を除く）

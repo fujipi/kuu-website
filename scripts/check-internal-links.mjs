@@ -6,6 +6,11 @@
  * 実在するページ（out/{path}/index.html）またはファイルに解決できるかを検証する。
  * trailingSlash: true（next.config.ts）前提で、`/foo/` → out/foo/index.html を正とする。
  *
+ * あわせて「末尾スラッシュ欠落」も検出する。/foo（ディレクトリルート）への
+ * リンクは out/foo/index.html に解決できてしまうが、本番の GitHub Pages では
+ * /foo/ への 301 になる。Search Console の「ページにリダイレクトがあります」を
+ * 生み、クロール予算も二重に消費するためリンク切れと同格で落とす。
+ *
  * 対象外: 外部 URL・mailto:・tel:・`#` フラグメントのみのリンク。
  * 失敗時は壊れたリンクの一覧を出力して exit 1（CI ゲート用）。
  *
@@ -61,6 +66,24 @@ function resolves(linkPath) {
 	return false;
 }
 
+/**
+ * 末尾スラッシュ欠落リンクか（= 本番で 301 になるか）。
+ * out/{path} が index.html を持つディレクトリなのにリンクが `/` で終わらない場合に true。
+ * 実ファイル（/feed.xml, /manifest.webmanifest, /images/*）は 301 にならないので対象外。
+ */
+function isMissingTrailingSlash(linkPath) {
+	let clean = linkPath.split("#")[0].split("?")[0];
+	try {
+		clean = decodeURIComponent(clean);
+	} catch {
+		// 不正なエンコードはそのまま検査
+	}
+	if (!clean || clean === "/" || clean.endsWith("/")) return false;
+	const asPath = path.join(OUT_DIR, clean.replace(/^\//, ""));
+	if (fs.existsSync(asPath) && fs.statSync(asPath).isFile()) return false;
+	return fs.existsSync(path.join(asPath, "index.html"));
+}
+
 const htmlFiles = walkHtml(OUT_DIR);
 const attrRe = /\s(?:href|src)=["']([^"']+)["']/g;
 // og:image / og:image:url / twitter:image の content も実在検証する
@@ -69,6 +92,7 @@ const metaImageRe =
 	/<meta\s+(?:property=["']og:image(?::url)?["']|name=["']twitter:image["'])\s+content=["']([^"']+)["']/g;
 const SITE_ORIGIN = "https://kuucorp.com";
 const broken = new Map(); // link -> Set<sourceFile>
+const missingSlash = new Map(); // link -> Set<sourceFile>
 let checked = 0;
 let metaChecked = 0;
 
@@ -90,6 +114,9 @@ for (const file of htmlFiles) {
 		if (!resolves(link)) {
 			if (!broken.has(link)) broken.set(link, new Set());
 			broken.get(link).add(path.relative(OUT_DIR, file));
+		} else if (isMissingTrailingSlash(link)) {
+			if (!missingSlash.has(link)) missingSlash.set(link, new Set());
+			missingSlash.get(link).add(path.relative(OUT_DIR, file));
 		}
 	}
 	for (const m of html.matchAll(metaImageRe)) {
@@ -103,20 +130,26 @@ for (const file of htmlFiles) {
 	}
 }
 
-if (broken.size > 0) {
-	console.error(
-		`\n[check-internal-links] 壊れた内部リンク ${broken.size} 件:\n`,
-	);
-	for (const [link, sources] of [...broken.entries()].sort()) {
+function report(title, map) {
+	console.error(`\n[check-internal-links] ${title} ${map.size} 件:\n`);
+	for (const [link, sources] of [...map.entries()].sort()) {
 		const list = [...sources];
 		const shown = list.slice(0, 3).join(", ");
 		const more = list.length > 3 ? ` ほか${list.length - 3}ページ` : "";
 		console.error(`  ${link}\n    ← ${shown}${more}`);
 	}
 	console.error("");
-	process.exit(1);
 }
 
+if (broken.size > 0) report("壊れた内部リンク", broken);
+if (missingSlash.size > 0) {
+	report(
+		"末尾スラッシュ欠落リンク（本番で 301 になる。末尾に / を付けること）",
+		missingSlash,
+	);
+}
+if (broken.size > 0 || missingSlash.size > 0) process.exit(1);
+
 console.log(
-	`[check-internal-links] OK: ${htmlFiles.length} ページ / ${checked} リンク + og:image等 ${metaChecked} 件を検証、リンク切れなし`,
+	`[check-internal-links] OK: ${htmlFiles.length} ページ / ${checked} リンク + og:image等 ${metaChecked} 件を検証、リンク切れ・末尾スラッシュ欠落なし`,
 );

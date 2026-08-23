@@ -12,7 +12,7 @@ import {
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
 import { tagDescription } from "@/lib/tagDescriptions";
-import { getAllTags, getPostsByTagSlug } from "@/lib/tags";
+import { getAllTags, getPostsByTagSlug, TAG_MIN_POSTS } from "@/lib/tags";
 
 interface Props {
 	params: Promise<{ tag: string }>;
@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 		// 記事が少ない薄いタグはインデックス対象外にする（next-sitemap の
 		// isNoindex() が robots meta を読んで sitemap からも自動除外。
 		// 記事が3本に達した時点で自動的にインデックス対象へ戻る）
-		noIndex: posts.length < 3,
+		noIndex: posts.length < TAG_MIN_POSTS,
 	});
 }
 

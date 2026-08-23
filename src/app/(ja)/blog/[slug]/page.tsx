@@ -30,7 +30,7 @@ import {
 	resolveOgImage,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-import { slugifyTag } from "@/lib/tags";
+import { getTagCounts, slugifyTag, TAG_MIN_POSTS } from "@/lib/tags";
 import { buildToc } from "@/lib/toc";
 
 interface Props {
@@ -107,6 +107,7 @@ export default async function BlogPostPage({ params }: Props) {
 	}
 
 	const post = getPostBySlug(slug);
+	const tagCounts = getTagCounts();
 
 	if (!post) {
 		return (
@@ -339,23 +340,40 @@ export default async function BlogPostPage({ params }: Props) {
 								className="fade-in"
 								style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
 							>
-								{post.tags.map((tag) => (
-									<Link
-										key={tag}
-										href={`/blog/tags/${slugifyTag(tag)}/`}
-										style={{
-											fontSize: "0.65rem",
-											color: "var(--gray-dim)",
-											border: "1px solid var(--gray-dark)",
-											borderRadius: "2px",
-											padding: "0.2rem 0.6rem",
-											fontFamily: "var(--font-heading)",
-											letterSpacing: "0.05em",
-										}}
-									>
-										{tag}
-									</Link>
-								))}
+								{post.tags.map((tag) => {
+									const tagSlug = slugifyTag(tag);
+									const chipStyle = {
+										fontSize: "0.65rem",
+										color: "var(--gray-dim)",
+										border: "1px solid var(--gray-dark)",
+										borderRadius: "2px",
+										padding: "0.2rem 0.6rem",
+										fontFamily: "var(--font-heading)",
+										letterSpacing: "0.05em",
+									} as const;
+									// 記事数が TAG_MIN_POSTS 未満のタグアーカイブは noindex。
+									// リンクを張るとクローラーが noindex ページを大量に巡回して
+									// 予算を消費するため、ラベル表示のみに留める。
+									if ((tagCounts.get(tagSlug) ?? 0) < TAG_MIN_POSTS) {
+										return (
+											<span key={tag} style={chipStyle}>
+												{tag}
+											</span>
+										);
+									}
+									// next/link は末尾セグメントにドットがあると拡張子とみなして
+									// 末尾スラッシュを落とす（例: /blog/tags/oauth-2.1）。
+									// GitHub Pages で 301 になるため素の <a> で出力する。
+									return (
+										<a
+											key={tag}
+											href={`/blog/tags/${tagSlug}/`}
+											style={chipStyle}
+										>
+											{tag}
+										</a>
+									);
+								})}
 							</div>
 						)}
 					</div>

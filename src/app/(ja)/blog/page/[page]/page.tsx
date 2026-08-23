@@ -14,7 +14,7 @@ import {
 	buildBreadcrumb,
 	generateMetadata as seoMetadata,
 } from "@/lib/seo";
-import { getAllTags } from "@/lib/tags";
+import { getAllTags, TAG_MIN_POSTS } from "@/lib/tags";
 
 export async function generateStaticParams() {
 	const total = getAllPosts().length;
@@ -51,7 +51,10 @@ export default async function BlogListPaginatedPage({ params }: PageProps) {
 	if (!Number.isInteger(pageNum) || pageNum < 2) notFound();
 
 	const allPosts = getAllPosts();
-	const tags = getAllTags().slice(0, 12);
+	// noindex の薄いタグ（TAG_MIN_POSTS 未満）はリンクしない
+	const tags = getAllTags()
+		.filter((t) => t.count >= TAG_MIN_POSTS)
+		.slice(0, 12);
 	const { page, totalPages, posts } = paginatePosts(allPosts, pageNum);
 
 	if (page !== pageNum) notFound();

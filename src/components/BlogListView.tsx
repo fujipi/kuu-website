@@ -153,7 +153,10 @@ export default function BlogListView({
 							}}
 						>
 							{tags.map((t) => (
-								<Link
+								// next/link は末尾セグメントにドットがあると拡張子とみなして
+								// 末尾スラッシュを落とす（GitHub Pages で 301 になる）ため
+								// タグリンクは素の <a> で出力する。
+								<a
 									key={t.slug}
 									href={`/blog/tags/${t.slug}/`}
 									style={{
@@ -167,7 +170,7 @@ export default function BlogListView({
 									}}
 								>
 									#{t.tag} ({t.count})
-								</Link>
+								</a>
 							))}
 						</div>
 					) : null}

@@ -93,6 +93,28 @@ export default async function AuthorPage({ params }: Props) {
 
 			<main>
 				<div className="page-content">
+					{/* パンくず（JSON-LD の BreadcrumbList と対応。/authors/ への
+					    唯一の内部リンクでもあるため、著者一覧が孤立ページにならない） */}
+					<nav
+						className="fade-in"
+						style={{
+							fontSize: "0.7rem",
+							color: "var(--gray-dim)",
+							marginBottom: "2.5rem",
+							fontFamily: "var(--font-heading)",
+						}}
+					>
+						<Link href="/" style={{ color: "var(--gray-medium)" }}>
+							Home
+						</Link>
+						<span style={{ margin: "0 0.5rem" }}>/</span>
+						<Link href="/authors/" style={{ color: "var(--gray-medium)" }}>
+							Authors
+						</Link>
+						<span style={{ margin: "0 0.5rem" }}>/</span>
+						<span>{author.name}</span>
+					</nav>
+
 					<h1 className="page-title fade-in">{author.name}</h1>
 					<p
 						className="fade-in"
