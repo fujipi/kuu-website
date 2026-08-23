@@ -544,6 +544,23 @@
         "https://media.defense.gov/2026/Jun/02/2003943289/-1/-1/0/CSI_MCP_SECURITY.PDF"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-workspace-role-usage-policy-enforcement-smb",
+      "keyword": "Claude Console ワークスペース ロール 支出上限 利用ポリシー 技術的強制",
+      "title_hint": "Claudeワークスペースで利用ポリシーを技術的に強制する",
+      "persona": "生成AI利用規程を整備したが遵守状況を確認する手段がない中小企業のIT担当・総務担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はClaude APIの利用ポリシーをどう技術的に強制すればよいか",
+      "sources": [
+        "https://support.claude.com/en/articles/10186004-claude-console-roles-and-permissions",
+        "https://platform.claude.com/docs/en/api/rate-limits",
+        "https://platform.claude.com/docs/en/manage-claude/workspaces"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [

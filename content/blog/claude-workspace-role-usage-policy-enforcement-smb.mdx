@@ -1,0 +1,61 @@
+---
+title: "Claudeワークスペースで利用ポリシーを技術的に強制する"
+description: "Claude Consoleは組織あたり最大100ワークスペースを作成でき、ロールと支出・レート上限を組み合わせれば利用規程を紙の文書ではなく設定として強制できる。"
+date: "2026-08-23"
+lastModified: "2026-08-23"
+tags: ["利用ポリシー", "ワークスペース管理", "Claude API", "アクセス制御"]
+author: "kuu-engineering"
+audience: "smb"
+track: "governance-tech"
+tech_depth: "intermediate"
+target_query: "中小企業はClaude APIの利用ポリシーをどう技術的に強制すればよいか"
+sources:
+  - "https://support.claude.com/en/articles/10186004-claude-console-roles-and-permissions"
+  - "https://platform.claude.com/docs/en/api/rate-limits"
+  - "https://platform.claude.com/docs/en/manage-claude/workspaces"
+pillar: "ai-governance"
+---
+
+生成AI利用規程を作ったものの、実際に守られているかは誰も確認していない——そんな中小企業は多い。規程は「してはいけないこと」を文書化するが、社員がそれに従うかどうかはチェックしようがない。
+
+[エージェントガバナンス](/glossary/agent-governance/)の観点では、規程は最初の一歩にすぎない。[利用規程のひな形](/blog/ai-usage-policy-template-sme/)で条文を整えたら、次はその条文をClaude Consoleの設定として実装し、破りようのない形にする段階に進む必要がある。
+
+## 利用規程は設定に変換できるか
+
+> Claude Consoleのワークスペース・ロール・支出上限を組み合わせれば、規程の条文を実行時の制約として強制できる。
+
+Anthropicの公式ヘルプセンターによれば、Claude Consoleにはユーザー・Claude Codeユーザー・Limited Developer・Developer・Billing・Adminの6ロールがあり、組織管理者は全ワークスペースに自動的にWorkspace Admin権限を持つ。組織のユーザー・開発者ロールは明示的にワークスペースへ追加しない限りアクセスできない。つまり「誰がどの用途でAPIを呼べるか」は規程の条文ではなく、ロール割り当てそのものが答えになる。
+
+## ワークスペース分離で何が技術的に強制できるか
+
+> ワークスペースはAPIキー・ファイル・バッチ処理を分離する単位で、1組織あたり最大100個まで作成できる。
+
+公式ドキュメントによると、APIキーは単一のワークスペースにスコープされ、そのワークスペース内のリソースにしかアクセスできない。部門やプロジェクトごとにワークスペースを分ければ、「営業部のキーが開発用データにアクセスする」といった規程違反は、権限設計の時点で物理的に不可能になる。Claude Codeを使う場合は専用のClaude Codeワークスペースが自動作成され、メンバーがサインインするごとにユーザー単位のキーが発行される点も、個人単位の利用実態を追跡する土台になる。
+
+## 支出上限とレート制限でコスト逸脱を止める
+
+> ワークスペースごとに月次の支出上限とモデル別レート制限を組織の上限以下で設定でき、超過時はAPI呼び出し自体が止まる。
+
+公式のレート制限ドキュメントは、Start/Build/Scale各Usage Tierに月次の支出上限（それぞれ500ドル・1,000ドル・20万ドル）があり、組織はこれを下回る独自の上限をワークスペース単位でも設定できると説明している。上限に達すると`enforced_spend_limit_reached`エラーで新規リクエストが機械的に止まり、口頭の「使いすぎないように」という注意喚起より確実に効く。デフォルトワークスペースには上限を設定できない点、ワークスペース上限を積み上げても組織全体の上限は必ず優先される点は設計時の注意点だ。
+
+## 中小企業はどう組み立てるべきか
+
+> ワークスペース構造は、規程の各条文に1対1で対応する設定項目として設計すると運用しやすい。
+
+着手手順は次の3段階になる。
+
+1. 規程の条文を「誰が」「どの業務で」「いくらまで」の3要素に分解する
+2. 対応するワークスペースを部門・用途単位で作成し、条文の「誰が」をロール割り当てに、「いくらまで」を支出上限に落とし込む
+3. 四半期ごとにワークスペースメンバーとロールを棚卸しし、退職者・異動者のアクセスが残っていないか確認する
+
+ワークスペースの鍵管理をさらに厳密にしたい場合は、[Workload Identity Federationによる鍵なし認証設計](/blog/claude-api-workspace-team-management-wif/)も合わせて検討するとよい。あくまでワークスペース設計は技術的な「柵」であり、社員教育や例外申請フローといった運用面の統制は別途必要になる点は変わらない。
+
+## 参考
+
+- [Claude Console roles and permissions – Anthropic Help Center](https://support.claude.com/en/articles/10186004-claude-console-roles-and-permissions)
+- [Rate limits – Claude Platform Docs](https://platform.claude.com/docs/en/api/rate-limits)
+- [Workspaces – Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/workspaces)
+
+## まとめ
+
+Claude Consoleのロール・ワークスペース分離・支出上限は、生成AI利用規程を「守られているか分からない文書」から「破ろうとしても止まる設定」に変える手段になる。規程の条文を「誰が・どの業務で・いくらまで」に分解し、ワークスペース単位の権限と上限へ落とし込めば、専任のセキュリティチームがいない中小企業でも技術的なポリシー強制を始められる。自社の利用規程をConsole設定へ落とし込む設計は、[Kuuのエージェント運用支援](https://kuucorp.com/services/ai-ops/)から相談できる。
