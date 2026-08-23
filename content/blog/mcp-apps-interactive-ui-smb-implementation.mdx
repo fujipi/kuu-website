@@ -1,0 +1,75 @@
+---
+title: "MCP Appsとは何か——中小企業のチャット内UI実装"
+description: "MCP Appsはツール応答をチャット内の対話型UIとして描画する公式拡張です。ui://リソースとサンドボックスiframeで、自社開発なしにフォームやダッシュボードを組み込む方法を解説します。"
+date: "2026-08-23"
+lastModified: "2026-08-23"
+tags: ["MCP Apps", "MCP", "対話型UI", "設計"]
+author: "kuu-editorial"
+audience: "smb"
+track: "protocols"
+tech_depth: "intermediate"
+target_query: "MCP Appsで中小企業がチャット内に対話型UIをどう実装すればよいか"
+sources:
+  - "https://modelcontextprotocol.io/extensions/apps/overview"
+  - "https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/"
+  - "https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/"
+pillar: "ai-governance"
+---
+
+社内のMCPサーバーに問い合わせフォームや在庫状況を追加したいとき、多くの中小企業は「専用のWebアプリを別に作る」という選択肢しか思いつきません。しかし2026年1月に正式化した[MCP（Model Context Protocol）](/glossary/mcp/)の拡張機能「MCP Apps」を使えば、既存のMCPサーバーを拡張するだけでチャットの中に対話型UIを埋め込めます。
+
+MCP Appsは2026年7月28日公開のMCP仕様リリース候補にも含まれるロードマップの柱の一つで、Claude・Claude Desktop・VS Code GitHub Copilot・Microsoft 365 Copilotなど主要クライアントが既に対応しています。
+
+## MCP Appsとは何か
+
+> MCP AppsはMCPツールの応答として、フォームやダッシュボードなどのHTML UIをチャット内に直接描画できる公式拡張です。別サイトへの遷移が不要になります。
+
+従来のMCPツールはテキストや構造化データしか返せず、複雑な設定や可視化には向きませんでした。MCP Appsはツールの説明に`_meta.ui.resourceUri`として`ui://`から始まるUIリソースへの参照を宣言し、ホスト（Claude Desktopなど）がそのHTMLをチャット内に描画する仕組みです。会話の流れを離れずに、フォーム入力やグラフの操作が完結します。
+
+## なぜ自社Webアプリより中小企業に向いているか
+
+> 別サイトへのリンク方式と違い、MCP AppsはWebアプリ側の認証・API・状態管理を自前で持つ必要がありません。既存のMCPサーバーの認証とツール呼び出しをそのまま再利用できます。
+
+自社でフォーム画面を作る場合、認証・データ取得API・UIホスティングを別途用意する必要があります。MCP Appsのアプリはホストを経由してMCPサーバーの既存ツールを呼び出せるため、認証基盤も業務ロジックもそのまま流用できます。エンジニアが1人しかいない中小企業ほど、この「二重実装をしなくていい」利点が効いてきます。
+
+## MCP Appsはどう動作するか
+
+> ホストはツール呼び出し前にUIリソースを事前取得し、サンドボックス化したiframeで描画します。アプリとホストの通信は`postMessage`経由のJSON-RPCで行われます。
+
+処理の流れは次の通りです。
+
+1. LLMがツールを呼び出す前に、ホストが`ui://`リソースを事前取得（プリロード）する
+2. ホストがHTML・CSS・JSを取得し、サンドボックスiframe内に描画する
+3. アプリはiframe内から`tools/call`など通常のMCPリクエストを送り、最新データを取得できる
+4. ユーザーの操作結果は`ui/initialize`など`ui/`接頭辞の専用メソッドでホストに通知される
+
+iframeサンドボックスにより、アプリは親ページのDOM・Cookie・localStorageにアクセスできません。また権限が必要な操作（マイク・カメラなど）は`_meta.ui.permissions`で明示的に宣言する設計です。
+
+## SMBでどんな業務に使えるか
+
+> 見積・発注フォーム、在庫ダッシュボード、稟議承認フローなど、条件分岐や一覧操作を伴う業務がMCP Appsの主戦場です。
+
+公式サンプルにも見積・予算配分ツールや顧客セグメント分析ダッシュボードが含まれています。中小企業では次の用途から着手しやすいでしょう。
+
+- 発注条件が多い見積フォーム（数量・納期・オプションを一画面で入力）
+- 在庫・売上のリアルタイムダッシュボード
+- 経費精算や稟議の承認・差し戻し操作
+- 契約書PDFを表示しながらの条項レビュー
+
+React・Vue・Svelte等の公式テンプレートが用意されており、既存のフロントエンド資産を転用しやすい設計です。
+
+## 導入時に確認すべきセキュリティの要点
+
+> UI起点のツール呼び出しも通常のMCP呼び出しと同じ承認・監査フローを通るため、既存のガバナンス設計をそのまま適用できます。
+
+MCP Appsのアプリがツールを呼び出す際も、副作用を伴う操作には人間の承認を挟む設計が前提です。導入前には、UIから呼び出せるツールの範囲を絞ること、`_meta.ui.csp`で外部リソースの読み込み元を制限すること、ホスト側でUIリソースを事前レビューすることの3点を確認してください。[MCPサーバー導入前チェックリスト](/blog/mcp-server-vetting-checklist-smb/)の観点と合わせて評価すると漏れが減ります。
+
+## 参考
+
+- [MCP Apps（公式ドキュメント）](https://modelcontextprotocol.io/extensions/apps/overview)
+- [MCP Apps正式化アナウンス（2026年1月26日）](https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/)
+- [2026-07-28 MCP仕様リリース候補](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)
+
+## まとめ
+
+MCP Appsは、既存のMCPサーバーに対話型UIを追加する公式な標準です。認証・ツール呼び出し・監査フローを別立てで作る必要がなく、フロントエンド専任者がいない中小企業でもフォームやダッシュボードをチャットに組み込めます。まずは見積フォームや在庫ダッシュボードなど、条件分岐が多く自動化効果の高い業務から検証を始めてみてください。MCPサーバーの拡張設計やガバナンス体制の相談は[Kuuの運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/)からお問い合わせください。

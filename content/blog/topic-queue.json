@@ -1421,6 +1421,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。governance-tech×enterprise（7件）がgovernance-tech内で最少タイと判明。keyword_bankのgovernance-tech 5語は既存記事（ai-agent-hallucination-governance/audit-log-tamper-proof-schema-design/ai-model-procurement-vendor-risk-evaluation/iso-42001-technical-controls-implementation 等）と重複するため不採用。既存のagent-incident-response-playbook（内部インシデント対応の5フェーズ）とは異なり、本稿はEU AI Act第72条が定める規制上の市販後監視システムそのものの技術実装（データ収集設計・技術文書統合・第73条報告期限との接続）が主題で内容が重複しないため、Web調査（EU AI Act公式サービスデスクの第72条・第73条原文）で新規考案"
+        },
+        {
+          "slug": "mcp-apps-interactive-ui-smb-implementation",
+          "keyword": "MCP Apps 対話型UI ui:// サンドボックスiframe 中小企業",
+          "title_hint": "MCP Appsとは何か——中小企業のチャット内UI実装",
+          "persona": "フロントエンド専任者がいない中小企業のIT担当者・DX推進担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "protocols",
+          "tech_depth": "intermediate",
+          "target_query": "MCP Appsで中小企業がチャット内に対話型UIをどう実装すればよいか",
+          "sources": [
+            "https://modelcontextprotocol.io/extensions/apps/overview",
+            "https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/",
+            "https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。protocols×smb（5件）がsmb内で最少と判明。keyword_bankのprotocols 4語は既存記事（mcp-primitives-selection-guide/mcp-security-oauth-scope-design/mcp-vs-a2a-protocol-smb-guide/function-calling-structured-output-tool-design）と重複するため不採用。2026年1月26日に正式化したMCP Apps拡張（ui://リソース・サンドボックスiframeでの対話型UI描画）は既存のmcp-2026-stateless-spec-migration-guide内で1段落言及されているのみで、実装・SMB活用パターンを深掘りした記事は無かったため、Web調査（MCP公式Apps拡張ドキュメント・正式化アナウンス・2026-07-28仕様リリース候補）で新規考案"
         }
   ],
   "keyword_bank": {
