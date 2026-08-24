@@ -198,6 +198,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"claude-agent-sdk-minimum-implementation-smb",
 			"claude-agent-skills-smb-guide",
 		],
+		// オートスケーリング設計（レプリカ数をキュー深度/p90 TTFT/KVキャッシュ使用率で調整・platform-infra/both）と バックプレッシャー/ロードシェディング設計（キュー飽和時の優先度別間引き・architecture/enterprise）: 「事前にどれだけキャパシティを用意するか」と「用意した容量を超えたときにどう振る舞うか」で主題が異なる正当な併存
+		[
+			"agent-autoscaling-capacity-planning-design",
+			"agent-backpressure-load-shedding-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
