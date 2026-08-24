@@ -1457,6 +1457,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。architecture×enterprise（7件）がarchitecture内で最少タイと判明。keyword_bankのarchitecture 6語は既存記事（agent-harness-state-management-retry-design/context-engineering-token-budget-design/agent-memory-architecture-short-term-long-term/rag-vs-tool-use-agent-design/event-driven-agent-workflow-design/agent-approval-workflow-async-callback-design）と全て重複するため不採用。既存の承認フロー・サーキットブレーカー・冪等性・耐久実行の各記事はいずれも個別障害への対処が主題で、キュー飽和時の優先度別間引き（バックプレッシャー＋ロードシェディング）を扱った記事は無かったため、Web調査（Azure Architecture CenterのQueue-Based Load Leveling公式パターン・Claude APIのretry-after/Priority Tier公式ドキュメント）で新規考案。オートスケーリング設計(agent-autoscaling-capacity-planning-design)とはtitle bigram類似が閾値をわずかに超えるが、主題は「事前のキャパシティ調整」対「容量超過時の振る舞い」で異なるためNEAR_DUP_ALLOWLISTに登録して併存"
+        },
+        {
+          "slug": "constitutional-classifiers-cascade-jailbreak-defense-design",
+          "keyword": "Constitutional Classifiers カスケード分類器 ジェイルブレイク防御 設計",
+          "title_hint": "ジェイルブレイク防御をカスケード分類器で設計する",
+          "persona": "自社エージェントの入出力コンテンツ審査層を設計するセキュリティアーキテクト・プラットフォームエンジニア",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "governance-tech",
+          "tech_depth": "deep",
+          "target_query": "Constitutional Classifiersのようなカスケード型ジェイルブレイク防御は自社エージェントにどう応用設計すればよいか",
+          "sources": [
+            "https://www.anthropic.com/research/next-generation-constitutional-classifiers",
+            "https://www.anthropic.com/research/constitutional-classifiers",
+            "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。governance-tech×both（7件）とevaluation×smb（7件）が全track×audienceセル中最少タイと判明。keyword_bankのgovernance-tech 5語は既存記事（agent-runtime-policy-engine-guardrails/audit-log-tamper-proof-schema-design/iso-42001-technical-controls-implementation/ai-model-procurement-vendor-risk-evaluation/agent-hallucination-detection-techniques 等）と重複するため不採用。既存のclaude-content-moderation-guardrails-smb-implementation（SMB向け単一分類器の最小構成）・agent-runtime-policy-engine-guardrails（ツール呼び出し前の許可判定）とは異なり、本稿はモデル入出力コンテンツを審査する多段カスケード分類器アーキテクチャそのものが主題で、Web調査（Anthropic公式のConstitutional Classifiers++研究ページ2件・Claude Platform Docsのjailbreak対策ガイド）で新規考案。near_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {

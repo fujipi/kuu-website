@@ -1,0 +1,55 @@
+---
+title: "ジェイルブレイク防御をカスケード分類器で設計する"
+description: "単一分類器では検知率と誤検知のトレードオフが避けられません。Anthropicの実装では2段カスケードで無害な問い合わせの拒否率を0.05%まで抑えています。自社設計への応用を解説します。"
+date: "2026-08-24"
+lastModified: "2026-08-24"
+tags: ["ガードレール", "AIガバナンス", "セキュリティ", "Claude API"]
+author: "kuu-engineering"
+audience: "both"
+track: "governance-tech"
+tech_depth: "deep"
+sources:
+  - "https://www.anthropic.com/research/next-generation-constitutional-classifiers"
+  - "https://www.anthropic.com/research/constitutional-classifiers"
+  - "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks"
+---
+
+エージェントの入出力を分類器1つで審査する設計は、検知率を上げるほど誤検知が増え、正当な利用者の体験を損ないます。Anthropicが実運用で採用しているのは、単一分類器ではなく段階的にコストを上げていくカスケード構成です。この設計思想は、自社でガードレールを組む際にもそのまま応用できます。
+
+## 単一分類器の防御はなぜ破られやすいのか
+
+> 単一の分類器は「厳しくすれば誤検知が増え、緩めれば見逃す」というトレードオフから逃れられません。
+
+ジェイルブレイク攻撃は、長文プロンプト・特殊フォーマット・多段階の会話を使って分類器の判定基準を回避しようとします。1つの分類器がすべてのトラフィックを同じ精度で審査する構成では、検知精度を上げるために閾値を厳しくすると無害な問い合わせまで拒否してしまい、逆に閾値を緩めると新しい回避パターンを通してしまいます。Anthropicが2025年に発表した初代Constitutional Classifiersでも、入力・出力それぞれを審査する構成自体は有効でしたが、コスト面（追加計算コスト23.7%）と過剰拒否のバランスが課題として残っていました。
+
+## Constitutional Classifiers++はどう設計されているか
+
+> 軽量なプローブ分類器が全トラフィックを常時審査し、疑わしい場合のみ高精度な分類器へエスカレーションする2段構成です。
+
+Anthropicが公開した次世代版は、モデルの内部活性化を見る軽量プローブと、入力と出力の両方を突き合わせて審査する「exchange分類器」の2段カスケードです。プローブがほぼ無視できるコストで全件を審査し、疑わしいと判定した場合のみ重い分類器に処理を回す設計により、追加計算コストは約1%まで下がりました。Claude Sonnet 4.5への1ヶ月間の本番シャドー展開では、無害な問い合わせに対する拒否率が0.05%（旧世代比87%減）、1,700時間・19.8万件のレッドチーミングでも高リスクな回避は1件のみという結果が報告されています。
+
+## 自社エージェントにカスケード分類器を実装するには
+
+> モデル内部活性化への直接アクセスがなくても、軽量モデルによる一次審査と強力モデルによる二次審査の2段構成でカスケードの利点を再現できます。
+
+Claude APIの利用者は、Anthropicのように内部活性化を直接見るプローブは持てませんが、同じ設計思想を分類器プロンプトの多段構成で近似できます。具体的には、Claude Haiku系の軽量モデルに「ALLOW/BLOCK/ESCALATE」の3値判定をさせる一次分類器を全トラフィックに適用し、ESCALATE判定のみをより高性能なモデルに渡して、入力と出力の両方を文脈込みで再審査させます。単純な二値のALLOW/BLOCK分類器を1つだけ置く実装（[Claude APIの最小構成ガードレール](/blog/claude-content-moderation-guardrails-smb-implementation/)で扱った設計）と比べ、疑わしい事例だけを重い処理に回すため、全体のレイテンシとコストを抑えながら検知精度を上げられます。ツール呼び出し前の許可判定を扱う[ポリシーエンジン設計](/blog/agent-runtime-policy-engine-guardrails/)とは異なり、こちらはモデルの入出力コンテンツそのものを審査する層である点に注意してください。両者は独立したレイヤーとして併用できます。
+
+## 運用でどの指標を追跡すべきか
+
+> 拒否率・エスカレーション率・検知後の人手レビュー結果の3指標を継続計測し、閾値を四半期ごとに見直します。
+
+分類器を導入したら終わりではなく、無害なトラフィックに対する拒否率（過剰拒否の指標）、一次分類器から二次分類器へのエスカレーション率（コスト効率の指標）、エスカレーション後に実際に有害と確定した割合（分類器の精度指標）を継続的に記録します。Anthropicの事例のように、モデルやプロンプトを更新するたびにこれらの指標が変動するため、レッドチーミングまたは既知の回避パターン集を使った定期的な再評価をリリースサイクルに組み込むことが実運用での前提になります。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+SMBでは二次分類器を都度呼び出すと運用コストが無視できないため、まずは一次分類器のみを導入し、エスカレーション先は既存の人手レビュー体制に留めるところから始めるのが現実的です。エンタープライズでは複数プロダクトラインで分類器を共有するため、[LLMゲートウェイ](https://kuucorp.com/services/rde/)に分類器呼び出しを一元化し、拒否率・エスカレーション率をプロダクト横断で可視化する設計が必要になります。
+
+## 参考
+
+- [Next-generation Constitutional Classifiers: More efficient protection against universal jailbreaks（Anthropic）](https://www.anthropic.com/research/next-generation-constitutional-classifiers)
+- [Constitutional Classifiers: Defending against universal jailbreaks（Anthropic）](https://www.anthropic.com/research/constitutional-classifiers)
+- [Mitigate jailbreaks and prompt injections（Claude Platform Docs）](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks)
+
+## まとめ
+
+ジェイルブレイク防御は「1つの厳しい分類器を置く」発想ではコストと誤検知のトレードオフから抜け出せません。軽量な一次審査と高精度な二次審査を組み合わせるカスケード設計は、Anthropic自身が本番運用で有効性を実証したパターンであり、Claude API上に自前で構築するガードレールにもそのまま応用できます。自社のエージェント基盤にどのレイヤーで分類器を組み込むべきか整理したい場合は、[Kuuのai-opsサービス](https://kuucorp.com/services/ai-ops/)にご相談ください。
