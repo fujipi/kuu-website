@@ -1475,6 +1475,23 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため blog-coverage-report.mjs を実行。governance-tech×both（7件）とevaluation×smb（7件）が全track×audienceセル中最少タイと判明。keyword_bankのgovernance-tech 5語は既存記事（agent-runtime-policy-engine-guardrails/audit-log-tamper-proof-schema-design/iso-42001-technical-controls-implementation/ai-model-procurement-vendor-risk-evaluation/agent-hallucination-detection-techniques 等）と重複するため不採用。既存のclaude-content-moderation-guardrails-smb-implementation（SMB向け単一分類器の最小構成）・agent-runtime-policy-engine-guardrails（ツール呼び出し前の許可判定）とは異なり、本稿はモデル入出力コンテンツを審査する多段カスケード分類器アーキテクチャそのものが主題で、Web調査（Anthropic公式のConstitutional Classifiers++研究ページ2件・Claude Platform Docsのjailbreak対策ガイド）で新規考案。near_duplicate警告は出ていない"
+        },
+        {
+          "slug": "slopsquatting-ai-package-hallucination-defense-smb",
+          "keyword": "スロップスクワッティング AIコーディングエージェント パッケージ幻覚 中小企業",
+          "title_hint": "AIコーディングエージェントの幻覚パッケージ対策",
+          "persona": "AIコーディングエージェントを使う中小企業の開発担当者・IT担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "security",
+          "tech_depth": "intermediate",
+          "target_query": "AIコーディングエージェントが提案する架空パッケージ名（スロップスクワッティング）はどう防げばよいか",
+          "sources": [
+            "https://arxiv.org/abs/2605.17062",
+            "https://owasp.org/www-project-top-10-for-large-language-model-applications/assets/PDF/OWASP-Top-10-for-LLMs-v2025.pdf"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため refill-topic-queue.mjs のブリーフを確認。security×smb（既存3件）が手薄スロット上位と判明。既存のsecurity×smb記事（agent-data-isolation-context-zoning-smb/agent-unbounded-consumption-denial-of-wallet-defense/mcp-server-vetting-checklist-smb）とは異なり、AIコーディングエージェントが幻覚した架空パッケージ名を攻撃者が先回り登録する「スロップスクワッティング」というソフトウェアサプライチェーン攻撃を扱った記事は無かったため、Web調査（2026年5月のフロンティアモデル幻覚率調査arXiv:2605.17062・OWASP LLM Top 10 2025のLLM03 Supply Chain）で新規考案。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {
