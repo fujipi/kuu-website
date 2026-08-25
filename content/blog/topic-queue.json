@@ -1492,6 +1492,23 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため refill-topic-queue.mjs のブリーフを確認。security×smb（既存3件）が手薄スロット上位と判明。既存のsecurity×smb記事（agent-data-isolation-context-zoning-smb/agent-unbounded-consumption-denial-of-wallet-defense/mcp-server-vetting-checklist-smb）とは異なり、AIコーディングエージェントが幻覚した架空パッケージ名を攻撃者が先回り登録する「スロップスクワッティング」というソフトウェアサプライチェーン攻撃を扱った記事は無かったため、Web調査（2026年5月のフロンティアモデル幻覚率調査arXiv:2605.17062・OWASP LLM Top 10 2025のLLM03 Supply Chain）で新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "claude-console-evaluate-no-code-eval-smb",
+          "keyword": "Claude Console Evaluate タブ コード不要 プロンプト評価 中小企業",
+          "title_hint": "Claude Consoleでコード不要の評価に着手",
+          "persona": "エンジニアが社内にいない中小企業のIT担当者・業務担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "evaluation",
+          "tech_depth": "intermediate",
+          "target_query": "エンジニアがいない中小企業はAIエージェントの評価にどう着手すればよいか",
+          "sources": [
+            "https://claude.com/blog/evaluate-prompts",
+            "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件、keyword_bankのevaluation 4語も既存記事で網羅済みのため node scripts/blog-coverage-report.mjs を実行。evaluation×smb（7件）が全track×audienceセル中最少と判明。既存のevaluation×smb記事（agent-eval-minimum-viable-setup/nine-axis-evaluation-llm-judge-smb/agent-eval-cost-management-smb 等）はいずれもエンジニアがいる前提でコード・LLM-as-judgeグレーダーを自作する構成が主題で、エンジニア不在でも着手できるClaude Console純正のノーコード評価ツール（Evaluateタブ）そのものを扱った記事は無かったため、Web調査（Anthropic公式ブログのEvaluateタブ発表・Claude Platform Docsのevals構築ガイド）で新規考案。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {

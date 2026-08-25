@@ -1,0 +1,51 @@
+---
+title: "Claude Consoleでコード不要の評価に着手"
+description: "エンジニア不在でもClaude ConsoleのEvaluateタブでプロンプト評価を自動化できる。CSVインポートと5段階採点でエージェント評価の初手を作る方法を解説。"
+date: "2026-08-25"
+lastModified: "2026-08-25"
+tags: ["エージェント評価", "AIエージェント", "Claude API", "中小企業"]
+author: "kuu-engineering"
+audience: "smb"
+track: "evaluation"
+tech_depth: "intermediate"
+target_query: "エンジニアがいない中小企業はAIエージェントの評価にどう着手すればよいか"
+sources:
+  - "https://claude.com/blog/evaluate-prompts"
+  - "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests"
+pillar: "ai-governance"
+---
+
+「evalを始めよう」と言われても、Pythonでグレーダーを書ける人が社内にいない。LangfuseやRagasの導入記事を読んでも、結局エンジニア不在では止まってしまう中小企業は多い。実はコードを1行も書かずに、Claude Console上でプロンプト評価を始める方法がある。
+
+## エンジニアがいなくてもエージェント評価は始められるか
+
+> Claude ConsoleのEvaluateタブはコード不要で、テストケース投入から採点まで画面操作だけで完結します。
+
+Claude Consoleのプロンプトエディタには「Evaluate」タブがあり、プロンプトが `{{variable}}` 形式の変数を1〜2個含んでいれば、そのままテストケースを投入して出力を確認できる。カスタムのグレーダーコードやLLM-as-judgeの実装を用意する必要がなく、[Claude API](/services/ai-ops/)の利用契約さえあれば管理画面から着手できる。エンジニア採用や外部委託の判断を待たずに、まず「今のプロンプトは本当に安定して動いているか」を確認する第一歩として使える。
+
+## テストケースはどう用意すればよいか
+
+> テストケースは手入力・CSVインポート・Claudeによる自動生成の3通りで用意でき、ゼロから書く必要はありません。
+
+Evaluateタブでのテストケース追加は3パターンある。1件ずつ「Add Row」で手入力する方法、既存の問い合わせログなどをCSVでインポートする方法、そして「Generate Test Case」ボタンでClaudeにテストケースそのものを自動生成させる方法だ。自動生成では、変数の想定範囲を指示文で調整できるため、想定外の入力パターン（表記ゆれや長文の問い合わせなど）を狙って混ぜることもできる。件数を最初から絞りすぎず、実際の問い合わせ内容に近いテストケースを優先して集めるのが有効だ。
+
+## 出力の良し悪しはどう判定すればよいか
+
+> 出力は1〜5段階のスコアで人手評価でき、プロンプトのバージョン間を並べて比較できます。
+
+Evaluateタブでは、担当者が出力を1〜5点で採点する。厳密なグレーダーロジックを組まなくても、社内の業務担当者がスコアを付けるだけで「良い/悪い」を定量データに変換できる。プロンプトを修正したら新しいバージョンとして保存し、同じテストケース群に対して再実行すれば、旧バージョンと新バージョンの出力を並べて比較できる。感覚的な「良くなった気がする」を、スコアの分布という形で経営層にも説明しやすくなる。
+
+## Console評価からコード評価基盤への移行はいつ必要か
+
+> 問い合わせ対応など反復業務が本番運用に入った段階で、CI/CDに組み込める自動グレーダーへの移行を検討すべきです。
+
+Console上の評価は、プロンプト単体の品質を人手で見極める初期段階に向いている。一方で、エージェントが複数ステップのツール呼び出しを行うようになったり、日次で大量のトラフィックを処理し始めたりすると、都度人手で採点するのは現実的でなくなる。その段階では、実際の失敗ケースを起票してタスクspecに変換し、自動グレーダーで継続計測する構成への移行を検討したい。Console評価はその移行前に、どの失敗パターンを優先してタスク化すべきかを洗い出す土台としても機能する。
+
+## 参考
+
+- [Evaluate prompts in the developer console | Claude by Anthropic](https://claude.com/blog/evaluate-prompts)
+- [Define success criteria and build evaluations - Claude Platform Docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests)
+
+## まとめ
+
+エンジニア不在は、AIエージェント評価を始めない理由にならない。Claude ConsoleのEvaluateタブなら、CSVインポートと5段階採点だけでプロンプト品質を定量比較でき、本番運用の規模が大きくなった段階で初めてコード評価基盤への移行を考えればよい。何から着手すべきか判断に迷う場合は、Kuuの[AI Ops](/services/ai-ops/)にご相談いただきたい。
