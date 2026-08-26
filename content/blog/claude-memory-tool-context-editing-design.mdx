@@ -1,0 +1,102 @@
+---
+title: "Claude Memory Toolとコンテキスト編集の設計"
+description: "Claude Memory Toolはファイルベースの永続メモリをセッション間で維持し、コンテキスト編集と組み合わせると100ターンの検索タスクでトークン消費を84%削減できます。"
+date: "2026-08-26"
+lastModified: "2026-08-26"
+tags: ["Claude API", "メモリ設計", "コンテキストエンジニアリング", "エージェントアーキテクチャ"]
+author: "kuu-engineering"
+audience: "both"
+track: "model-capability"
+tech_depth: "deep"
+target_query: "Claude Memory Toolとコンテキスト編集はどう組み合わせて設計すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool"
+  - "https://platform.claude.com/docs/en/build-with-claude/context-editing"
+  - "https://claude.com/blog/context-management"
+---
+
+長期タスクを任せたエージェントが、途中でコンテキストウィンドウを使い切って前段の判断を忘れる——検索・調査・多段ツール呼び出しを伴うエージェントで頻発する障害です。コンテキストウィンドウの拡張だけでは解決しません。Anthropicは2025年、コンテキストウィンドウの「外」に記憶を持たせるMemory Toolと、ウィンドウの「中」を自動整理するコンテキスト編集を組み合わせるアプローチを提示しました。
+
+本稿では両機能の実装パターンと、既存の[コンテキスト圧縮設計](/blog/agent-context-compression-session-management/)との使い分けを解説します。
+
+## Memory Toolとは何か——なぜウィンドウの外に記憶を持つのか
+
+> Memory Toolはクライアント側で動く永続ファイルストレージで、Claudeが`/memories`配下にセッションをまたいだ知識を蓄積できます。
+
+Memory Toolはクライアントサイドツールです。Claudeは`view`・`create`・`str_replace`・`insert`・`delete`・`rename`の6コマンドでファイル操作を要求するだけで、実際の読み書きは呼び出し元アプリケーションが自前のストレージ（ローカルディスク、DB、暗号化ストアなど）に対して実行します。`tools`配列に`{"type": "memory_20250818", "name": "memory"}`を渡すだけで有効化でき、Claude 4以降の全モデルで利用できます。
+
+有効化すると、APIはシステムプロンプトに「作業開始前に必ず`/memories`を確認せよ」という指示を自動付加します。Claudeはタスク着手時にメモリを確認し、進捗や学んだ内容を記録しながら作業を進めるため、複数セッションにまたがるプロジェクトの状態復元や、顧客対応の過去ガイドライン参照といった用途に向きます。
+
+## Memory Toolはどう実装するか——パストラバーサル対策が要
+
+> `/memories`配下限定のはずのパスも`../`を含む入力で越境しうるため、正規化・prefix検証・URLエンコード対策の3点実装が必須です。
+
+Python/TypeScript/C#/JavaのSDKには`BetaAbstractMemoryTool`のようなヘルパーが用意され、TypeScriptとPythonはローカルファイルシステム実装（`BetaLocalFilesystemMemoryTool`）をそのまま使えます。Go・Ruby・PHPは自前でハンドラを書く必要があります。
+
+```python
+import anthropic
+from anthropic.tools import BetaLocalFilesystemMemoryTool
+
+client = anthropic.Anthropic()
+memory = BetaLocalFilesystemMemoryTool(base_path="./memory")
+
+runner = client.beta.messages.tool_runner(
+    model="claude-opus-5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "顧客Acme社の対応履歴を記録して"}],
+    tools=[memory],
+)
+runner.until_done()
+```
+
+自前実装で最も注意すべきは**パストラバーサル対策**です。`/memories/../../secrets.env`のような入力で意図せず外部ファイルへ到達しうるため、公式ドキュメントは「全パスが`/memories`で始まることの検証」「正規化後に境界内であることの再確認」「URLエンコードされた`../`（`%2e%2e%2f`）の検出」の3点を必須としています。加えて、書き込み可能なファイルサイズの上限設定と、長期間アクセスのないメモリファイルの定期削除も運用上の責務です。
+
+## コンテキスト編集とどう組み合わせるか
+
+> `clear_tool_uses_20250919`は閾値超過時に古いツール結果を自動的にプレースホルダへ置換し、Memory Toolと併用すると100ターンの検索タスクでトークン消費を84%削減します。
+
+コンテキスト編集はベータヘッダー`context-management-2025-06-27`で有効化するサーバーサイド機能です。`clear_tool_uses_20250919`戦略は、入力トークンまたはツール使用回数が`trigger`の閾値を超えると、古いツール結果から順に本文をプレースホルダへ置き換えます。`keep`で直近何件を残すか、`exclude_tools`でクリア対象外にするツールを指定できます。
+
+```python
+response = client.beta.messages.create(
+    model="claude-opus-5",
+    max_tokens=4096,
+    messages=[{"role": "user", "content": "最新のAI動向を調査して"}],
+    tools=[
+        {"type": "web_search_20250305", "name": "web_search"},
+        {"type": "memory_20250818", "name": "memory"},
+    ],
+    betas=["context-management-2025-06-27"],
+    context_management={
+        "edits": [{
+            "type": "clear_tool_uses_20250919",
+            "trigger": {"type": "input_tokens", "value": 30000},
+            "keep": {"type": "tool_uses", "value": 3},
+        }]
+    },
+)
+```
+
+Memory Toolと併用すると、クリア閾値が近づく前にClaudeへ警告が伝わり、消えるツール結果の要点をメモリファイルへ退避してから続行できます。Anthropicのエージェント検索評価では、コンテキスト編集単体で29%、Memory Toolとの併用で39%の性能改善が報告されており、100ターンの連続Web検索タスクではトークン消費が84%削減されています。
+
+## Compactionとは何が違うか
+
+> Compactionは会話全体をサーバー側で要約する仕組みで、コンテキスト編集は個別のツール結果だけを選択的に消す点が異なります。
+
+[コンテキスト圧縮設計](/blog/agent-context-compression-session-management/)で扱ったCompaction APIは、会話全体を要約に置き換えるサーバーサイド機能です。一方コンテキスト編集は、古いツール結果だけをピンポイントで消す仕組みで、両者は排他的ではありません。Anthropicは「Compactionをクライアント側の管理不要な主戦略とし、要約後も残したい情報だけをMemory Toolに保存する」構成を推奨しています。ツール呼び出しが多い調査系エージェントはコンテキスト編集を、雑多な対話が続くエージェントはCompactionを軸に据えるのが判断の起点になります。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+**SMBの場合**: まずはローカルファイルシステム実装から着手し、`trigger`は保守的な値（低め）から試して挙動を確認してください。設計・導入の支援は[Kuuのエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)で相談できます。
+
+**エンタープライズの場合**: メモリファイルはZDR（Zero Data Retention）の適用範囲外なので、機密情報の書き込みを防ぐバリデーション層を自前で挟む必要があります。複数チームでのメモリストア共有基盤の設計は[KuuのRDEサービス](https://kuucorp.com/services/rde/)の支援範囲です。
+
+## 参考
+
+- [Memory tool — Claude API Docs（Anthropic公式）](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool)
+- [Context editing — Claude API Docs（Anthropic公式）](https://platform.claude.com/docs/en/build-with-claude/context-editing)
+- [Memory & context management on the Claude Developer Platform（Anthropic公式ブログ）](https://claude.com/blog/context-management)
+
+## まとめ
+
+Memory Toolはウィンドウの外に永続メモリを、コンテキスト編集はウィンドウの中の古いツール結果を自動整理します。両者は排他ではなく、長期タスクを扱うエージェントほど併用のメリットが大きくなります。実装の核心はパストラバーサル対策と`trigger`/`keep`のチューニングです。自社エージェントへの組み込み設計は[Kuuのエージェント運用管理サービス](https://kuucorp.com/services/ai-ops/)にお問い合わせください。

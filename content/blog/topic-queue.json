@@ -1509,6 +1509,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件、keyword_bankのevaluation 4語も既存記事で網羅済みのため node scripts/blog-coverage-report.mjs を実行。evaluation×smb（7件）が全track×audienceセル中最少と判明。既存のevaluation×smb記事（agent-eval-minimum-viable-setup/nine-axis-evaluation-llm-judge-smb/agent-eval-cost-management-smb 等）はいずれもエンジニアがいる前提でコード・LLM-as-judgeグレーダーを自作する構成が主題で、エンジニア不在でも着手できるClaude Console純正のノーコード評価ツール（Evaluateタブ）そのものを扱った記事は無かったため、Web調査（Anthropic公式ブログのEvaluateタブ発表・Claude Platform Docsのevals構築ガイド）で新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "claude-memory-tool-context-editing-design",
+          "keyword": "Claude Memory Tool コンテキスト編集 clear_tool_uses 永続メモリ",
+          "title_hint": "Claude Memory Toolとコンテキスト編集の設計",
+          "persona": "長期セッションのエージェントを実装するバックエンドエンジニア・プラットフォームエンジニア",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "model-capability",
+          "tech_depth": "deep",
+          "target_query": "Claude Memory Toolとコンテキスト編集はどう組み合わせて設計すればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool",
+            "https://platform.claude.com/docs/en/build-with-claude/context-editing",
+            "https://claude.com/blog/context-management"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。model-capability×both（8件）が全track×audienceセル中最少タイと判明。既存のコンテキスト圧縮記事(agent-context-compression-session-management、Compaction APIによるサーバー側の会話要約が主題)・メモリアーキテクチャ記事(agent-memory-architecture-short-term-long-term、汎用的な短期/長期/エピソード記憶の設計論)とは異なり、本稿はAnthropic公式のMemory Tool（クライアント側ファイルベース永続メモリ、6コマンド）とコンテキスト編集（clear_tool_uses_20250919によるツール結果の選択的クリア）という特定APIの実装パターンそのものが主題で、Web調査（Claude Platform DocsのMemory tool・Context editing公式ページ、Anthropic公式ブログのcontext-management発表）で新規考案。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {
