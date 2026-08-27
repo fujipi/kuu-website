@@ -1,0 +1,65 @@
+---
+title: "Managed Agentsの予算・地域・ドメイン制御を実装する"
+description: "Claude Managed Agentsは2026年8月にセッション予算・inference_geo・ドメイン許可制御を追加。US地域固定は1.1倍課金となる仕組みを一次情報から解説する。"
+date: "2026-08-27"
+lastModified: "2026-08-27"
+tags: ["Claude Managed Agents", "データレジデンシー", "コスト管理", "エージェントガバナンス"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "governance-tech"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/managed-agents/budgets"
+  - "https://platform.claude.com/docs/en/manage-claude/data-residency"
+  - "https://platform.claude.com/docs/en/managed-agents/tools"
+  - "https://platform.claude.com/docs/en/managed-agents/skills"
+pillar: "ai-governance"
+glossary_refs: ["managed-agents", "agent-governance"]
+---
+
+[Managed Agents](/glossary/managed-agents/)を複数チームに開放すると、次に来る問いは「暴走した1セッションがいくら使うか」「推論がどこで走るか」「エージェントがどこまでネットに出られるか」だ。Anthropicは2026年8月、この3点に対する技術的なガードレールをManaged Agentsに追加した。本記事はセッション予算・inference_geoによる地域固定・web_search/web_fetchのドメイン許可制御という3つの新機能を、公式ドキュメントの仕様レベルで整理する。
+
+## Managed Agentsに何が追加されたのか
+
+> Managed Agentsは2026年8月、セッション予算・地域固定・ドメイン制御の3機能を追加した。
+
+いずれもセッションまたはエージェントの作成時に設定するAPIパラメータであり、既存の[エージェントガバナンス](/glossary/agent-governance/)の枠組み（最小権限・監査・可観測性）を、Managed Agentsという長時間稼働のマネージド実行環境に適用したものと位置づけられる。加えて、Managed Agentsはセッションが参照するGitHubリポジトリから直接スキルを読み込めるようになっており、これは便益と同時に新しい信頼境界の問題を持ち込む。
+
+## セッション予算はどう機能するか
+
+> セッション作成時に`max_list_cost`を指定すると、到達時に`budget_reached`で一時停止する。
+
+`budget`オブジェクトは`type: "limit"`と`max_list_cost`（`amount`はセント単位の文字列、`currency`は`USD`固定）の2フィールドのみを持つ。プラットフォームはモデルトークン・Web検索（1,000件あたり10ドル）・セッション稼働時間（1時間あたり0.08ドル）を継続的に定価（list rate）で積算し、この合計が予算に達すると新規のモデルリクエストを止める。上限到達時にセッションは終了せず`idle`状態で停止し、`stop_reason`は`budget_reached`になる。上限を跨いだ実行中リクエストは完了まで走るため、実測コストは上限をわずかに超過しうる——これは仕様であり課金エラーではない。
+
+再開は予算の変更または`null`での撤廃のみで可能で、いずれも自動的に停止中の処理を再開する。ただし撤廃は一方向の操作で、一度`null`にした予算を持つセッションに予算を再設定することはできない。デプロイメント（定期実行）にも同じ`budget`オブジェクトを設定でき、そのデプロイが開始する各セッションに個別に適用される（デプロイ全体の累積コストではない）。マルチエージェントセッションでは予算はスレッド間で共有され、Advisorへの相談も同じ予算を消費する。
+
+## 推論地域はどう固定できるか
+
+> `inference_geo`を`us`に固定すると推論は米国内に限定され、課金は標準の1.1倍になる。
+
+`inference_geo`はエージェントのモデル設定、またはセッション作成時の個別指定で上書きできる。値は`global`（デフォルト、性能・可用性優先でどこでも実行）と`us`（米国内インフラに限定）の2種類のみで、Claude 4.6以降のモデルでのみサポートされる。料金面では、`us`固定は入力・出力トークン・キャッシュ書き込み・キャッシュ読み込みの全カテゴリで標準の1.1倍が適用され、Priority Tierを契約している場合はコミットしたTPMの消費も1.1倍でカウントされる。ワークスペース側では`allowed_inference_geos`（許可するgeoの制限）と`default_inference_geo`（未指定時のフォールバック）をAdmin API経由で設定でき、個別セッションの`inference_geo`より広い統制をかけられる。旧来のグローバルルーティング opt-out 設定は`allowed_inference_geos: ["us"]`への自動移行で吸収されている。
+
+## ツールの到達範囲はどう制限するか
+
+> Web検索・取得ツールは`allowed_domains`で到達範囲を絞り、違反は`url_not_allowed`で拒否する。
+
+制御は`agent_toolset_20260401`の`configs`配列内、各ツールのエントリに対して行う。`allowed_domains`と`blocked_domains`は同一エントリで併用できず、各リストは1〜64件、ドメインはプレーンなホスト名のみでIPアドレスやワイルドカードは拒否される。あるドメインを指定するとそのサブドメインも自動的にカバーされる（`example.com`は`docs.example.com`を含むが、逆は成立しない）。`web_fetch`が許可されていないURLを取得しようとすると、`agent.tool_result`イベントに`is_error: true`と`url_not_allowed`が返り、`web_search`は許可外の結果を単に除外する。`web_fetch`には取得内容の上限を定める`max_content_tokens`も設定できる。
+
+マルチエージェント構成では、この制限は呼び出し階層全体で合成される。許可リストは「全員に共通する範囲」に収束し、禁止リストは単純に合算されるため、配下のエージェントは到達範囲を狭めることはできても広げることはできない。合成の結果、共通のドメインが1つも残らない場合はツール自体は有効なまま毎回`url_not_allowed`で失敗する——ロースター設計時に見落としやすい落とし穴だ。
+
+## GitHub-hosted Skillsの信頼境界にどう向き合うか
+
+> GitHubリポジトリをマウントすると、`.claude/skills`配下は無審査で自動的に読み込まれる。
+
+Managed Agentsのセッションは`github_repository`リソースとしてリポジトリをマウントでき、その`.claude/skills/<skill-name>/SKILL.md`という1階層のディレクトリ構造に一致するスキルはセッション開始時に自動検出される。従来の[エージェントのスキル配列を経由したアップロード方式](/blog/agent-skill-supply-chain-security-signing-sandboxing/)と異なり、この経路にはアップロードも承認ステップも存在しない。Anthropicの公式ドキュメントも明示的に警告しているとおり、マウントしたリポジトリはエージェントの信頼境界そのものになる。マージされた外部プルリクエスト・侵害された依存関係・悪意あるコントリビューターの誰であっても、コミット権限さえあればスキルを追加・改変でき、それはレビューを経ずにそのままエージェントの指示として読み込まれ、`bash`や`web_fetch`という実行力を伴う。外部コントリビューションを受け付けるリポジトリをマウントする前には`.claude/skills`を必ずレビューし、信頼できるリポジトリのみに限定する運用が要る。
+
+## 参考
+
+- [Session budgets - Claude Platform Docs](https://platform.claude.com/docs/en/managed-agents/budgets)
+- [Data residency - Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/data-residency)
+- [Tools - Claude Platform Docs（Managed Agents）](https://platform.claude.com/docs/en/managed-agents/tools)
+- [Skills - Claude Platform Docs（Managed Agents）](https://platform.claude.com/docs/en/managed-agents/skills)
+
+## まとめ
+
+Managed Agentsのセッション予算・inference_geo・ドメイン許可制御は、いずれも「暴走したエージェントの被害範囲をコード的に確定する」という同じ設計思想に基づく。予算はコストの、地域固定はデータ主権の、ドメイン制御はネットワーク到達範囲の上限をAPIパラメータとして明示できるようになった。一方でGitHub-hosted Skillsのようにレビュー抜きで信頼境界が広がる機能も同時に増えており、便利さと統制はセットで設計する必要がある。複数チームでManaged Agentsを運用する体制の設計には[RDE（Reinvention Deployed Engineering）](https://kuucorp.com/services/rde/)が対応している。

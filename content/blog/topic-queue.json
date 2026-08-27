@@ -1562,6 +1562,25 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。evaluation・platform-infra（各26件）がtrack合計最少タイだったが、既存記事の内訳を精査したところ双方ともサブトピックが飽和しておりWeb調査で未カバー角度が見つからなかったため、次点のprotocols（27件、protocols×enterprise・protocols×smb=各8件で最少セルタイ）で調査。2026-07-01に導入されたベータ機能Mid-conversation Tool Changes（tool_addition/tool_removalブロックでtools配列を書き換えずツールの提示・撤回を行い、プロンプトキャッシュを維持する仕組み）は既存のTool Search Tool記事(agent-tool-search-defer-loading-design、検索駆動のdefer_loading)とは制御モデルが異なり（本稿はアプリケーション側が能動的に発行する明示的な状態遷移が主題）、既存記事に無かったため、Web調査（Claude Platform Docsのmid-conversation-system-messages・tool-reference・prompt-caching公式ページ）で新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "managed-agents-budget-geo-domain-governance",
+          "keyword": "Claude Managed Agents セッション予算 inference_geo ドメイン制御",
+          "title_hint": "Managed Agentsの予算・地域・ドメイン制御を実装する",
+          "persona": "Managed Agentsを複数チームに展開するプラットフォームエンジニア・セキュリティアーキテクト",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "governance-tech",
+          "tech_depth": "deep",
+          "target_query": "Claude Managed Agentsの新しいガバナンス機能（セッション予算・地域固定・ドメイン制御）はどう実装するか",
+          "sources": [
+            "https://platform.claude.com/docs/en/managed-agents/budgets",
+            "https://platform.claude.com/docs/en/manage-claude/data-residency",
+            "https://platform.claude.com/docs/en/managed-agents/tools",
+            "https://platform.claude.com/docs/en/managed-agents/skills"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でManaged Agentsの2026年8月の新機能（session budgets/max_list_cost、inference_geo地域固定＋1.1倍課金、web_search/web_fetchのallowed_domains/blocked_domains、GitHub-hosted Skillsの信頼境界）を発見。governance-tech×enterprise（8件）が最少セルタイであり、既存記事（vpc-llm-deploy-data-residency=セルフホストVPC基盤、ai-finops-token-cost-instrumentation=コスト計装配賦、agent-skill-supply-chain-security-signing-sandboxing=スキル署名/サンドボックス一般論）とは対象がManaged Agents APIの具体的な新パラメータである点で異なり、既存記事に無かったため新規考案。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {
