@@ -1,0 +1,61 @@
+---
+title: "Mid-conversation Tool Changes——ツール入替設計"
+description: "Claude Opus 5等のMid-conversation Tool Changesはtoolsを固定したままツール入替を可能にし、プロンプトキャッシュを維持する。設計要点を解説する。"
+date: "2026-08-27"
+lastModified: "2026-08-27"
+tags: ["Claude API", "プロンプトキャッシュ", "エージェント設計", "AIエージェント"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "protocols"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages"
+  - "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-reference"
+  - "https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+---
+
+長時間の運用チケット対応エージェントが、調査フェーズでは検索・ログ参照ツールを、対応フェーズでは書き込み・通知ツールを使う——セッション途中でツールの構成を切り替えたい場面は多い。しかし`tools`配列はプロンプトキャッシュのハッシュ対象で最も先頭に位置するため、1つ書き換えるだけでそれ以降の会話全体のキャッシュが失効していた。
+
+## なぜツール入替はキャッシュを壊すのか
+
+> プロンプトキャッシュは`tools`・`system`・`messages`の順でハッシュ化するため、`tools`の変更は会話全体のキャッシュを失効させる。
+
+[プロンプトキャッシュ](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)はリクエストのプレフィックスを`tools`配列→`system`フィールド→`messages`の順でハッシュ化し、直近のリクエストと完全一致した範囲までキャッシュを読む。`tools`はこのプレフィックスの最も早い位置にあるため、フェーズが切り替わってツールを1つ足し引きしただけで、それより後ろにある大量の会話履歴もまとめてキャッシュミスになる。数十ターン続く[エージェントハーネス](/glossary/agent-harness/)のセッションでは、この再計算コストが無視できない規模になる。
+
+同じ問題は`system`フィールドにも存在し、Anthropicは[Mid-conversation system messages](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)でこれを解決した。`system`を書き換える代わりに、会話の末尾へ`role: "system"`のメッセージを追加して以降のターンにだけ指示を効かせる仕組みだ。Mid-conversation Tool Changesは同じ考え方を`tools`配列に適用したベータ機能で、Claude Opus 5・Claude Mythos 5・Claude Opus 4.8で利用でき、Claude Sonnet 5では使えない。
+
+## Mid-conversation Tool Changesはどう動くのか
+
+> `tools`配列は変更せず、`tool_addition`/`tool_removal`ブロックでツールの提供・撤回を会話の途中に差し込む。
+
+実装は`mid-conversation-tool-changes-2026-07-01`ベータヘッダーを付けたリクエストで、`role: "system"`メッセージの`content`配列に`tool_addition`または`tool_removal`ブロックを置く。各ブロックの`tool`フィールドは、ツールを新たに定義するのではなく`{"type": "tool_reference", "name": "..."}`で`tools`配列に宣言済みのツールを名指しで参照する。[MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector)経由のツールは`mcp_tool_reference`（`server_name`と`name`）で個別に、`mcp_toolset_reference`（`server_name`）でサーバー単位でまとめて参照できる。`tools`に宣言されていない名前を参照すると400エラーになる。
+
+この設計の要点は、`tools`配列そのものは会話を通じて一切変更しないことにある。ツールの提供・撤回はすべて会話履歴に追加されるメッセージとして表現されるため、キャッシュのハッシュ対象である`tools`のプレフィックスは常に同一のまま保たれる。ツール入替の事実は「何をAPIに送るツール定義として持つか」ではなく「その時点でどのツールをClaudeに提示するか」という会話内の状態として扱われる。
+
+## defer_loadingとどう組み合わせるか
+
+> `defer_loading: true`のツールは初期状態で撤回済み扱いになり、`tool_addition`が最初の提示として機能する。
+
+`tools`配列内の各ツールは、[Tool loading control](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-reference)の`defer_loading: true`を付けない限り会話開始時点からClaudeに提示される。`defer_loading: true`を付けたツールは会話開始時点では撤回された状態にあり、`tool_addition`ブロックが最初にそのツールを提示するトリガーになる。逆に`tool_removal`で一度撤回したツールも、後続の`tool_addition`で再提示できる。
+
+これは[Tool Search Tool](/blog/agent-tool-search-defer-loading-design/)の`defer_loading`と同じプロパティを使うが、目的は異なる。Tool Search Toolは大量のツールカタログからClaudeが検索して必要なものを見つける仕組みであり、`tool_reference`の展開はモデル自身の検索呼び出しがトリガーになる。Mid-conversation Tool Changesは、アプリケーション側が会話のフェーズ遷移を検知して`tool_addition`/`tool_removal`を能動的に発行する仕組みで、どのツールをいつ提示するかの判断はアプリケーション側にある。両者は`defer_loading`という同じ土台の上で、検索駆動か明示的な状態遷移かという別の制御モデルを提供する。
+
+## 設計・運用のポイントは何か
+
+> ブロックは`role: "system"`メッセージのcontent配列に置き、直前のuserターンかtool_result直後にのみ配置できる。
+
+`tool_addition`/`tool_removal`ブロックは、Mid-conversation system messagesと同じ配置制約を継承する。`role: "system"`メッセージは、userターン（`tool_result`ブロックを含むものも可）の直後、またはサーバーツール結果で終わるassistantターンの直後にのみ置け、`messages`配列の末尾になるか直後にassistantターンが続く必要がある。`tool_use`ブロックとそれに対応する`tool_result`の間に挟むと400エラーになる。エージェントループでは、ツール実行結果を返すuserメッセージの直後にこのブロックを挿入する設計が基本形になる。
+
+実装時は3点を押さえる。第一に、フェーズごとのツール構成をあらかじめ設計し、フェーズ開始点で`tool_removal`（前フェーズ専用ツールの撤回）と`tool_addition`（次フェーズ専用ツールの提示）をまとめて1つのシステムメッセージに含める。第二に、一度送信した`tool_addition`/`tool_removal`メッセージは編集・削除しない。過去のメッセージへの変更は他のメッセージ編集と同様にキャッシュを失効させるため、状態を変えたい場合は新しいメッセージを追記する。第三に、[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)経由で複数チームのエージェントトラフィックを中継している場合、ベータヘッダーの伝搬とモデル対応（Sonnet 5では使えない）をゲートウェイ側のルーティング設定に反映しておく必要がある。長時間セッションかつ大規模なツールインベントリを持つエンタープライズのエージェント基盤では、このキャッシュ保持の効果が特に大きい。
+
+Mid-conversation Tool Changesを含むツール定義設計全体の考え方は[Function callingのツール定義](/blog/function-calling-structured-output-tool-design/)、キャッシュ設計の基礎は[プロンプトキャッシュ設計](/blog/prompt-caching-agent-design-context-reuse/)も参照してほしい。複数チームのLLM/エージェント基盤設計は[Kuuの RDE サービス](https://kuucorp.com/services/rde/)でも技術支援している。
+
+## 参考
+
+- [Mid-conversation system messages and tool changes — Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)
+- [Tool reference — Claude Platform Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-reference)
+- [Prompt caching — Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+
+## まとめ
+
+Mid-conversation Tool Changesは、`tools`配列を書き換えずに`tool_addition`/`tool_removal`ブロックでツールの提示・撤回を会話履歴側の状態として表現することで、フェーズが切り替わる長時間セッションでもプロンプトキャッシュを保ち続ける設計を可能にする。`defer_loading`との組み合わせ、配置制約、ゲートウェイでのベータヘッダー伝搬という3点を押さえて設計すれば、大規模なツールインベントリを持つエンタープライズのエージェント基盤でキャッシュ効率を落とさずにツール構成を動的に切り替えられる。

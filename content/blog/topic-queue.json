@@ -1544,6 +1544,24 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。security×enterprise・security×both（各8件）が全track×audienceセル中最少タイと判明。既存のsecurity記事（agent-iam-scoped-credentials-design=短命認証情報、agent-authorization-rbac-abac-rebac-design=認可モデルの型、zero-trust-agent-network-mtls-design=ネットワーク層のゼロトラスト）はいずれも権限の「発行・検証」側が主題で、複数エージェント間でタスクを委譲する際に発生するConfused Deputy問題そのもの、およびOAuth 2.0 Token Exchange（RFC 8693）のactor_token/act/may_actクレームによる委譲チェーン設計は既存記事に無かったため、Web調査（RFC 8693公式仕様、OWASP Top 10 for Agentic Applications 2026のASI03分類）で新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "claude-mid-conversation-tool-changes-cache-design",
+          "keyword": "Claude Mid-conversation Tool Changes ツール入替 プロンプトキャッシュ",
+          "title_hint": "Mid-conversation Tool Changes——ツール入替設計",
+          "persona": "長時間セッション・大規模ツールインベントリを運用するエンタープライズのプラットフォームエンジニア",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "protocols",
+          "tech_depth": "deep",
+          "target_query": "Claude APIでツールをキャッシュを壊さずに会話途中で入れ替えるにはどうすればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages",
+            "https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-reference",
+            "https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。evaluation・platform-infra（各26件）がtrack合計最少タイだったが、既存記事の内訳を精査したところ双方ともサブトピックが飽和しておりWeb調査で未カバー角度が見つからなかったため、次点のprotocols（27件、protocols×enterprise・protocols×smb=各8件で最少セルタイ）で調査。2026-07-01に導入されたベータ機能Mid-conversation Tool Changes（tool_addition/tool_removalブロックでtools配列を書き換えずツールの提示・撤回を行い、プロンプトキャッシュを維持する仕組み）は既存のTool Search Tool記事(agent-tool-search-defer-loading-design、検索駆動のdefer_loading)とは制御モデルが異なり（本稿はアプリケーション側が能動的に発行する明示的な状態遷移が主題）、既存記事に無かったため、Web調査（Claude Platform Docsのmid-conversation-system-messages・tool-reference・prompt-caching公式ページ）で新規考案。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {
