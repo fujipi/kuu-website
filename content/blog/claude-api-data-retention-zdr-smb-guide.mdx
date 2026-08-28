@@ -1,0 +1,55 @@
+---
+title: "Claude APIのデータ保持、中小企業の確認事項"
+description: "Claude APIの入出力は原則30日で自動削除されるが、Files APIやBatch APIなど一部機能は保持期間が異なる。中小企業がConsoleで確認すべき設定を整理する。"
+date: "2026-08-28"
+lastModified: "2026-08-28"
+tags: ["Claude API", "AIガバナンス", "コンプライアンス", "プライバシー"]
+author: "kuu-engineering"
+audience: "smb"
+track: "governance-tech"
+tech_depth: "intermediate"
+target_query: "中小企業はClaude APIのデータ保持ポリシーをどう確認・設定すればよいか"
+sources:
+  - "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention"
+  - "https://privacy.claude.com/en/articles/15425996-data-retention-practices-for-covered-models"
+  - "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data"
+pillar: "ai-governance"
+---
+
+「顧客情報をClaude APIに送っているが、そのデータはいつまでAnthropic側に残るのか」——この質問に即答できる中小企業のIT担当は少ない。利用規程は作っても、送信したプロンプトの保持期間までは契約書の奥に埋もれたままになりがちだ。
+
+[エージェントガバナンス](/glossary/agent-governance/)の一部として、Claude APIの公式ドキュメントが示すデータ保持の仕組みと、Consoleで今すぐ確認できる設定を整理する。
+
+## Claude APIの標準データ保持ポリシーはどうなっているか
+
+> Claude APIの入出力は、ゼロデータ保持契約が無い限り原則30日で自動削除され、明示的な許可なくモデル学習にも使われない。
+
+標準契約下では、APIに送信したプロンプトとClaudeの出力はバックエンド上で30日以内に自動削除される。この30日という期間は、より長い保持を伴う機能をオプトインしていない限り、また法令上の保存義務がない限り適用される上限だ。加えてAnthropicは、保持したデータを顧客の明示的な許可なくモデル学習に使わない方針を一貫して示している。Team・Enterprise・API・Claude Gov向けのCommercial Terms下では、コードや入力内容による学習利用はデフォルトで行われない。
+
+## ZDR（ゼロデータ保持)とHIPAA readinessは何が違うか
+
+> ZDRはAPI応答後にデータを一切保存しない契約、HIPAA readinessは暗号化や監査ログなど安全管理措置を伴う保持を許す枠組みだ。
+
+ゼロデータ保持（ZDR: Zero Data Retention）契約を結ぶと、Anthropicは応答返却後にプロンプトも出力も保存しない。ただしZDRは営業チームへの申請制で、組織単位での有効化が必要になる。一方でHIPAA readinessは即時削除を求めるものではなく、暗号化・アクセス制御・監査ログといった安全管理措置のもとでデータを扱う枠組みで、PHI（保護対象保健情報）を扱う医療系のSaaSを提供する場合に選ぶ。両者は排他的で、PHIを扱うならHIPAA readinessを選べばZDRは不要とされている。自社が該当するかはClaude Console「Settings > Privacy」の設定画面で確認できる。
+
+## Files API・Batch APIなど機能ごとに保持期間が違う
+
+> Files APIは明示的な削除まで保持され、Batch APIは29日、Code executionのコンテナは最大30日残る仕様だ。
+
+Messages API単体の呼び出しはZDR適用下で保存されないが、ステートフルな機能は事情が異なる。Files APIにアップロードしたファイルは、こちらが削除するか設定した有効期限に達するまで残り続ける。Batch APIのジョブは非同期処理の都合上29日保持され、Code executionツールのコンテナデータも最大30日保持される。プロンプトキャッシュや構造化出力のJSONスキーマキャッシュのように、本文は保存せず技術的に必要な断片だけを短時間保持する「Yes (qualified)」区分の機能もある。どの機能がどの区分かは、公式ドキュメントの機能別適格性表で一覧できる。
+
+## 中小企業がConsoleで今すぐ確認すべき設定
+
+> ワークスペース単位のプライバシー設定を確認し、機密データはステートフル機能を避けて渡すのが現実的な着手点になる。
+
+専任の法務・コンプライアンス担当がいない中小企業でも、次の3点は今日から確認できる。第一に、Claude Console「Settings > Workspaces」の各ワークスペースにある「Privacy controls」タブで、組織のデフォルト保持設定と個別ワークスペースの上書き設定を確認する。第二に、顧客の個人情報や契約書のような機密データを扱う機能では、Files APIやBatch APIのようなステートフルな機能を避け、素のMessages API呼び出しに寄せる。第三に、フラグが立ったやり取りは契約形態に関わらず最大2年間保持される点を前提に、そもそも入力段階で機密情報を渡さない設計にする。[Claude Consoleで利用ポリシーを技術的に強制する](/blog/claude-workspace-role-usage-policy-enforcement-smb/)仕組みと組み合わせれば、保持設定とアクセス権限の両輪でガバナンスを固められる。こうした技術的な設定確認は、https://kuucorp.com/services/ai-ops/ が提供する運用支援の対象領域でもある。
+
+## 参考
+
+- [API and data retention](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) — Claude Platform Docs
+- [Data retention practices for Covered Models](https://privacy.claude.com/en/articles/15425996-data-retention-practices-for-covered-models) — Anthropic Privacy Center
+- [How long do you store my organization's data?](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data) — Anthropic Privacy Center
+
+## まとめ
+
+Claude APIのデータ保持は「原則30日で自動削除、ただし機能ごとに例外あり」という単純な構造ではなく、標準ポリシー・ZDR・HIPAA readinessという3つの枠組みと、機能別の適格性表を組み合わせて理解する必要がある。中小企業であっても、Console上のプライバシー設定を一度確認し、機密データを渡す機能を選別するだけでリスクは大きく下げられる。自社のデータ保持設計に不安がある場合は、Kuuの[AI Ops](https://kuucorp.com/services/ai-ops/)にご相談いただきたい。

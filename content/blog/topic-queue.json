@@ -561,6 +561,23 @@
         "https://platform.claude.com/docs/en/manage-claude/workspaces"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-api-data-retention-zdr-smb-guide",
+      "keyword": "Claude API データ保持 ゼロデータ保持 中小企業",
+      "title_hint": "Claude APIのデータ保持、中小企業の確認事項",
+      "persona": "自社サービスにClaude APIを組み込んでいる中小企業のIT担当・開発担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はClaude APIのデータ保持ポリシーをどう確認・設定すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/manage-claude/api-and-data-retention",
+        "https://privacy.claude.com/en/articles/15425996-data-retention-practices-for-covered-models",
+        "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
