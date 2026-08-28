@@ -578,6 +578,22 @@
         "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-code-permission-mode-settings-design-smb",
+      "keyword": "Claude Code 権限モード settings.json allow deny ask 設計",
+      "title_hint": "Claude Codeの権限設計——allow/deny/askルールとpermission modeの選び方",
+      "persona": "自社でClaude Code/Agent SDKを使い始めた中小企業のIT担当・開発担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "security",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はClaude Codeの権限（permission mode / allow-deny-askルール）をどう設計すればよいか",
+      "sources": [
+        "https://code.claude.com/docs/en/agent-sdk/permissions",
+        "https://code.claude.com/docs/en/agent-sdk/secure-deployment"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [

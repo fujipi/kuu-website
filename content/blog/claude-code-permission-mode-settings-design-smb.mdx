@@ -1,0 +1,59 @@
+---
+title: "Claude Codeの権限設計——最初のdenyルール3つ"
+description: "Claude Codeの権限はhooks→deny→ask→permission mode→allowの順で評価されます。中小企業が最初に書くべき3種のdenyルールとmode選定基準を解説します。"
+date: "2026-08-28"
+lastModified: "2026-08-28"
+tags: ["Claude Code", "権限管理", "セキュリティ", "中小企業"]
+author: "kuu-engineering"
+audience: "smb"
+track: "security"
+tech_depth: "intermediate"
+target_query: "中小企業はClaude Codeの権限（permission mode / allow-deny-askルール）をどう設計すればよいか"
+sources:
+  - "https://code.claude.com/docs/en/agent-sdk/permissions"
+  - "https://code.claude.com/docs/en/agent-sdk/secure-deployment"
+pillar: "ai-governance"
+---
+
+「とりあえずbypassPermissionsで動かしている」——エンジニアが少ない中小企業でClaude Codeを導入した現場でよく聞く運用です。プロンプトの度に許可を求められるのが煩わしく、結局すべて許可するモードに切り替えてしまう。しかしこの運用では、意図しないファイル削除や外部への情報送信を止める仕組みが実質的に無くなります。
+
+本記事では、[エージェントガバナンス](/glossary/agent-governance/)の実装レイヤーとして、Claude Codeの権限がどの順序で評価され、中小企業が最初にどのルールを書くべきかを公式ドキュメントに基づいて整理します。
+
+## Claude Codeの権限はどの順序で評価されるか
+
+> Claude Codeの権限はhooks→denyルール→askルール→permission mode→allowルール→承認コールバックの順で評価されます。
+
+Claude Codeがツールを呼び出す際、まずhooksが実行され、ここで拒否されれば以降の評価は行われません。次にdenyルールが照合され、一致すれば`bypassPermissions`モードであっても強制的にブロックされます。続いてaskルール、permission modeの判定、allowルールと進み、いずれでも解決しなければ最後に承認コールバックに渡されます。重要なのは、denyルールがbypassPermissionsより優先される点です。つまり「危険な操作を止めるルール」と「日常操作を通すモード設定」は別レイヤーとして設計でき、後者を緩めても前者は効き続けます。
+
+## permission modeはどれを選ぶべきか
+
+> 中小企業の日常利用にはdefaultまたはacceptEditsが適し、bypassPermissionsは隔離環境限定で使うべきです。
+
+Claude Codeには`default`（都度確認）・`acceptEdits`（ファイル編集のみ自動承認）・`bypassPermissions`（ほぼ全承認）・`plan`（編集を提案のみに限定）・`dontAsk`（未承認の呼び出しを確認なしで拒否）などのモードがあります。コーディング作業でacceptEditsを使う場合も、作業ディレクトリ外への書き込みや`rm`・`mv`などのファイルシステム操作は自動承認の対象になるため、対象範囲を作業フォルダ内に限定しておく必要があります。bypassPermissionsは検証環境やサンドボックス内など、被害が閉じ込められる環境に限定するのが安全な運用です。
+
+## 中小企業がまず書くべき3つのdenyルール
+
+> 認証情報ファイルへのアクセス・危険なシェル操作・全ツール無制限許可の3点をdenyルールで先に塞ぎます。
+
+settings.jsonのdenyルールはpermission modeに関わらず優先されるため、最初に以下3点を書いておくと安全側の土台になります。
+
+1. **認証情報パスへのアクセス拒否**: `.env`・`~/.ssh`・`~/.aws/credentials`など、資格情報を含むパスへの`Edit`・`Read`を拒否する
+2. **破壊的なBash操作の拒否**: `Bash(rm -rf *)`のような広範囲削除コマンドを個別に拒否し、`Bash`ツール自体は残して通常操作は通す
+3. **無制限許可の回避**: `allowed_tools`に`"*"`のような無制限許可を書かず、必要なツールを個別に列挙する
+
+Claude Codeはbashコマンドを実行前にASTへ解析し許可ルールと照合しますが、これはあくまで許可判定のゲートであり、コマンドの危険性そのものをコード内容から推測するサンドボックスではない点に注意が必要です。実行環境の隔離が必要な場合は、公式のsandbox-runtimeやコンテナ実行と組み合わせます。
+
+## 運用にどう組み込むか
+
+> denyルールをsettings.jsonで固定し、監査が必要な操作はPreToolUseフックでログに残す運用が実務的です。
+
+チーム利用では、denyルールを`.claude/settings.json`としてリポジトリにコミットし、プロジェクト単位で共有します。個々の開発者が自分のマシンで緩いモードを使っていても、denyルールはプロジェクト設定として効き続けます。さらに、どのツール呼び出しがいつ承認・拒否されたかを追跡したい場合は、PreToolUseフックで呼び出しをログに残す構成が有効です。[Kuuのエージェントガバナンス支援（AI Ops）](https://kuucorp.com/services/ai-ops/)では、こうした権限設計とログ運用を、専任のセキュリティ担当者がいない企業でも維持できる形で組み立てています。
+
+## 参考
+
+- [Configure permissions - Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/permissions)
+- [Securely deploying AI agents - Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/secure-deployment)
+
+## まとめ
+
+Claude Codeの権限はhooks・deny・ask・permission mode・allowという明確な優先順位で評価され、denyルールはbypassPermissionsよりも強い制約として働きます。中小企業がゼロから始める場合は、認証情報パスの保護・破壊的なBash操作の拒否・無制限許可の回避という3点をdenyルールで固定し、そのうえで日常利用のモードをdefaultかacceptEditsから選ぶのが現実的な着地点です。自社の権限設計やログ運用の見直しについては、[Kuu株式会社](https://kuucorp.com/services/ai-ops/)にお問い合わせください。
