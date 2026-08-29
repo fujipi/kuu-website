@@ -1,0 +1,55 @@
+---
+title: "AP2とx402——AIエージェント決済プロトコルの仕組み"
+description: "GoogleのAP2は署名付きMandateで本人の購入意図を証明し、CoinbaseのX402はHTTP 402で1リクエスト課金を実現する。中小企業が備えるべき論点を整理する。"
+date: "2026-08-29"
+lastModified: "2026-08-29"
+tags: ["AP2", "x402", "プロトコル", "AIエージェント"]
+author: "kuu-engineering"
+audience: "smb"
+track: "protocols"
+tech_depth: "intermediate"
+target_query: "中小企業はAIエージェントの自動決済プロトコル（AP2・x402）にどう備えればよいか"
+sources:
+  - "https://ap2-protocol.org/"
+  - "https://github.com/google-agentic-commerce/AP2"
+  - "https://www.x402.org/x402-whitepaper.pdf"
+  - "https://github.com/coinbase/x402"
+pillar: "ai-governance"
+---
+
+AIエージェントに「この請求書分だけAPIを使わせる」「条件に合えば発注させる」といった判断を任せたいが、決済まで自動化すると「誰が本当に承認したのか」が曖昧になる——この不安から購買・課金の自動化を止めている中小企業は多い。2025年後半以降、この空白を埋める2つのプロトコルが実装段階に入った。GoogleのAP2（Agent Payments Protocol）とCoinbase発のx402だ。
+
+## AP2とx402は何が違うのか
+
+> AP2は人の購入意図を署名で証明する規格、x402はAPI利用ごとに即時課金する規格で、対象領域が異なる。
+
+AP2（Agent Payments Protocol）は、エージェントがカード決済や銀行振込・ステーブルコインなど既存の決済手段を使って「人間の代わりに」買い物をする場面を対象にする。一方x402はHTTPの402ステータスコード（Payment Required）を使い、APIやデータへの1リクエストごとの少額課金を自動化する規格で、口座開設やAPIキー管理を介さずにその場で支払いを完結させる設計になっている。両者は競合ではなく、前者は「代理購買」、後者は「従量アクセス課金」という別レイヤーを担う。
+
+## AP2はどう「本人が承認した」ことを証明するのか
+
+> AP2はIntent・Cart・Payment の3種のMandateを署名付きVerifiable Credentialsとして連鎖させ、改ざん不能な同意記録を作る。
+
+AP2の核心は、ユーザー・エージェント・加盟店・与信提供者の4者間でやり取りされる「Mandate（委任状）」だ。購入条件の枠を定めるIntent Mandate、確定したカート内容を記録するCart Mandate、実際の支払いを許可するPayment Mandateが、それぞれ暗号署名付きのW3C Verifiable Credentialsとして発行される。これによりエージェントの誤認識や幻覚（ハルシネーション）があっても、「ユーザーが実際に何を承認したか」を後から検証できる監査証跡が残る。
+
+## x402はどうワンリクエスト課金を実現するのか
+
+> x402はサーバーが402応答とPaymentPayload要件を返し、クライアントが署名済み支払いを添えて再送する2往復設計だ。
+
+x402のフローはシンプルだ。クライアントが有料リソースにリクエストすると、サーバーは402ステータスと支払い条件（対応ネットワーク・金額）を返す。クライアントは条件に合う支払いを構築し、署名付きペイロードをヘッダーに載せて同じリクエストを再送する。サーバーは自前で検証するか、facilitator（決済検証・実行を代行するサーバー）に照会して確定させる。EVM系チェーンやSolana、Stellarなどブロックチェーン決済を前提にしており、口座を持たないAPIやエージェント同士の取引に向く設計だ。
+
+## 中小企業は今、何を確認しておくべきか
+
+> 自社が「代理購買」と「従量課金」のどちら側になるかを見極め、契約・会計・監査ログの受け皿を先に用意する。
+
+自社のエージェントが仕入れ先や広告出稿先で自動購入する側なら、AP2のMandateが生成する署名記録をどう保存・突合するかが論点になる。逆に自社のAPIやコンテンツをエージェント経由で従量課金したい場合はx402のfacilitator選定とステーブルコイン決済の会計処理が課題になる。いずれも法定通貨決済とは異なる監査要件が生じるため、[エージェントガバナンス](/glossary/agent-governance/)の枠組みで承認権限・上限額・記録保存を先に設計しておくことが、実運用に進む際の分かれ目になる。
+
+## 参考
+
+- [AP2 (Agent Payments Protocol) 公式サイト](https://ap2-protocol.org/)
+- [google-agentic-commerce/AP2 (GitHub)](https://github.com/google-agentic-commerce/AP2)
+- [x402 Whitepaper](https://www.x402.org/x402-whitepaper.pdf)
+- [coinbase/x402 (GitHub)](https://github.com/coinbase/x402)
+
+## まとめ
+
+AP2は「人間の購入意図を証明する」規格、x402は「APIアクセスに即時課金する」規格であり、中小企業がAIエージェントに購買や課金を任せる際は、まずどちらの取引パターンに該当するかを切り分ける必要がある。どちらも署名や監査証跡の設計が前提になっており、権限管理やログ保存の体制がなければ導入は時期尚早だ。Kuu株式会社は[AIエージェント運用（AI Ops）](https://kuucorp.com/services/ai-ops/)の一環として、こうした新しい決済プロトコルへの対応可否を含めたガバナンス設計を支援している。導入検討時は一度ご相談いただきたい。

@@ -1632,7 +1632,25 @@
             "https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed"
           ],
           "status": "published",
-          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でFiles APIが2026年8月27日にfiles-api-2025-04-14ベータヘッダー不要のGA仕様へ移行した点を発見。公式ドキュメントがfile_idはユーザー/セッションに紐づかずワークスペース内の全APIキーから参照可能と明記しており、既存のmultitenant-agent-isolation-design（RAG/ツール呼び出し/ログの一般的な4層分離論）やsso-scim-agent-platform-identity-integration（ID連携）とは対象がFiles API固有のワークスペーススコープ設計である点で異なるため新規考案。security×both（8件）が同トラックの最少セルタイ。validate:blogでnear_duplicate警告は出ていない"
+          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でGoogle発AP2（Agent Payments Protocol、署名付きIntent/Cart/Payment Mandateによる購入意図の証明）とCoinbase発x402（HTTP 402ステータスを使ったAPI従量課金プロトコル）を発見。blog-coverage-report.mjsでprotocols×smb（8件）が最少セルタイであり、既存記事（mcp-vs-a2a-protocol-smb-guide=MCPとA2Aの使い分け、mcp-auth-apikey-to-oauth-smb=MCP認証移行）はいずれもMCP/A2A関連でエージェント決済プロトコルを扱っていないため新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "agent-payment-protocol-ap2-x402-smb-guide",
+          "keyword": "AIエージェント決済 AP2 x402 プロトコル 中小企業",
+          "title_hint": "AP2とx402——AIエージェント決済プロトコルの仕組み",
+          "persona": "自社のAIエージェントに購買・API課金の自動化を検討している中小企業のIT担当者・EC/購買業務担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "protocols",
+          "tech_depth": "intermediate",
+          "target_query": "中小企業はAIエージェントの自動決済プロトコル（AP2・x402）にどう備えればよいか",
+          "sources": [
+            "https://ap2-protocol.org/",
+            "https://github.com/google-agentic-commerce/AP2",
+            "https://www.x402.org/x402-whitepaper.pdf",
+            "https://github.com/coinbase/x402"
+          ],
+          "status": "published"
         }
   ],
   "keyword_bank": {
