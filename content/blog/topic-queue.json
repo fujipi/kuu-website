@@ -1614,6 +1614,25 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でManaged Agentsの2026年8月の新機能（session budgets/max_list_cost、inference_geo地域固定＋1.1倍課金、web_search/web_fetchのallowed_domains/blocked_domains、GitHub-hosted Skillsの信頼境界）を発見。governance-tech×enterprise（8件）が最少セルタイであり、既存記事（vpc-llm-deploy-data-residency=セルフホストVPC基盤、ai-finops-token-cost-instrumentation=コスト計装配賦、agent-skill-supply-chain-security-signing-sandboxing=スキル署名/サンドボックス一般論）とは対象がManaged Agents APIの具体的な新パラメータである点で異なり、既存記事に無かったため新規考案。validate:blogでnear_duplicate警告は出ていない"
+        },
+        {
+          "slug": "claude-files-api-workspace-scoped-security-design",
+          "keyword": "Claude Files API workspace共有 file_id マルチテナント セキュリティ",
+          "title_hint": "Files API GAのfile_id共有リスクと防ぎ方",
+          "persona": "自社アプリにFiles APIを組み込む中小企業〜大企業のバックエンドエンジニア・セキュリティアーキテクト",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "security",
+          "tech_depth": "intermediate",
+          "target_query": "Claude Files APIのfile_id共有リスクはどう設計で防げばよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/build-with-claude/files",
+            "https://platform.claude.com/docs/en/release-notes/overview",
+            "https://platform.claude.com/docs/en/manage-claude/workspaces",
+            "https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でFiles APIが2026年8月27日にfiles-api-2025-04-14ベータヘッダー不要のGA仕様へ移行した点を発見。公式ドキュメントがfile_idはユーザー/セッションに紐づかずワークスペース内の全APIキーから参照可能と明記しており、既存のmultitenant-agent-isolation-design（RAG/ツール呼び出し/ログの一般的な4層分離論）やsso-scim-agent-platform-identity-integration（ID連携）とは対象がFiles API固有のワークスペーススコープ設計である点で異なるため新規考案。security×both（8件）が同トラックの最少セルタイ。validate:blogでnear_duplicate警告は出ていない"
         }
   ],
   "keyword_bank": {

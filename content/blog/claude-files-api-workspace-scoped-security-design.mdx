@@ -1,0 +1,65 @@
+---
+title: "Files API GAのfile_id共有リスクと防ぎ方"
+description: "Claude Files APIは2026年8月27日にベータを終えGAとなったが、file_idはワークスペース内の全APIキーから参照可能で、テナント分離の設計が必須になる。"
+date: "2026-08-29"
+lastModified: "2026-08-29"
+tags: ["Claude API", "セキュリティ設計", "マルチテナント", "ワークスペース管理"]
+author: "kuu-engineering"
+audience: "both"
+track: "security"
+tech_depth: "intermediate"
+target_query: "Claude Files APIのfile_id共有リスクはどう設計で防げばよいか"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/files"
+  - "https://platform.claude.com/docs/en/release-notes/overview"
+  - "https://platform.claude.com/docs/en/manage-claude/workspaces"
+  - "https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed"
+pillar: "ai-governance"
+---
+
+> Claude Files APIは2026年8月27日にベータヘッダー不要のGA仕様へ移行した。file_idはワークスペース単位で共有され、ユーザー単位には分離されない。
+
+## Files APIで何が変わったのか
+
+> `files-api-2025-04-14`ベータヘッダーが不要になり、ページングやexpires_atの返却形式が標準仕様に統一された。
+
+Claude Files API は、ファイルを一度アップロードして `file_id` を受け取り、以降の Messages リクエストで再送せずに参照できる仕組みだ。2026年8月27日のアップデートで `files-api-2025-04-14` ベータヘッダーが不要になり、Python SDK 1.2.0・TypeScript SDK 0.122.0 以降ではヘッダーなしで呼び出すだけで新仕様に切り替わる。旧ヘッダーを送り続けても動作は継続するため、既存実装を壊さずに移行できる。
+
+変更点は主に3つ。一覧取得のレスポンスが `{ data, has_more, first_id, last_id }` から `{ data, next_page }` のカーソル方式に変わったこと、`expires_at` が常に返るようになったこと、アップロード時の `Content-Type` 指定が任意になったことだ。移行は必須ではないが、`page` カーソルへの切り替えと `expires_at` の読み取り対応は早めに済ませておきたい。
+
+## workspace共有アクセスがなぜ危険か
+
+> アップロード済みファイルはユーザーやセッションに紐づかず、同じワークスペースの全APIキーが `file_id` だけで内容を読み取れる。
+
+公式ドキュメントが明示的に警告しているのが、ファイルのアクセス範囲だ。アップロードしたファイルは特定のエンドユーザーや会話に紐づかず、そのワークスペースにアクセスできるAPIキー・サービスアカウントなら誰でも参照できる。組織のロールでAPIアクセスが許可されたユーザーは、追加先のワークスペースに加えてデフォルトワークスペースも常に利用できるため、想定より広い範囲でファイルが露出しやすい。
+
+とりわけ危険なのは、エンドユーザーから受け取った `file_id` をそのままMessagesリクエストに渡す実装だ。あるユーザーが送ってきた `file_id` を検証なしに使うと、そのIDが別ユーザーがアップロードしたファイルを指していても内容を読めてしまう。これはWebアプリケーションにおけるIDOR（安全でない直接オブジェクト参照）と同じ構造の脆弱性であり、`file_id` はサーバー側だけで扱う参照値として扱う必要がある。
+
+## マルチテナントで安全に使うには何をすべきか
+
+> テナントごとに専用ワークスペースを分け、アクセスキーもテナント単位でスコープすることが唯一の分離境界になる。
+
+Files API にはユーザー単位やテナント単位のスコープ機構が存在しないため、分離を実現する唯一の方法は[ワークスペース](https://platform.claude.com/docs/en/manage-claude/workspaces)そのものを分けることだ。マルチテナントSaaSにFiles APIを組み込むなら、テナントごとに個別のワークスペースを作成し、そのテナント専用にスコープしたAPIキーだけでファイルを操作する設計にする。1組織あたり作成できるワークスペースは100個までで、それを超える規模ならアカウントチームへの相談が必要になる。
+
+自社アプリのユーザーと `file_id` の対応関係は、Anthropic側ではなく自社のデータベースで管理する。エンドユーザーからの入力に含まれる `file_id` をそのまま信用せず、必ず自社側の所有権チェックを経由させてからAPIに渡す。この設計は[マルチテナント環境でのエージェント分離設計](/blog/multitenant-agent-isolation-design/)で解説した4層分離のうち、データ層の境界をFiles APIの制約に合わせて具体化したものと言える。
+
+## 運用で気をつけるポイント
+
+> ファイルは最大90日で自動失効させられ、削除後もメタデータは30日間残るため、監査ログとの突合が必要になる。
+
+運用面では3点を押さえておく。第一に、アップロード時に `expires_in_seconds`（3,600秒〜7,776,000秒＝90日）を指定すれば自動失効させられる。失効後はコンテンツを取得できなくなるがメタデータは30日残るため、失効済みファイルを一覧から除外する処理を自前で入れる必要がある。
+
+第二に、[Compliance API](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) を有効化しておくと、アップロード・ダウンロード・削除の3操作が `platform_file_uploaded` などのアクティビティとして記録される。無効な期間の操作は後から遡って記録できないため、Files APIを本番投入する前に有効化しておく。
+
+第三に、Files APIはZDR（ゼロデータ保持）の対象外であり、保存容量は組織あたり1TB・ファイルあたり最大500MBという上限がある。アップロード・ダウンロード・一覧取得自体は無料だが、Messagesリクエストで参照したファイル内容は入力トークンとして課金される点も見落としやすい。エンタープライズでAIエージェント基盤を横断展開する場合は、[RDEによる実装支援](https://kuucorp.com/services/rde/)でワークスペース設計とコスト配賦を合わせて検証する選択肢もある。
+
+## 参考
+
+- [Files API - Claude Platform Docs](https://platform.claude.com/docs/en/build-with-claude/files)
+- [Claude Platform release notes](https://platform.claude.com/docs/en/release-notes/overview)
+- [Workspaces - Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/workspaces)
+- [Compliance Activity Feed - Claude Platform Docs](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed)
+
+## まとめ
+
+Files APIのGA移行は、ベータヘッダーの削除という表面的な変更以上に、「ファイルはワークスペース全体で共有される」という設計上の前提を再確認する機会だ。エンドユーザー由来の `file_id` を無検証で使わないこと、マルチテナントではテナントごとにワークスペースを分けること、この2点を実装前に決めておけば大きな事故は防げる。自社のエージェント運用でファイル共有の設計や[エージェントガバナンス](/glossary/agent-governance/)体制の見直しが必要であれば、Kuuの[AI Ops](https://kuucorp.com/services/ai-ops/)にご相談ください。
