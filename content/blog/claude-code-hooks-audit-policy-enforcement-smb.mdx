@@ -1,0 +1,57 @@
+---
+title: "Claude Codeのhooksで監査証跡を自動記録する"
+description: "Claude Code hooksを使うとPostToolUseで監査証跡を自動記録し、PreToolUseで危険操作を遮断できる。MDM無しの中小企業でも組織全体へ配布可能。"
+date: "2026-08-30"
+lastModified: "2026-08-30"
+tags: ["Claude Code", "監査ログ", "利用ポリシー", "中小企業"]
+author: "kuu-engineering"
+audience: "smb"
+track: "governance-tech"
+tech_depth: "intermediate"
+target_query: "IT部門やMDMが無い中小企業はClaude Codeの利用ポリシーと監査ログをどう技術的に強制すればよいか"
+sources:
+  - "https://code.claude.com/docs/en/hooks"
+  - "https://code.claude.com/docs/en/server-managed-settings"
+pillar: "ai-governance"
+---
+
+Claude Codeを社員の各PCで使い始めたものの、誰がどのファイルを編集し、どんなコマンドを実行したかは誰も把握していない——中小企業のIT担当者からよく聞く悩みだ。MDM（モバイルデバイス管理）を導入する予算も人員も無いなか、「利用規程を作って周知した」だけでは実効性がない。
+
+[エージェントガバナンス](/glossary/agent-governance/)の実装レイヤーでは、規程を設定に変換する必要がある。本記事では、Claude Code公式の**hooks**機構を使って監査ログと利用ポリシーを技術的に強制する方法を、MDMが無い環境を前提に整理する。
+
+## Claude Code hooksとは何か
+
+> hooksはツール呼び出しの前後で任意のコマンドを実行できる仕組みで、監査ログの記録や危険操作の遮断に使える。
+
+公式ドキュメントによれば、hooksは`PreToolUse`（ツール実行前）・`PostToolUse`（実行後）・`SessionStart`・`UserPromptSubmit`など複数のイベントで発火する。`PreToolUse`はツール呼び出しを止められる唯一のイベントで、hookスクリプトが終了コード2を返すか、JSON出力で`permissionDecision`を`deny`にすると、その呼び出しは`bypassPermissions`モードであっても強制的にブロックされる。一方`PostToolUse`は実行後に走るため呼び出し自体は止められないが、成功したツール操作の記録には適している。hooksは`~/.claude/settings.json`（ユーザー単位）・`.claude/settings.json`（プロジェクト単位）・組織のmanaged設定など複数の階層に置け、すべてがマージされて評価される。
+
+## 監査ログはhooksでどう実装するか
+
+> PostToolUseに記録コマンドを登録すれば、Edit・Writeなど成功したツール呼び出しをファイルや外部サーバーへ自動記録できる。
+
+`PostToolUse`に`matcher: "Edit|Write"`のようなフィルタを指定し、ツール入力をログファイルへ書き出すコマンドを登録すれば、ファイル編集の監査証跡が自動的に残る。公式ドキュメントはHTTPタイプのhookにも触れており、`url`と`headers`を指定してツール入力を外部の監査サーバーへ直接送信することもできる。ただし、ツール入力にはコマンド引数やファイル内容がそのまま含まれ、認証情報や個人情報が混ざる可能性がある。ログの保存先・閲覧権限・保持期間は、実装前に必ず決めておく必要がある。
+
+## MDMが無くても組織全体にポリシーを配布できるか
+
+> Team/Enterprise契約であれば、管理コンソールのserver-managed settingsからhooksを含む設定を組織全体へMDM無しで配布できる。
+
+公式ドキュメントは、server-managed settingsを「MDMを持たない組織、または管理外デバイスを使うユーザー」向けの選択肢と明記している。組織のOwnerまたはPrimary Ownerが`claude.ai/admin-settings/claude-code`から設定をJSONで登録すると、各クライアントは起動時とセッション中1時間ごとにこの設定を取得する。hooksの定義はセキュリティ上の理由でユーザーの承認ダイアログを経由するが、`allowManagedHooksOnly`を有効にすれば、ユーザー・プロジェクト・ローカルの各設定で定義されたhooksを無効化し、管理側で配布したhooksだけを強制できる。社員1人ひとりの端末を回って設定ファイルを配布する必要が無い点が、IT担当者が少ない中小企業に向く。
+
+## 中小企業はどう導入を始めるべきか
+
+> まずPostToolUseで監査ログを試験導入し、次にPreToolUseで最小限のdenyルールを足し、検証後にserver-managed settingsへ登録する順序が現実的である。
+
+1. **ローカルで試す**: 開発者1名の`.claude/settings.json`に`PostToolUse`の監査ログhookを追加し、記録内容と負荷を確認する。
+2. **危険操作を遮断する**: [Claude Codeの権限設計](/blog/claude-code-permission-mode-settings-design-smb/)で解説した`PreToolUse`のdenyルールと組み合わせ、資格情報ファイルへのアクセスや危険なシェル操作を止める。
+3. **組織全体へ配布する**: 動作確認済みのhooksをOwnerロールで管理コンソールに登録し、必要に応じて`allowManagedHooksOnly`で上書きを禁止する。
+
+自前でここまで設計・運用する体制が無い場合は、外部のエージェントガバナンス支援を使う選択肢もある。Kuuの[AI Ops](https://kuucorp.com/services/ai-ops/)では、hooksを含む技術的なポリシー強制の設計・運用を継続的に支援している。
+
+## 参考
+
+- [Hooks reference - Claude Code Docs](https://code.claude.com/docs/en/hooks)
+- [Configure server-managed settings - Claude Code Docs](https://code.claude.com/docs/en/server-managed-settings)
+
+## まとめ
+
+Claude Code hooksは、監査ログの自動記録と危険操作の遮断を、規程の文書ではなく実行時の仕組みとして実装する手段になる。MDMが無い中小企業でも、Team/Enterprise契約とOwnerロールがあれば、server-managed settingsで組織全体に同じポリシーを配布できる。まずはローカルでPostToolUseの監査ログを試し、denyルールと組み合わせたうえで組織展開に進むのが安全な順序だ。導入設計に不安があれば、Kuuの[AI Ops](https://kuucorp.com/services/ai-ops/)へ相談してほしい。

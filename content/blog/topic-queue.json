@@ -594,6 +594,22 @@
         "https://code.claude.com/docs/en/agent-sdk/secure-deployment"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-code-hooks-audit-policy-enforcement-smb",
+      "keyword": "Claude Code hooks 監査ログ 監査証跡 server-managed settings 中小企業",
+      "title_hint": "Claude Codeのhooksで監査証跡を自動記録する",
+      "persona": "IT部門もMDMも無い中小企業でClaude Codeを運用するIT担当・情報システム担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "IT部門やMDMが無い中小企業はClaude Codeの利用ポリシーと監査ログをどう技術的に強制すればよいか",
+      "sources": [
+        "https://code.claude.com/docs/en/hooks",
+        "https://code.claude.com/docs/en/server-managed-settings"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
