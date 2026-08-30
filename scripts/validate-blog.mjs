@@ -203,6 +203,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-autoscaling-capacity-planning-design",
 			"agent-backpressure-load-shedding-design",
 		],
+		// 5つのワークフローパターン選定ガイド（プロンプトチェイニング/ルーティング/並列化等の設計判断・architecture/smb）と イベント駆動エージェント設計（Kafka/EventBridgeによる非同期メッセージング基盤・architecture/enterprise）: title類似は「ワークフロー」「エージェント」の語彙重なりのみで、LLM呼び出し構成パターンの選び方とメッセージング基盤設計は主題が異なる正当な併存
+		[
+			"agent-workflow-five-patterns-smb-design",
+			"event-driven-agent-workflow-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

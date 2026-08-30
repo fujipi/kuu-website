@@ -1667,6 +1667,23 @@
             "https://github.com/coinbase/x402"
           ],
           "status": "published"
+        },
+        {
+          "slug": "agent-workflow-five-patterns-smb-design",
+          "keyword": "AIエージェント ワークフローパターン プロンプトチェイニング ルーティング オーケストレーター 中小企業",
+          "title_hint": "ワークフロー5パターンで選ぶAIエージェント設計",
+          "persona": "AI自動化の設計に着手する中小企業のIT担当者・開発担当者",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "architecture",
+          "tech_depth": "intermediate",
+          "target_query": "中小企業がAIエージェントを設計するとき、ワークフローと自律エージェントはどう使い分ければよいか",
+          "sources": [
+            "https://www.anthropic.com/research/building-effective-agents",
+            "https://platform.claude.com/docs/en/agent-sdk/agent-loop"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件・keyword_bankのarchitecture 6語も全て既存published記事に消化済みだったため、node scripts/blog-coverage-report.mjsを実行。frontmatter直接集計でarchitecture×smb（5件: SaaS統合/Agent Skills/Tool Search/Agent SDK最小実装/シングル-マルチ移行）が全track×audienceセル中最少と判明。Anthropic公式のBuilding Effective Agents（プロンプトチェイニング/ルーティング/並列化/オーケストレーター-ワーカー/評価者-最適化の5ワークフローパターンと自律エージェントの使い分け・starting simple指針）は既存記事に無かったため新規考案。pnpm validate:blogでevent-driven-agent-workflow-design（Kafka等の非同期メッセージング基盤設計・architecture/enterprise）とのnear_duplicate警告（title類似0.31）が出たが、主題（LLM呼び出し構成パターンの選定 vs メッセージング基盤）とaudienceが異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み"
         }
   ],
   "keyword_bank": {
