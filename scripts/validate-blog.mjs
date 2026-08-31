@@ -208,6 +208,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-workflow-five-patterns-smb-design",
 			"event-driven-agent-workflow-design",
 		],
+		// オートスケーリング設計（キュー深度/TTFTに応じた通常運用時の容量調整・architecture/both）と ディザスタリカバリ設計（AWS Bedrock CRIS・Vertex AIマルチリージョンによるリージョン障害時のフェイルオーバー・architecture/enterprise）: title類似は「AIエージェント基盤の」「設計」の語彙重なりのみで、対応する障害モードが容量不足（同一リージョン内）とリージョン喪失（複数リージョン間）で異なる正当な併存
+		[
+			"agent-autoscaling-capacity-planning-design",
+			"agent-platform-disaster-recovery-multiregion-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs

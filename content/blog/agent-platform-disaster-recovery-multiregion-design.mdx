@@ -1,0 +1,62 @@
+---
+title: "AIエージェント基盤のDR設計とマルチリージョン切替"
+description: "AWS Bedrockのクロスリージョン推論とVertex AIのマルチリージョンエンドポイントを組み合わせれば、単一リージョン障害時もRTO/RPOを満たすAIエージェント基盤のDR設計ができます。"
+date: "2026-08-31"
+lastModified: "2026-08-31"
+tags: ["エージェントアーキテクチャ", "エンタープライズ", "耐障害性設計", "プラットフォーム基盤"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "architecture"
+tech_depth: "deep"
+target_query: "エンタープライズのAIエージェント基盤はディザスタリカバリ（DR）をどう設計すればよいか"
+sources:
+  - "https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html"
+  - "https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html"
+  - "https://cloud.google.com/blog/products/ai-machine-learning/multi-region-endpoints-for-claude-available-on-vertex-ai"
+  - "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/disaster-recovery-resiliency.html"
+---
+
+本番のエージェント基盤が単一リージョンのLLM推論エンドポイントに依存していると、そのリージョンで障害が起きた瞬間に全社のエージェント運用が止まる。サーキットブレーカーやバックプレッシャーは同一リージョン内の過負荷・部分障害には効くが、リージョン単位の障害には別の設計が要る。マルチエージェント構成を複数チームに展開するエンタープライズほど、この単一障害点は事業継続上のリスクになる。
+
+## なぜリージョン単位のDR設計が必要か
+
+> LLM推論を単一リージョンに固定すると、そのリージョンの障害がエージェント基盤全体の停止に直結する単一障害点になる。
+
+耐久実行・冪等性設計・サーキットブレーカーといった既存のパターンは、いずれも「同じリージョン内でリトライやフォールバックを行う」ことを前提にしている。しかしAWSの分散設計原則が示す通り、Availability Zone（AZ）間の低遅延・高帯域ネットワークによる自動フェイルオーバーはリージョン内の耐障害性を担保するものであり、リージョンそのものの障害は別レイヤーの設計問題である。RTO（目標復旧時間）とRPO（目標復旧時点）をエージェント基盤の要件として明文化し、それを満たす経路をLLM提供者側の機能で用意しておく必要がある。
+
+## AWS Bedrockのクロスリージョン推論をどう使うか
+
+> Geographic CRISはデータをUS/EU/APACの地域内に留めたまま複数リージョンへ自動ルーティングし、Global CRISはさらに20以上のリージョンへ範囲を広げる。
+
+Amazon Bedrockのクロスリージョン推論（CRIS）には2種類ある。Geographic CRISは指定した地域（US・EU・APACなど）の境界内でリクエストを複数リージョンへルーティングする方式で、データレジデンシー要件を保ったまま単一リージョン容量制約時の可用性を高める。例えばUS向けのClaude Sonnet 4.5プロファイルは、us-east-1・us-east-2・us-west-2の3リージョンに送信元リージョンからルーティングできる。一方Global CRISは地理的境界を越えて20以上の商用AWSリージョンへルーティング範囲を広げ、Geographic CRISと比べて入出力トークン価格が約10%安くなる。IAM側では推論プロファイル・送信元リージョンのFM・宛先リージョンのFMという3種類のARNへのアクセス許可が必要で、SCPでリージョンを制限している組織は宛先リージョンをすべて許可リストに含めないとルーティングが失敗する点に注意する。
+
+## Vertex AIのマルチリージョンエンドポイントで何が変わるか
+
+> Vertex AIのマルチリージョンエンドポイントはus-central1とus-east4の容量をプールし、片方が過負荷でも自動的にもう一方へ振り替える。
+
+Google CloudがVertex AI経由で提供するClaudeのマルチリージョンエンドポイントは、US地域ではus-central1とus-east4の推論容量をプールし、一方のリージョンが高負荷になった場合に自動でもう一方へトラフィックを振り替える。EU向けのマルチリージョンも追加リージョンを含めて提供予定であり、地域単位でのデータレジデンシーを保ったままリージョン容量制約への耐性を持たせられる。実装上の変更点は、APIのベースURLをリージョン固有の識別子（例: `locations/us-central1`）から地域単位の識別子（`locations/us`）に切り替えるだけで、アプリケーション側のルーティングロジックを自前で持つ必要がない。プロンプトキャッシュについても、キャッシュが存在するリージョンへ優先的にルーティングしつつ、そのリージョンが過負荷なら別リージョンへバランスする仕組みが組み込まれている。
+
+## 実装・運用のポイント
+
+> クロスリージョン推論はAZ障害への備えではなく、リージョン単位のRTO/RPOを満たすための独立した設計レイヤーとして扱う。
+
+DR設計をリージョン障害対応として機能させるには、次の3点を押さえる。
+
+1. **データレジデンシー要件との整合**: Global CRISは可用性を最大化する一方、リクエストが地理的境界を越えうるため、規制上リージョン限定が必須なワークロードにはGeographic CRISまたは単一地域限定の構成を選ぶ
+2. **クォータとバーンダウンレートの事前検証**: Global CRISでは一部モデルの出力トークンに5倍のバーンダウンレートが適用されるため、想定スループットに対して十分なクォータを申請しておく
+3. **既存の耐障害性パターンとの階層分離**: [サーキットブレーカー](/blog/agent-graceful-degradation-circuit-breaker/)や[バックプレッシャー](/blog/agent-backpressure-load-shedding-design/)は同一リージョン内の過負荷・部分障害を吸収する層、クロスリージョン推論はリージョン単位の障害を吸収する層として役割を分け、どちらか一方に依存しない
+
+RTO/RPOの目標値はビジネス要件から逆算し、それを満たせるルーティング方式（Geographic/Global CRIS、Vertex AIのマルチリージョンエンドポイント、あるいは複数クラウドをまたぐフェイルオーバー構成）を選定する。マルチリージョンのエージェント基盤設計を検討する場合は、[Kuu株式会社のRDEサービス](/services/rde/)にご相談ください。
+
+## 参考
+
+- [Geographic cross-Region inference — Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html)
+- [Global cross-Region inference — Amazon Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html)
+- [Multi-Region Endpoints for Claude on Vertex AI — Google Cloud Blog](https://cloud.google.com/blog/products/ai-machine-learning/multi-region-endpoints-for-claude-available-on-vertex-ai)
+- [Resilience in Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/disaster-recovery-resiliency.html)
+
+## まとめ
+
+エージェント基盤のDR設計は、AZ障害を前提にした既存の耐障害性パターンとは別のレイヤーで組む必要がある。AWS BedrockのGeographic/Global CRISとVertex AIのマルチリージョンエンドポイントは、いずれもデータレジデンシー要件を維持したままリージョン単位の障害・容量制約を吸収できる仕組みを提供する。RTO/RPOをビジネス要件として明文化し、それに見合うルーティング方式を選ぶことが、単一リージョン依存を脱するための最初の一歩になる。
+
+エンタープライズ規模のエージェント基盤のDR設計を支援する場合は、[Kuu株式会社のRDEサービス](/services/rde/)にご相談ください。

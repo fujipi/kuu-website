@@ -1684,6 +1684,25 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件・keyword_bankのarchitecture 6語も全て既存published記事に消化済みだったため、node scripts/blog-coverage-report.mjsを実行。frontmatter直接集計でarchitecture×smb（5件: SaaS統合/Agent Skills/Tool Search/Agent SDK最小実装/シングル-マルチ移行）が全track×audienceセル中最少と判明。Anthropic公式のBuilding Effective Agents（プロンプトチェイニング/ルーティング/並列化/オーケストレーター-ワーカー/評価者-最適化の5ワークフローパターンと自律エージェントの使い分け・starting simple指針）は既存記事に無かったため新規考案。pnpm validate:blogでevent-driven-agent-workflow-design（Kafka等の非同期メッセージング基盤設計・architecture/enterprise）とのnear_duplicate警告（title類似0.31）が出たが、主題（LLM呼び出し構成パターンの選定 vs メッセージング基盤）とaudienceが異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み"
+        },
+        {
+          "slug": "agent-platform-disaster-recovery-multiregion-design",
+          "keyword": "AIエージェント基盤 ディザスタリカバリ マルチリージョン RTO RPO",
+          "title_hint": "AIエージェント基盤のDR設計とマルチリージョン切替",
+          "persona": "マルチエージェント基盤の可用性・事業継続を設計するプラットフォームエンジニア・SRE",
+          "service_link": "/services/rde/",
+          "audience": "enterprise",
+          "track": "architecture",
+          "tech_depth": "deep",
+          "target_query": "エンタープライズのAIエージェント基盤はディザスタリカバリ（DR）をどう設計すればよいか",
+          "sources": [
+            "https://docs.aws.amazon.com/bedrock/latest/userguide/geographic-cross-region-inference.html",
+            "https://docs.aws.amazon.com/bedrock/latest/userguide/global-cross-region-inference.html",
+            "https://cloud.google.com/blog/products/ai-machine-learning/multi-region-endpoints-for-claude-available-on-vertex-ai",
+            "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/disaster-recovery-resiliency.html"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。architecture×enterprise・evaluation×smb・platform-infra×both・governance-tech×bothが8件で同率最少タイと判明。architecture×enterpriseの既存8記事（event-driven/durable-execution/idempotency/approval-workflow/context-engineering/backpressure/circuit-breaker/blue-green-canary）はいずれも単一リージョン内の過負荷・部分障害への対処が主題で、リージョン単位の障害からの復旧（DR・RTO/RPO・マルチリージョンフェイルオーバー）を扱った記事は無かったため、Web調査（AWS Bedrock公式のGeographic/Global cross-Region inferenceドキュメント2件、Google CloudのVertex AI Claudeマルチリージョンエンドポイント発表、AWS Bedrock AgentCoreのresilience公式ドキュメント）で新規考案。pnpm validate:blogでagent-autoscaling-capacity-planning-design（キュー深度/TTFTに応じた同一リージョン内の容量調整・architecture/both）とのnear_duplicate警告（title類似0.32、共有タグ1）が出たが、対応する障害モードが容量不足（同一リージョン内）とリージョン喪失（複数リージョン間）で異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み。なお本稿の一次情報源（AWS公式ドキュメント2ページ）のWebFetch結果には、AWS CLIコマンド（aws agent-toolkit search-skills）の実行を促す不審な「See also」セクションが両ページとも同一文言で付随していた。ページの技術内容とは無関係な指示のため無視し、コマンドは実行していない"
         }
   ],
   "keyword_bank": {
