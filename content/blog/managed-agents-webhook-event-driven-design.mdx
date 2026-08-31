@@ -1,0 +1,57 @@
+---
+title: "Managed Agentsのwebhook設計と配信保証"
+description: "Claude Managed Agentsのwebhookは7カテゴリのイベントをHTTP POSTで通知する。最大3回の再送と自己署名検証の実装要点を一次情報から解説する。"
+date: "2026-08-31"
+lastModified: "2026-08-31"
+tags: ["Managed Agents", "Claude API", "プラットフォーム設計", "可観測性"]
+author: "kuu-engineering"
+audience: "both"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://platform.claude.com/docs/en/managed-agents/webhooks"
+  - "https://platform.claude.com/docs/en/managed-agents/sessions"
+pillar: "ai-governance"
+glossary_refs: ["managed-agents"]
+---
+
+[Managed Agents](/glossary/managed-agents/)のセッションは数分から数時間動き続ける。その間の状態変化をポーリングで追いかけるのはコストが合わない。Anthropicはこの問題に対し、セッション・Vault・エージェント・デプロイメント・環境・メモリストアの状態変化をHTTP POSTで通知するwebhook機構を提供している。本記事は7カテゴリのイベント種別、署名検証の実装、配信保証の設計を公式ドキュメントのレベルで整理する。
+
+## Managed Agentsのwebhookは何を通知するのか
+
+> webhookはSession・Vault・Agent・Deployment・Environment・Memory storeなど7カテゴリのイベントを配信する。
+
+配信されるのはイベントの`type`と`id`のみで、オブジェクト本体は含まれない。受信側は通知を受けてから対象を`GET`で取得する設計になっており、これは再送時に古いデータを配ってしまう事故を防ぎ、1回あたりのペイロードも小さく保てる。カテゴリはセッションのステータス遷移（`session.status_run_started`など）、Vaultの認証情報ライフサイクル、エージェント・デプロイメント（定期実行）の作成/更新/削除、そして2026年8月に追加された環境（`environment.*`）とメモリストア（`memory_store.*`）の変化に及ぶ。
+
+## 環境とメモリストアのイベントは何が新しいか
+
+> 環境イベントは4種類、メモリストアイベントは3種類で、いずれも作成から削除までを追跡する。
+
+環境は`created`/`updated`（変更フィールドが1つ以上あるときのみ発火）/`archived`/`deleted`の4種類を持つ。ただし環境配下の[ワークアイテム](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes)自体はイベントを出さない。メモリストアは`created`/`archived`/`deleted`の3種類で、ストア削除は配下のメモリとメモリバージョンに連鎖するが、個々のメモリ単位のイベントは出ない——`memory_store.deleted`という1つのイベントが「ストア全体が消えた」ことの唯一のシグナルになる。この粒度の粗さは意図的な設計で、監視側は「何が変わったか」ではなく「何が消えたか」だけを受け取り、詳細な差分はAPIで都度取得する前提になっている。
+
+## 署名検証はどう実装するか
+
+> 配信には`webhook-signature`等3ヘッダーが付き、SDKの`unwrap()`が検証とパースを1呼び出しで行う。
+
+エンドポイントはClaude Consoleの「Manage > Webhooks」から登録し、作成時に一度だけ表示される32バイトの`whsec_`プレフィックス付き署名鍵を`ANTHROPIC_WEBHOOK_SIGNING_KEY`に設定する。受信側は各SDKの`unwrap()`ヘルパーに生のリクエストボディとヘッダーを渡すだけでよく、署名が不正か、ペイロードが5分より古い場合は例外を投げる。Node.js実装では署名がバイト列に対して計算されるため、`express.json()`ではなく`express.raw()`でボディを受け取る必要がある——ここを誤ると検証は常に失敗する。
+
+## 配信保証の設計にどう向き合うか
+
+> 配信は最大3回、5〜120秒のジッター付き指数バックオフで再試行され、失敗後は破棄される。
+
+`event.id`は配信ごとではなくイベントごとに一意なので、同じIDを2回受け取ったら再送と判断して破棄してよい。順序も保証されない——`session.outcome_evaluation_ended`より先に`session.status_idled`が届くことも、`.deleted`が`.archived`より先に届くこともある。状態は受信順ではなく都度取得したリソースから組み立てる必要がある。3回の再送すべてが失敗すると、そのイベントはキューに残らず静かに破棄される。webhookは永続ログではないため、欠落を許容できない用途では定期的にAPIでリストして突き合わせる仕組みが要る。エンドポイントは3xx応答・非公開IPへの解決・継続的な配信失敗のいずれかで自動的に無効化され、1回の`2xx`で失敗カウントの窓はリセットされる。
+
+## セッションseedingで往復を減らせるか
+
+> `initial_events`は最大50件のイベントをセッション作成と同時に投入し、直接running状態で開始する。
+
+セッション作成とタスク投入は本来2ステップだが、`initial_events`に`user.message`または`user.define_outcome`（1リクエストにつき1件まで）を含めれば1回のAPI呼び出しで完結する。非空のリストを渡すとセッションは`running`状態で作成され、追加のリクエストなしにエージェントループが動き出す。ファイル添付を含む`document`ブロックは全体で100件まで、リクエストボディは32MBが上限で、いずれかのイベントが検証に失敗すると全体が拒否されセッション自体が作られない。webhook監視と組み合わせると、作成直後の`session.status_run_started`をトリガーに以降の状態遷移だけを追う、という一貫したイベント駆動の運用ループが組める。
+
+## 参考
+
+- [Subscribe to webhooks - Claude Platform Docs](https://platform.claude.com/docs/en/managed-agents/webhooks)
+- [Start a session - Claude Platform Docs](https://platform.claude.com/docs/en/managed-agents/sessions)
+
+## まとめ
+
+Managed Agentsのwebhookは「何が起きたか」を通知し「詳細はAPIで取得する」という一貫した設計思想を持つ。配信は最大3回・順序不定・非永続という前提のもと、`event.id`での冪等化とリソースの都度取得を組み合わせて状態を組み立てる必要がある。中小企業ではSlack通知程度の軽量な連携から、エンタープライズでは監査ログ基盤への連携まで、規模に応じた実装の厚みは異なるが設計原則は共通だ。Managed Agentsのイベント駆動運用の設計・実装は[AI Ops](https://kuucorp.com/services/ai-ops/)が支援し、複数チーム規模の統制には[RDE](https://kuucorp.com/services/rde/)が対応する。

@@ -1703,6 +1703,23 @@
           ],
           "status": "published",
           "note": "topic-queueがqueued 0件のため node scripts/blog-coverage-report.mjs を実行。architecture×enterprise・evaluation×smb・platform-infra×both・governance-tech×bothが8件で同率最少タイと判明。architecture×enterpriseの既存8記事（event-driven/durable-execution/idempotency/approval-workflow/context-engineering/backpressure/circuit-breaker/blue-green-canary）はいずれも単一リージョン内の過負荷・部分障害への対処が主題で、リージョン単位の障害からの復旧（DR・RTO/RPO・マルチリージョンフェイルオーバー）を扱った記事は無かったため、Web調査（AWS Bedrock公式のGeographic/Global cross-Region inferenceドキュメント2件、Google CloudのVertex AI Claudeマルチリージョンエンドポイント発表、AWS Bedrock AgentCoreのresilience公式ドキュメント）で新規考案。pnpm validate:blogでagent-autoscaling-capacity-planning-design（キュー深度/TTFTに応じた同一リージョン内の容量調整・architecture/both）とのnear_duplicate警告（title類似0.32、共有タグ1）が出たが、対応する障害モードが容量不足（同一リージョン内）とリージョン喪失（複数リージョン間）で異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み。なお本稿の一次情報源（AWS公式ドキュメント2ページ）のWebFetch結果には、AWS CLIコマンド（aws agent-toolkit search-skills）の実行を促す不審な「See also」セクションが両ページとも同一文言で付随していた。ページの技術内容とは無関係な指示のため無視し、コマンドは実行していない"
+        },
+        {
+          "slug": "managed-agents-webhook-event-driven-design",
+          "keyword": "Claude Managed Agents webhook 環境イベント メモリストアイベント 配信保証",
+          "title_hint": "Managed Agentsのwebhook設計と配信保証",
+          "persona": "Managed Agentsのセッション状態をポーリングせずに監視・連携したいプラットフォームエンジニア・SRE",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "platform-infra",
+          "tech_depth": "deep",
+          "target_query": "Managed Agentsのwebhookはどう設計・実装すればよいか",
+          "sources": [
+            "https://platform.claude.com/docs/en/managed-agents/webhooks",
+            "https://platform.claude.com/docs/en/managed-agents/sessions"
+          ],
+          "status": "published",
+          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でManaged Agentsの2026年8月の新機能（環境イベント4種・メモリストアイベント3種を含むwebhook配信、およびinitial_eventsによるセッションseeding）を発見。evaluation・platform-infra（各26件）がtrack合計最少タイで、既存platform-infra記事（既にmanaged-agents-budget-geo-domain-governanceがセッション予算・地域固定・ドメイン制御を扱い済み）にはイベント通知・署名検証・配信保証（再送/順序不定/自動無効化）を扱った記事が無かったため新規考案。pnpm validate:blogでmanaged-agents-budget-geo-domain-governanceとのnear_duplicate警告（title類似0.28、共有タグ0）が出たが、前者が予算・地域・ドメインの統制機構、本稿がイベント通知機構という主題・トラック・audienceが異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み"
         }
   ],
   "keyword_bank": {

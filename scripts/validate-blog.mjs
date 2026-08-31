@@ -213,6 +213,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-autoscaling-capacity-planning-design",
 			"agent-platform-disaster-recovery-multiregion-design",
 		],
+		// Managed Agentsの予算・地域・ドメイン制御（governance-tech/enterprise・暴走時の被害範囲統制）と webhook設計・配信保証（platform-infra/both・状態変化のイベント通知と署名検証）: title類似は「Managed Agentsの」の語彙重なりのみで、統制機構と通知機構という主題・トラック・audienceが異なる正当な併存
+		[
+			"managed-agents-budget-geo-domain-governance",
+			"managed-agents-webhook-event-driven-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
