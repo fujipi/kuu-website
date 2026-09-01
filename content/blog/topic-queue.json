@@ -1719,7 +1719,24 @@
             "https://platform.claude.com/docs/en/managed-agents/sessions"
           ],
           "status": "published",
-          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でManaged Agentsの2026年8月の新機能（環境イベント4種・メモリストアイベント3種を含むwebhook配信、およびinitial_eventsによるセッションseeding）を発見。evaluation・platform-infra（各26件）がtrack合計最少タイで、既存platform-infra記事（既にmanaged-agents-budget-geo-domain-governanceがセッション予算・地域固定・ドメイン制御を扱い済み）にはイベント通知・署名検証・配信保証（再送/順序不定/自動無効化）を扱った記事が無かったため新規考案。pnpm validate:blogでmanaged-agents-budget-geo-domain-governanceとのnear_duplicate警告（title類似0.28、共有タグ0）が出たが、前者が予算・地域・ドメインの統制機構、本稿がイベント通知機構という主題・トラック・audienceが異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み"
+          "note": "topic-queueがqueued 0件・keyword_bankの34語も全て既存published記事に消化済みだったため、Web調査でAnthropicが2026年3月にskill-creatorへ追加したEval/Benchmarkモード（テストケース作成・pass率/所要時間/トークン使用量の計測・comparatorエージェントによるブラインドA/B比較）を発見。blog-coverage-report.mjsでevaluation×smb（8件）が最少セルと判明。既存evaluation記事群はいずれも汎用エージェント評価（LLM-as-judge・回帰テスト・オンライン評価等）が主題でAgent Skills固有の評価手法を扱った記事は無く、既存skill記事（agent-skills-skillmd-progressive-disclosure-design・claude-agent-skills-smb-guide）もSKILL.mdの構造設計とスキル活用が主題で評価・テストには触れていなかったため新規考案。pnpm validate:blogでagent-skills-skillmd-progressive-disclosure-designとのnear_duplicate警告（title類似0.30、共有タグ2）が出たが、前者がSKILL.mdの3階層ロード構造（architecture/smb）、本稿がskill-creatorのEval/Benchmarkモードによる品質計測（evaluation/smb）という主題・トラックが異なる正当な併存と判断しNEAR_DUP_ALLOWLISTに登録済み"
+        },
+        {
+          "slug": "agent-skill-eval-benchmark-mode-design",
+          "keyword": "Agent Skills skill-creator Eval Benchmark モード 評価",
+          "title_hint": "Agent Skillsをevalで品質保証する",
+          "persona": "自社用SKILL.mdを作成・運用している中小企業のIT担当・開発担当",
+          "service_link": "/services/ai-ops/",
+          "audience": "smb",
+          "track": "evaluation",
+          "tech_depth": "intermediate",
+          "target_query": "Agent Skillsの品質はskill-creatorのEval/Benchmarkモードでどう保証すればよいか",
+          "sources": [
+            "https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills",
+            "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+            "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices"
+          ],
+          "status": "published"
         }
   ],
   "keyword_bank": {

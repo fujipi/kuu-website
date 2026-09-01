@@ -1,0 +1,68 @@
+---
+title: "Agent Skillsをevalで品質保証する"
+description: "Agent Skillsの品質はskill-creatorのEval/Benchmarkモードで自動検証できる。テスト作成からpass率・所要時間・トークン数の計測、A/B比較まで、中小企業のIT担当がすぐ使える手順を示す。"
+date: "2026-09-01"
+lastModified: "2026-09-01"
+tags: ["Agent Skills", "エージェント評価", "Evals", "SKILL.md"]
+author: "kuu-engineering"
+audience: "smb"
+track: "evaluation"
+tech_depth: "intermediate"
+target_query: "Agent Skillsの品質はskill-creatorのEval/Benchmarkモードでどう保証すればよいか"
+sources:
+  - "https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills"
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"
+  - "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices"
+---
+
+社内用に作ったSKILL.mdが、モデルが更新されても同じ品質で動くか確認する手段はあるか。「動いた気がする」で運用しているチームは多い。Anthropicは2026年3月、skill-creatorにEval・Benchmarkモードを追加し、Agent Skillsのテスト作成から性能計測までを標準ツールに組み込んだ。中小企業のIT担当が今日から使える手順を示す。
+
+## Agent Skillsの品質はどう検証すればよいか
+
+> skill-creatorのEvalモードでテストプロンプトと期待結果を定義すると、モデル更新やSKILL.md変更時の品質劣化を自動検出できます。
+
+これまでAgent Skillsの検証は、担当者が手動でプロンプトを試し「それらしい出力か」を目視確認する方法に頼りがちだった。[SKILL.md](/blog/agent-skills-skillmd-progressive-disclosure-design/)は指示文とメタデータの集合であり、モデルのバージョンが上がるたびに挙動が変わりうる。にもかかわらず、変更前後を定量比較する手段が整備されていなかった。
+
+skill-creatorのEvalモードは、この空白を埋める。テストプロンプト（必要ならファイルも添付）と「良い出力とは何か」を記述するだけで、スキルが期待どおり動くかを自動判定する。評価用のテストケースとその結果はローカル保存・ダッシュボード連携・CI組み込みのいずれでも扱え、特定のベンダーに縛られない。
+
+## Benchmarkモードは何を計測するか
+
+> Benchmarkモードはpass率・所要時間・トークン使用量の3指標を記録し、モデル更新前後の性能をbenchmark.jsonで比較可能にします。
+
+Evalモードでテストケースが揃ったら、Benchmarkモードで標準化した計測を走らせる。記録される指標は次の3つだ。
+
+- **pass率**: 用意した評価セット全体での合格割合
+- **所要時間**: 各テストの実行にかかった時間
+- **トークン使用量**: テストごとの消費トークン数
+
+これらは「スキルあり」と「スキルなし」の両方で集計され、性能改善の度合いとトークン・時間コストのトレードオフを一目で比較できる。さらに独立したサブエージェントが各評価をクリーンなコンテキストで並列実行するため、あるテストの副作用が別のテストの結果を汚染しない。モデルがアップデートされた直後や、SKILL.mdの記述を修正した直後に走らせれば、劣化に気づかず本番投入する事故を避けられる。
+
+## comparatorエージェントによるA/B比較はどう機能するか
+
+> comparatorエージェントは2つのスキル版、またはスキルあり・なしの出力を、どちらの版か分からない状態で判定するブラインド比較を行います。
+
+skill-creatorにはcomparatorエージェントも含まれる。役割は「スキルの旧版と新版」あるいは「スキルあり・なし」の出力を並べ、どちらがどちらか分からない状態で品質を判定することだ。ブラインドにすることで、判定者が「これは新しい方だから良いはず」といったバイアスを持ち込みにくくなる。
+
+プロンプトの文言を1行変えるような小さな修正でも、実際に結果が改善したかは主観では判断しにくい。comparatorエージェントを使えば、変更をリリースする前に効果を客観的に確認できる。IT担当が1人しかいない体制でも、レビュー工数をかけずに判断材料を得られるのが実務上の利点だ。
+
+## 中小企業がevalを組み込む3ステップ
+
+> 業務でよく使うプロンプトを5〜10件テストケース化し、Benchmarkでモデル更新前後を比較する運用から始めるのが現実的です。
+
+1. **既存スキルの利用実績からテストケースを作る**: 社内で実際に使われたプロンプトとその期待出力を5〜10件選び、Evalモードに登録する。架空のシナリオより、実際に困った場面を反映したケースの方が弱点を突きやすい。
+2. **Benchmarkを定期実行する**: モデルのバージョンが上がったタイミング、およびSKILL.mdを修正したタイミングでBenchmarkモードを回し、pass率・所要時間・トークン数の推移を記録する。
+3. **修正はcomparatorで検証してから展開する**: SKILL.mdの記述変更は、必ずcomparatorエージェントで旧版と比較してから他の担当者にも展開する。
+
+[Claude Agent Skills](/blog/claude-agent-skills-smb-guide/)を業務に組み込んだ後も、この3ステップを回せば「入れっぱなしで品質が分からない」状態を避けられる。Kuuの[AIエージェント運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/)では、Agent Skillsの評価設計から継続運用までを支援している。
+
+## 参考
+
+- [Improving skill-creator: Test, measure, and refine Agent Skills（Anthropic）](https://claude.com/blog/improving-skill-creator-test-measure-and-refine-agent-skills)
+- [Agent Skills Overview（Claude Platform Docs）](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Skill authoring best practices（Claude Platform Docs）](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+
+## まとめ
+
+Agent Skillsは「作って終わり」にすると、モデル更新のたびに劣化しても気づけない。skill-creatorのEvalモードでテストケースを定義し、Benchmarkモードでpass率・所要時間・トークン数を継続計測し、修正はcomparatorエージェントで検証してから展開する——この3点セットが、社内エンジニアが少ないチームでも回せる最小の品質保証ループだ。
+
+Agent Skillsの評価設計・運用は、Kuuの[AIエージェント運用管理（AI Ops）](https://kuucorp.com/services/ai-ops/)から相談を受け付けている。

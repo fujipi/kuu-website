@@ -218,6 +218,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"managed-agents-budget-geo-domain-governance",
 			"managed-agents-webhook-event-driven-design",
 		],
+		// SKILL.mdの3階層ロード構造（architecture/smb・progressive disclosure設計）とskill-creatorのEval/Benchmarkモード（evaluation/smb・テスト作成と品質計測）: title類似は「Agent Skills」「SKILL.md」語彙の重なりのみで、設計トラックと評価トラックという主題・sourcesが異なる正当な併存
+		[
+			"agent-skill-eval-benchmark-mode-design",
+			"agent-skills-skillmd-progressive-disclosure-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
