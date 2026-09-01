@@ -1737,6 +1737,22 @@
             "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices"
           ],
           "status": "published"
+        },
+        {
+          "slug": "agent-goal-verifiable-completion-condition-design",
+          "keyword": "エージェント 完了判定 検証可能な終了条件 Stopフック",
+          "title_hint": "AIエージェントの完了判定設計——検証可能な終了条件の書き方",
+          "persona": "長時間自律実行するエージェントの完了判定・評価基盤を設計するプラットフォームエンジニア・開発担当",
+          "service_link": "/services/ai-ops/",
+          "audience": "both",
+          "track": "evaluation",
+          "tech_depth": "deep",
+          "target_query": "AIエージェントの完了判定（ゴール達成の検知）はどう設計すればよいか",
+          "sources": [
+            "https://code.claude.com/docs/en/goal",
+            "https://code.claude.com/docs/en/hooks-guide"
+          ],
+          "status": "published"
         }
   ],
   "keyword_bank": {
