@@ -1,0 +1,83 @@
+---
+title: "バッチAPIでAIコストを半減する実装手順"
+description: "Claude Message Batches APIは入力・出力トークンとも50%引きで非同期処理でき、1バッチ最大10万件をまとめられる。中小企業が導入すべき業務と実装手順を解説する。"
+date: "2026-09-02"
+lastModified: "2026-09-02"
+tags: ["Batch API", "Claude API", "コスト最適化", "非同期処理"]
+author: "kuu-editorial"
+audience: "smb"
+track: "model-capability"
+tech_depth: "intermediate"
+sources:
+  - "https://platform.claude.com/docs/en/build-with-claude/batch-processing"
+  - "https://platform.claude.com/docs/en/about-claude/pricing"
+  - "https://platform.claude.com/docs/en/api/rate-limits"
+---
+
+月次のAI APIコストが想定より膨らんでいる中小企業の多くは、リアルタイム応答が不要な処理までチャット用のエンドポイントにそのまま投げている。夜間バッチで回せば済む帳票分類やレポート要約を、同期APIで一件ずつ処理していれば単価は下がらない。Claude Message Batches APIに切り替えるだけで、同じ処理を半額で実行できる。
+
+本記事では、Batch APIの仕組みと向いている業務、実装手順、運用時の注意点を解説する。すでにバッチ・キャッシュ・ルーティングを横断した全体設計は[LLM推論コスト削減の解説](/blog/inference-cost-optimization-batch-cache-routing/)で扱っているため、本記事はBatch API単体の実装に絞る。
+
+## Message Batches APIとは何か
+
+> Message Batches APIは複数のリクエストをまとめて非同期処理する仕組みで、入力・出力とも標準料金の50%で利用できる。
+
+Message Batches APIは、複数のMessagesリクエストを一括投入し、非同期に処理する仕組みだ。同期のMessages APIと違い即時応答は返らないが、そのぶん料金は入力・出力トークンとも標準価格の50%になる。たとえばClaude Sonnet 5は標準が入力$2・出力$10（MTokあたり)だが、バッチでは入力$1・出力$5に下がる。Claude Haiku 4.5は標準入力$1・出力$5に対し、バッチでは入力$0.50・出力$2.50となる。
+
+1バッチにまとめられるリクエストは最大10万件、または合計256MBのいずれか早い方が上限。ほとんどのバッチは1時間以内に処理が終わるが、システムは全リクエストの処理完了または作成から24時間経過のいずれか早い方で結果を確定させる。24時間以内に処理が終わらなかったリクエストは期限切れとなり課金されない。結果は作成から29日間ダウンロード可能で、それ以降はバッチ自体は閲覧できても結果は取得できなくなる。
+
+## どんな業務がバッチ処理に向くか
+
+> 即時応答が不要で数百件以上をまとめて処理する業務——帳票分類、月次レポート要約、コンテンツ生成——がバッチ向きだ。
+
+Batch APIが向くのは「今すぐ結果が要らない」処理だ。具体例として、夜間に溜まった請求書・領収書画像の分類、月末の経営会議向けレポート要約、商品説明文のまとめ生成、大量データのタグ付け・感情分析などが挙げられる。逆にチャットボットの応答やユーザー操作への即時フィードバックは同期APIのまま残す必要がある。
+
+Batch APIはVision・ツール使用（Web検索やコード実行を含むサーバーツール）・システムプロンプト・マルチターン会話・extended thinkingのほぼすべてのリクエスト形式に対応する。1バッチの中で異なる種類のリクエストを混在させることも可能なので、複数業務のジョブを1本のバッチにまとめて夜間に流すといった運用もできる。
+
+## バッチAPIをどう実装するか
+
+> 各リクエストに一意のcustom_idを付けて送信し、処理完了後にresults_urlからJSON Lines形式で結果を取得する。
+
+実装の流れはシンプルだ。まず`custom_id`（英数字・ハイフン・アンダースコアで1〜64文字）を各リクエストに付与し、`requests`配列にまとめて`/v1/messages/batches`へPOSTする。
+
+```python
+message_batch = client.messages.batches.create(
+    requests=[
+        {
+            "custom_id": "invoice-0001",
+            "params": {
+                "model": "claude-haiku-4-5",
+                "max_tokens": 512,
+                "messages": [{"role": "user", "content": "この請求書から金額と発行日を抽出して"}],
+            },
+        },
+        # ... 続く請求書分だけ繰り返す
+    ]
+)
+```
+
+作成直後は`processing_status`が`in_progress`となる。60秒間隔などでポーリングし、`ended`になったら`results_url`からJSON Lines形式の結果をストリーミング取得する。結果は投入順とは限らないため、`custom_id`で元のリクエストと突き合わせる。各結果は`succeeded`・`errored`・`canceled`・`expired`のいずれかを持ち、後者3つは課金対象外だ。
+
+なお`stream: true`やFast mode、`max_tokens: 0`（キャッシュ事前ウォーム）はバッチ内でサポートされない。プロンプトキャッシュとは併用でき、システムプロンプトなど共通部分に同一の`cache_control`を設定すればキャッシュヒット率30〜98%の範囲で追加のコスト削減が見込める。バッチは5分キャッシュより長く待つ場合があるため、[1時間キャッシュ](/blog/prompt-caching-agent-design-context-reuse/)の利用が推奨されている。
+
+## レート制限・運用で気をつけるべき点は何か
+
+> バッチAPIは通常のMessages APIとは別枠のレート制限を持ち、Startティアでも同時10万件を投入できる。
+
+Batch APIのレート制限は通常のMessages API（RPM・ITPM・OTPM）とは別枠で管理される。Startティアでは毎分1,000リクエスト・処理待ちキュー上限20万件・1バッチあたり最大10万件まで扱える。Buildティアでは毎分2,000リクエスト・キュー上限30万件、Scaleティアでは毎分4,000リクエスト・キュー上限50万件に拡大する。バッチは通常のTPM/RPM制限を消費しないため、リアルタイム処理と並行して流しても本番トラフィックを圧迫しない。
+
+運用上の注意点は3つある。第一に、バッチはWorkspace単位でスコープされるため、複数チームで使う場合は結果の閲覧範囲がWorkspaceに限定される。第二に、高スループット・並行処理の特性上、Workspaceの支出上限をわずかに超過する場合がある。第三に、需要が集中している時間帯は24時間以内に処理しきれず期限切れになるリクエストが増える可能性があるため、締切のあるジョブは余裕を持って投入する。レート制限全般の対処は[LLM APIレート制限の対処設計](/blog/llm-api-rate-limit-handling-smb/)も参照してほしい。
+
+[Kuuのエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)では、バッチ処理の設計を含むAI運用コストの見直し支援も行っている。
+
+## 参考
+
+- [Batch processing — Claude Docs](https://platform.claude.com/docs/en/build-with-claude/batch-processing)
+- [Pricing — Claude Docs](https://platform.claude.com/docs/en/about-claude/pricing)
+- [Rate limits — Claude Docs](https://platform.claude.com/docs/en/api/rate-limits)
+
+## まとめ
+
+Claude Message Batches APIは、即時応答が不要な処理を入力・出力とも標準料金の50%で実行できる仕組みだ。1バッチ最大10万件、結果は29日間取得可能、通常のレート制限とは別枠で動くため、帳票分類や月次レポート要約のようなバックグラウンド処理から着手すれば、品質を落とさずにAI運用コストを圧縮できる。まずは1つの非同期処理をバッチAPIに移行し、削減効果を確認するところから始めるとよい。
+
+[Kuuのエージェントガバナンスサービス](https://kuucorp.com/services/ai-ops/)では、AIエージェントのコスト設計から運用改善まで支援している。バッチ処理の導入検討はまず無料相談で相談してほしい。

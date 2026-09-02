@@ -627,6 +627,23 @@
         "https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/"
       ],
       "status": "published"
+    },
+    {
+      "slug": "claude-batch-api-cost-reduction-smb",
+      "keyword": "Claude Message Batches API バッチ処理 コスト削減 中小企業",
+      "title_hint": "バッチAPIの実装手順——中小企業が非同期処理でAIコストを半減する",
+      "persona": "大量の非リアルタイム処理（帳票分類・レポート要約・コンテンツ生成）をAIに任せたい中小企業のIT担当・開発担当",
+      "service_link": "/services/ai-ops/",
+      "audience": "smb",
+      "track": "model-capability",
+      "tech_depth": "intermediate",
+      "target_query": "中小企業はClaude Message Batches APIをどう実装してコストを削減すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/build-with-claude/batch-processing",
+        "https://platform.claude.com/docs/en/about-claude/pricing",
+        "https://platform.claude.com/docs/en/api/rate-limits"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
