@@ -610,6 +610,23 @@
         "https://code.claude.com/docs/en/server-managed-settings"
       ],
       "status": "published"
+    },
+    {
+      "slug": "agent-skill-marketplace-security-vetting-checklist",
+      "keyword": "エージェントスキル マーケットプレイス セキュリティ 審査 サードパーティ",
+      "title_hint": "サードパーティ製エージェントスキルの安全性審査手順",
+      "persona": "SMBのIT担当者とエンタープライズのセキュリティアーキテクトの双方（第三者製スキルの導入可否を判断する立場）",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "サードパーティのエージェントスキルはどう安全性を審査すればよいか",
+      "sources": [
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+        "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise",
+        "https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/"
+      ],
+      "status": "published"
     }
   ],
   "topics_from_keyword_bank": [
