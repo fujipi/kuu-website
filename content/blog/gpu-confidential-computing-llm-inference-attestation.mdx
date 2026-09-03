@@ -1,0 +1,59 @@
+---
+title: "GPU機密コンピューティングでAIエージェントの推論を守る"
+description: "NVIDIA GPU-CCとGoogle Cloud Confidential SpaceのTEEアテステーションで、クラウド運用者からもモデル重みと推論データを隔離する設計を解説する。"
+date: "2026-09-03"
+lastModified: "2026-09-03"
+tags: ["セキュリティ", "LLMインフラ", "エンタープライズ", "アーキテクチャ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "security"
+tech_depth: "deep"
+sources:
+  - "https://docs.cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-overview"
+  - "https://docs.nvidia.com/nvtrust/index.html"
+  - "https://aws.amazon.com/blogs/machine-learning/large-language-model-inference-over-confidential-data-using-aws-nitro-enclaves/"
+---
+
+規制業種のエージェント基盤では「クラウド事業者の運用者からもデータを隔離できるか」が最後の壁になる。VPC分離や暗号化だけでは、ホスト側の特権を持つ運用者やハイパーバイザーが実行中のメモリを覗ける余地が残る。GPU機密コンピューティング（Confidential Computing、以下CC）はこの壁を、ソフトウェアではなくハードウェアの隔離とアテステーションで越えるアプローチだ。
+
+## GPU機密コンピューティングとは何か
+
+> GPU-CCはCPU/GPUのメモリを暗号化した信頼実行環境（TEE）内で推論を実行し、署名付きアテステーションレポートで実行環境の正当性を証明する技術です。
+
+TEE（Trusted Execution Environment）は、CPUやGPUのファームウェアが提供するハードウェア隔離領域で、OS・ハイパーバイザー・クラウド運用者を含む外部からメモリ内容を読み取れないようにする。NVIDIAのGPU-CCはHopper（H100）以降のGPUで対応し、GPUドライバとVBIOS・ファームウェアの測定値を含む署名付きアテステーションレポートを生成する。この機構はモデル重みそのものと、推論中の中間テンソル（プロンプト・KVキャッシュ）の双方を保護対象にする。
+
+## なぜAIエージェント基盤にTEEが必要になるのか
+
+> PHI・PII・営業秘密を扱うエージェント基盤では、クラウド運用者の特権アクセスや悪意あるインサイダーからもプロンプトと出力を守る要求が生じます。
+
+[VPC内デプロイ](/blog/vpc-llm-deploy-data-residency/)はネットワーク境界を守るが、実行中のGPUメモリを直接ダンプする攻撃までは防げない。医療のPHI・金融の取引データ・自社モデルのファインチューニング重みを扱うエージェントでは、クラウド事業者自身を脅威モデルに含めるゼロトラストの発想が要る。TEEはこの「運用者も信頼しない」前提を、暗号化メモリとリモートアテステーションで技術的に担保する。
+
+## 主要クラウドの実装をどう比較するか
+
+> NVIDIA GPU-CCはGPU単体の測定・証明を担い、Google Confidential SpaceとAWS Nitro Enclavesはワークロード全体の起動を鍵管理サービスと連動させて制御します。
+
+| 実装 | 保護範囲 | アテステーションの仕組み |
+|---|---|---|
+| NVIDIA GPU-CC（Hopper以降） | GPUメモリ・ファームウェア | 署名付きレポートをローカル/リモートベリファイアが検証 |
+| Google Cloud Confidential Space | コンテナ化ワークロード全体 | 起動時にイメージを測定しOIDCトークンを発行、条件付きIAMで復号鍵を許可 |
+| AWS Nitro Enclaves | 分離されたコンピュートエンクレーブ | アテステーションドキュメントを提示した場合のみKMSが復号鍵を払い出す |
+
+いずれも共通するのは「正しいコードが動いていることを暗号学的に証明できたワークロードだけに、機密データへのアクセス鍵を渡す」という設計だ。GPUの計算そのものを守るNVIDIA GPU-CCと、ワークロード起動全体を守るConfidential Space・Nitro Enclavesは補完関係にあり、GPU推論を伴うエージェント基盤ではGPU-CC対応インスタンス上にConfidential Space/Nitro Enclavesのワークロードを重ねる構成が現実的になる。
+
+## 導入設計で押さえるべきポイント
+
+> アテステーション検証をリクエスト経路に組み込み、鍵の払い出し条件をワークロード測定値に紐づけることが設計の核心です。
+
+第一に、アテステーション検証はエージェントのリクエスト処理経路に組み込む。[LLMゲートウェイ](/blog/llm-gateway-routing-rate-limiting/)の前段でワークロードの測定値を検証し、失敗時はリクエストを拒否する。第二に、復号鍵の払い出し条件をワークロード識別子に紐づけ、[マルチテナント分離設計](/blog/multitenant-agent-isolation-design/)のテナント境界と一致させる。第三に、TEE化には数%〜十数%の推論オーバーヘッドが伴うため、PHI・営業秘密など保護要件の高いテナントに限定適用し、全ワークロードへの一律適用は避けるのが現実的だ。[ゼロトラストのmTLS設計](/blog/zero-trust-agent-network-mtls-design/)と組み合わせれば、ネットワーク層とコンピュート層の双方で運用者を信頼しない構成が完成する。
+
+## 参考
+
+- [Confidential Space overview — Google Cloud](https://docs.cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-overview)
+- [NVIDIA Trusted Computing Solutions (nvTrust) — NVIDIA Docs](https://docs.nvidia.com/nvtrust/index.html)
+- [Large language model inference over confidential data using AWS Nitro Enclaves — AWS Machine Learning Blog](https://aws.amazon.com/blogs/machine-learning/large-language-model-inference-over-confidential-data-using-aws-nitro-enclaves/)
+
+## まとめ
+
+GPU機密コンピューティングは、VPC分離や暗号化では届かなかった「クラウド運用者自身を信頼しない」領域をハードウェアアテステーションで埋める技術だ。NVIDIA GPU-CCによるGPU単体の証明と、Confidential Space・Nitro Enclavesによるワークロード全体の起動制御を組み合わせることで、PHI・営業秘密を扱うエージェント基盤でも推論データとモデル重みを技術的に保護できる。オーバーヘッドとのトレードオフを踏まえ、保護要件の高いテナントから段階的に導入するのが現実的な進め方だ。
+
+規制業種向けのエージェント基盤設計からTEE導入の要件整理まで、Kuuの[RDE（Reinvention Deployed Engineering）](/services/rde/)サービスでは大規模エンタープライズのAI実装を一貫して支援しています。詳細は[サービス詳細ページ](/services/rde/)からお問い合わせください。

@@ -663,6 +663,24 @@
       ],
       "status": "published",
       "note": "blog-coverage-report.mjs で platform-infra が全track中最少（27件）と判明。既存platform-infra記事はvLLM/SGLang選定・オートスケーリング・DR等でGPU「実行」層は飽和のため、GPU「調達」層（オンデマンド/予約/スポットの使い分け）という未カバーの切り口をWeb調査で新規考案"
+    },
+    {
+      "slug": "gpu-confidential-computing-llm-inference-attestation",
+      "keyword": "GPU機密コンピューティング TEE アテステーション LLM推論",
+      "title_hint": "GPU機密コンピューティングでAIエージェントの推論を守る",
+      "persona": "PHI・PII・営業秘密を扱うエージェント基盤を運用するエンタープライズのセキュリティアーキテクト・プラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "security",
+      "tech_depth": "deep",
+      "target_query": "AIエージェントの推論基盤はGPU機密コンピューティング（TEE）でどう保護すればよいか",
+      "sources": [
+        "https://docs.cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-overview",
+        "https://docs.nvidia.com/nvtrust/index.html",
+        "https://aws.amazon.com/blogs/machine-learning/large-language-model-inference-over-confidential-data-using-aws-nitro-enclaves/"
+      ],
+      "status": "published",
+      "note": "topic-queue と keyword_bank が枯渇（queued 0件）のためWeb調査で新規考案。既存security記事はネットワーク/権限/サプライチェーン層のゼロトラストが中心で、GPUハードウェアTEE・アテステーションによる「クラウド運用者も信頼しない」推論層の保護は未カバーだった"
     }
   ],
   "topics_from_keyword_bank": [
