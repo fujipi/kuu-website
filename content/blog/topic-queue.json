@@ -644,6 +644,25 @@
         "https://platform.claude.com/docs/en/api/rate-limits"
       ],
       "status": "published"
+    },
+    {
+      "slug": "gpu-inference-capacity-procurement-strategy",
+      "keyword": "GPU推論キャパシティ 調達 スポット 予約 オンデマンド",
+      "title_hint": "GPU推論キャパシティ調達戦略——予約とスポットの使い分け",
+      "persona": "自社GPUで推論基盤を運用するエンタープライズのプラットフォームエンジニア・SRE",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "自社ホスティングのLLM推論基盤でGPUキャパシティはオンデマンド・スポット・予約のどれを選ぶべきか",
+      "sources": [
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-blocks.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-best-practices.html",
+        "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-instance-termination-notices.html",
+        "https://cloud.google.com/compute/docs/instances/about-flex-start-vms"
+      ],
+      "status": "published",
+      "note": "blog-coverage-report.mjs で platform-infra が全track中最少（27件）と判明。既存platform-infra記事はvLLM/SGLang選定・オートスケーリング・DR等でGPU「実行」層は飽和のため、GPU「調達」層（オンデマンド/予約/スポットの使い分け）という未カバーの切り口をWeb調査で新規考案"
     }
   ],
   "topics_from_keyword_bank": [

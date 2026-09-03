@@ -1,0 +1,54 @@
+---
+title: "GPU推論キャパシティ調達戦略——予約とスポットの使い分け"
+description: "自社ホスティングのGPU推論基盤はオンデマンド・予約・スポットを組み合わせて調達する。AWS Capacity Blocksは最大8週間先まで予約でき、スポット中断通知は2分前に届く。使い分けの判断基準を解説する。"
+date: "2026-09-03"
+lastModified: "2026-09-03"
+tags: ["セルフホストLLM", "プラットフォーム基盤", "コスト最適化", "エンタープライズ"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-blocks.html"
+  - "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-best-practices.html"
+  - "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-instance-termination-notices.html"
+  - "https://cloud.google.com/compute/docs/instances/about-flex-start-vms"
+pillar: "ai-governance"
+---
+
+[セルフホストLLM推論スタック](/blog/self-hosted-llm-inference-stack-vllm-sglang/)を選定しても、GPUをどう調達するかで運用コストと可用性は大きく変わります。オンデマンドだけで固定するとGPU使用率が上がらずコストが膨らみ、逆にスポットに寄せすぎるとエージェントの応答が中断されます。本記事は調達方式そのものの設計を扱います。
+
+## なぜオンデマンドGPUだけでは推論基盤が安定しないのか
+
+> オンデマンドGPUはいつでも起動できる代わりに単価が最も高く、需給次第で在庫が枯渇し起動できないこともある。
+
+エージェント基盤のGPU需要はトラフィックの波によって大きく変動しますが、オンデマンドインスタンスは常に定価であり、ピーク帯の使用率が低いと投資対効果が出ません。さらにH100・H200・B200クラスの高性能GPUは需給が逼迫しやすく、必要な瞬間にオンデマンドで確保できない事態も起こります。AWSはこうした需要に対応するため、GPUインスタンスを事前予約できるEC2 Capacity Blocks for MLを提供しており、最大8週間先の開始時刻を指定して1〜64台規模のクラスタを確保できます。
+
+## 予約・オンデマンド・スポットは何を保証するか
+
+> 予約枠は開始時刻と台数を確定できるが柔軟性を失い、スポットは最安だが2分前通知で中断される。
+
+3方式は「確実性」と「単価」がトレードオフの関係にあります。EC2 Capacity Blocksは指定日時にクラスタ全体をUltraClusters内の低遅延ネットワークで確保でき、GPU未使用時間分の料金は発生しません。GCPのDynamic Workload SchedulerはCalendar modeで同種の確定予約を、Flex-start modeで需要逼迫時でも起動確率を高めた割引インスタンスを提供します。一方スポットインスタンスはAWSの場合2分前の中断通知しか保証されず、常時起動を要する本番推論には単独で使えません。
+
+## 推論ワークロードのどの部分にスポットを使えるか
+
+> リアルタイム推論は中断リスクを避けオンデマンド中心にし、バッチ推論・評価・ファインチューニングはスポットに寄せられる。
+
+AWSの公式ガイドはスポットの用途をステートレスかつ耐障害性のあるワークロードに限定するよう推奨しています。エージェント基盤では、ユーザー対話に直結するリアルタイム推論はレイテンシSLOを守れないためスポット単独運用に向きません。一方、Message Batches APIのような非同期処理や、夜間バッチでのモデル評価・回帰テストは中断されても再実行できるため、スポットとの相性が良い領域です。中断に備えるには、5〜15分間隔のチェックポイントとインスタンスリバランス推奨シグナルの監視を組み込み、中断通知を受けた時点でロードバランサーから切り離す設計が要ります。
+
+## 調達戦略はどう設計すればよいか
+
+> ベースライン需要は予約枠、変動分はオンデマンド、バッチ処理はスポットに振り分ける3層構成が基本形になる。
+
+実務では単一方式を選ぶのではなく、トラフィックの性質ごとに3層で組み合わせます。まず日次で確実に発生するベースライン需要はCapacity BlocksやCalendar modeの予約枠でまかない、GPU使用率を高く保ちます。次に予測できない突発的な需要増分はオンデマンドで吸収し、[オートスケーリング設計](/blog/agent-autoscaling-capacity-planning-design/)のキュー深度シグナルと連動させます。最後に評価パイプラインやバッチ推論などレイテンシ要件が緩いワークロードはスポット・Flex-startに振り、コスト全体を最適化します。予約枠の粒度(台数・期間)を需要予測と合わせて見直すサイクルも運用に組み込む必要があります。
+
+## 参考
+
+- [Capacity Blocks for ML - Amazon EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-blocks.html)
+- [Best practices for Amazon EC2 Spot - Amazon EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-best-practices.html)
+- [Spot Instance interruption notices - Amazon EC2 User Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-instance-termination-notices.html)
+- [About Flex-start VMs | Compute Engine - Google Cloud](https://cloud.google.com/compute/docs/instances/about-flex-start-vms)
+
+## まとめ
+
+GPU推論キャパシティの調達は、推論エンジンの選定と同じ重みを持つ設計課題です。オンデマンド・予約・スポットはそれぞれ保証する内容が異なり、ワークロードの性質で使い分けることでGPU使用率とコストの両立が可能になります。予約枠の設計やマルチクラウドでの調達戦略の構築には専門知見が要ります。Kuu株式会社の[Reinvention Deployed Engineering](https://kuucorp.com/services/rde/)では、大規模エージェント基盤のインフラ調達設計を支援しています。
