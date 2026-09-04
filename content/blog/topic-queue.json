@@ -681,6 +681,24 @@
       ],
       "status": "published",
       "note": "topic-queue と keyword_bank が枯渇（queued 0件）のためWeb調査で新規考案。既存security記事はネットワーク/権限/サプライチェーン層のゼロトラストが中心で、GPUハードウェアTEE・アテステーションによる「クラウド運用者も信頼しない」推論層の保護は未カバーだった"
+    },
+    {
+      "slug": "speculative-decoding-llm-inference-production-design",
+      "keyword": "投機的デコーディング speculative decoding LLM推論 高速化",
+      "title_hint": "投機的デコーディングで推論を高速化する設計",
+      "persona": "自社ホスティングのLLM推論基盤を運用するエンタープライズのプラットフォームエンジニア・SRE",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "platform-infra",
+      "tech_depth": "deep",
+      "target_query": "自社ホスティングのLLM推論基盤に投機的デコーディングを導入すべきか、どう設計すればよいか",
+      "sources": [
+        "https://docs.vllm.ai/en/latest/features/speculative_decoding/",
+        "https://developer.nvidia.com/blog/an-introduction-to-speculative-decoding-for-reducing-latency-in-ai-inference/",
+        "https://pytorch.org/blog/hitchhikers-guide-speculative-decoding/"
+      ],
+      "status": "published",
+      "note": "blog-coverage-report.mjs でevaluation/platform-infraが最少（各28件）と判明。evaluationは27記事で主要サブトピックが飽和済みのためplatform-infraを選定。既存platform-infra記事はスタック選定・オートスケーリング・コスト配賦・DR・GPU調達/機密コンピューティングが中心で、推論レイテンシを構造的に下げる投機的デコーディング（ドラフト提案+並列検証）という技術は未カバーだったためWeb調査で新規考案"
     }
   ],
   "topics_from_keyword_bank": [

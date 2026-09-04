@@ -1,0 +1,60 @@
+---
+title: "投機的デコーディングで推論を高速化する設計"
+description: "自社ホスティングLLM推論に投機的デコーディングを導入する設計を解説。vLLMのEAGLE・ドラフトモデル・N-gram方式の使い分けと、QPS帯域別のトレードオフを整理します。"
+date: "2026-09-04"
+lastModified: "2026-09-04"
+tags: ["セルフホストLLM", "vLLM", "推論コスト最適化", "プラットフォーム設計"]
+author: "kuu-engineering"
+audience: "enterprise"
+track: "platform-infra"
+tech_depth: "deep"
+sources:
+  - "https://docs.vllm.ai/en/latest/features/speculative_decoding/"
+  - "https://developer.nvidia.com/blog/an-introduction-to-speculative-decoding-for-reducing-latency-in-ai-inference/"
+  - "https://pytorch.org/blog/hitchhikers-guide-speculative-decoding/"
+---
+
+自社ホスティングのLLM推論基盤で、1トークンずつの逐次生成がレイテンシの天井になっていないでしょうか。GPUを増強してもトークン生成速度は頭打ちになりがちです。これを構造的に解決する技術が**投機的デコーディング（speculative decoding）**です。
+
+## 投機的デコーディングとは何か
+
+> 投機的デコーディングは、軽量なドラフト機構が複数トークンを先読み提案し、本体モデルが1回の forward pass でまとめて検証する高速化技術です。
+
+投機的デコーディングは、小さなドラフトモデルまたは軽量な提案機構が候補トークンを複数個（一般に3〜12個程度）まとめて生成し、本体の大規模モデル（target model）がそれらを1回の forward pass で並列検証する手法です。NVIDIAの技術解説によれば、逐次生成が「3トークンを200msずつ3回」かかる代わりに「3トークンを1回の250msパス」で処理できる点に高速化の本質があります。検証ロジックはドラフト側の確率分布と本体モデルの確率分布を比較する棄却サンプリングで、出力分布は理論上ロスレスに保たれます。
+
+## 投機的デコーディングはどう動くか
+
+> ドラフト生成・並列検証・棄却サンプリングの3段階で構成され、採用率（acceptance rate）が高速化幅を左右します。
+
+処理は3段階に分かれます。まずドラフト機構が次の数トークンを高速に提案します。次に本体モデルがKVキャッシュを再利用しながら、入力とドラフトトークンをまとめて1回の forward pass で処理します。最後に、各トークンについて本体モデルが実際に生成したであろう確率とドラフト側の確率を比較し、一致すれば採用、不一致であればそのトークン以降を破棄して本体モデルの出力に差し替えます。この**採用率**が高いほど高速化の恩恵が大きく、全トークンが棄却された最悪ケースでも通常の逐次生成と同等の速度に収まるため、品質を犠牲にしない設計になっています。
+
+## どの手法を選ぶべきか——EAGLE・ドラフトモデル・N-gram
+
+> vLLMはEAGLE・ドラフトモデル型からN-gram・Suffix Decodingまで複数方式を提供し、QPS帯域で使い分けます。
+
+vLLMの公式ドキュメントは手法をモデルベース方式と軽量方式に大別しています。EAGLE・Multi-Token Prediction・ドラフトモデル・PARDなどのモデルベース方式は高速化幅が大きい一方、ドラフト用の追加モデルをGPUメモリに載せる必要があります。N-gramやSuffix Decodingのような軽量方式は追加モデル不要で、ピークトラフィック時にも導入しやすい代わりに高速化幅は控えめです。vLLMは`--speculative-config`にJSON形式で`method`・`model`・`num_speculative_tokens`などを指定して有効化する設計になっており、公式ガイドは「実際の効果はモデルファミリー・トラフィックパターン・ハードウェア・サンプリング設定に依存するため、自環境での実測が必須」と明記しています。
+
+## 本番導入で注意すべきトレードオフとは
+
+> 投機的デコーディングは低QPSの対話用途で効果が大きく、高並列バッチでは採用率低下により効果が薄れます。
+
+投機的デコーディングは低QPS・低同時実行数のレイテンシ最適化に向いた技術です。単一リクエストのレイテンシは20〜50%程度改善する一方、GPUが既に飽和している高バッチサイズ・高同時実行数の環境では、ドラフト生成と検証で2回分の計算コストを払ってもスループットの伸びは限定的になります。加えて、投機トークン数を増やしすぎると高並列時にレイテンシのばらつき（スパイク）が生じやすいため、想定QPS帯域に合わせてトークン数をチューニングする必要があります。[GPU推論キャパシティの調達戦略](/blog/gpu-inference-capacity-procurement-strategy/)や[推論コスト最適化](/blog/inference-cost-optimization-batch-cache-routing/)と組み合わせ、対話型エンドポイントには投機的デコーディングを、バッチ処理には別のスケーリング戦略を割り当てる住み分けが有効です。導入判断や[セルフホストLLM推論スタック](/blog/self-hosted-llm-inference-stack-vllm-sglang/)全体の設計は、Kuuの[RDE（Reinvention Deployed Engineering）サービス](https://kuucorp.com/services/rde/)でも支援しています。
+
+## 参考
+
+- [Speculative Decoding | vLLM Documentation](https://docs.vllm.ai/en/latest/features/speculative_decoding/)
+- [An Introduction to Speculative Decoding for Reducing Latency in AI Inference | NVIDIA Technical Blog](https://developer.nvidia.com/blog/an-introduction-to-speculative-decoding-for-reducing-latency-in-ai-inference/)
+- [A Hitchhiker's Guide to Speculative Decoding | PyTorch](https://pytorch.org/blog/hitchhikers-guide-speculative-decoding/)
+
+## まとめ
+
+投機的デコーディングは、GPU増強では解決できない逐次生成のレイテンシ天井を、ドラフト提案と並列検証の組み合わせで構造的に下げる技術です。
+
+導入のポイントをまとめます。
+
+1. 低QPS・対話型の用途から導入し、まずvLLMのN-gramなど軽量方式で効果を測定する
+2. 高速化幅を重視する場合はEAGLEやドラフトモデル方式を検討し、追加GPUメモリのコストと比較する
+3. 高並列バッチ処理には別のスケーリング戦略を割り当て、投機的デコーディングの適用範囲を対話用途に限定する
+4. `num_speculative_tokens`は想定QPS帯域で実測し、高並列時のレイテンシスパイクを避ける
+
+自社ホスティング推論基盤の高速化設計については、Kuuの[RDEサービス](https://kuucorp.com/services/rde/)にご相談ください。
