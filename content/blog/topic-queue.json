@@ -699,6 +699,23 @@
       ],
       "status": "published",
       "note": "blog-coverage-report.mjs でevaluation/platform-infraが最少（各28件）と判明。evaluationは27記事で主要サブトピックが飽和済みのためplatform-infraを選定。既存platform-infra記事はスタック選定・オートスケーリング・コスト配賦・DR・GPU調達/機密コンピューティングが中心で、推論レイテンシを構造的に下げる投機的デコーディング（ドラフト提案+並列検証）という技術は未カバーだったためWeb調査で新規考案"
+    },
+    {
+      "slug": "agentic-eval-infrastructure-noise-variance-design",
+      "keyword": "エージェント評価 インフラノイズ リソース配分 測定バイアス",
+      "title_hint": "インフラノイズを消すエージェント評価基盤設計",
+      "persona": "本番規模でagentic codingベンチマークやCI評価を運用するエンタープライズのプラットフォームエンジニア・SRE",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "evaluation",
+      "tech_depth": "deep",
+      "target_query": "エージェント評価のスコア差はモデル性能差かインフラノイズか、どう見分ければよいか",
+      "sources": [
+        "https://www.anthropic.com/engineering/infrastructure-noise",
+        "https://anthropic.com/engineering/demystifying-evals-for-ai-agents"
+      ],
+      "status": "published",
+      "note": "topic-queue queued 0件・keyword_bankのevaluation 4語（9軸評価/回帰テスト/オンライン評価/KPIメトリクス）は既存27記事で全て消化済みと確認したためWeb調査で新規考案。Anthropic公式ブログ『Quantifying infrastructure noise in agentic coding evals』（Terminal-Bench 2.0でリソース配分差のみでスコアが最大6pt変動する実測）は既存evaluation記事群（非決定性/再現性設計のagent-eval-flaky-nondeterminism-reproducibility-design等）が扱うモデル側の出力揺らぎとは異なる、評価インフラのリソース設定起因の測定バイアスという未カバーの切り口。近接重複チェックでinspect-ai-agent-evaluation-frameworkとtitle類似0.29が出たが内容は評価コードのフレームワーク構成 vs リソース配分起因のノイズで主題が異なるためNEAR_DUP_ALLOWLISTに登録して併存"
     }
   ],
   "topics_from_keyword_bank": [

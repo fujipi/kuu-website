@@ -223,6 +223,11 @@ const NEAR_DUP_ALLOWLIST = new Set(
 			"agent-skill-eval-benchmark-mode-design",
 			"agent-skills-skillmd-progressive-disclosure-design",
 		],
+		// Inspect AI（Task/Solver/Scorerの3層構成・Sandbox隔離によるフレームワーク設計・both/deep）とインフラノイズ設計（コンテナのリソース配分がスコアを最大6ポイント動かす測定バイアス・enterprise/deep）: title類似は「エージェント評価」「設計」の語彙重なりのみで、評価コードの構成方法とハードウェアリソース起因の測定ノイズという主題・sourcesが異なる正当な併存
+		[
+			"inspect-ai-agent-evaluation-framework",
+			"agentic-eval-infrastructure-noise-variance-design",
+		],
 	].map((pair) => pair.slice().sort().join("|")),
 );
 const files = fs
