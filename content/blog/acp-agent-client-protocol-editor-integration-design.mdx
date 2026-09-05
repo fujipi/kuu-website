@@ -1,0 +1,78 @@
+---
+title: "ACPとは何か——MCP・A2Aと役割分担するエディタ連携標準"
+description: "ACP（Agent Client Protocol）は2025年8月公開のJSON-RPC標準で、エディタとAIコーディングエージェントを疎結合します。MCP・A2Aとの役割分担と対応判断の基準を解説します。"
+date: "2026-09-05"
+lastModified: "2026-09-05"
+tags: ["ACP", "MCP", "プロトコル", "AIエージェント"]
+author: "kuu-engineering"
+audience: "both"
+track: "protocols"
+tech_depth: "deep"
+target_query: "ACP（Agent Client Protocol）とは何か、MCPやA2Aとどう違うか"
+sources:
+  - "https://agentclientprotocol.com/overview/introduction"
+  - "https://agentclientprotocol.com/protocol/overview"
+  - "https://zed.dev/blog/bring-your-own-agent-to-zed"
+  - "https://zed.dev/blog/jetbrains-on-acp"
+  - "https://github.com/agentclientprotocol/claude-agent-acp"
+pillar: "ai-governance"
+glossary_refs: ["mcp", "a2a-protocol"]
+---
+
+社内でAIコーディングエージェントを導入しようとすると、「このエディタでこのエージェントを使いたいが、別のエディタに変えたら統合をやり直しになる」という壁にぶつかります。エディタ側はエージェントごとに個別の連携コードを書き、エージェント側はエディタごとに専用APIを実装する——この組み合わせ爆発を解消するために登場したのがACP（Agent Client Protocol）です。
+
+## ACPとは何か
+
+> ACPはJSON-RPC 2.0でエディタとエージェントを疎結合する規格で、2025年8月にZedが公開しました。
+
+ACPは、エディタ（クライアント）がエージェントをサブプロセスとして起動し、標準入出力（stdio）上でJSON-RPC 2.0メッセージをやり取りする構成を基本形とします。リモートホスト型エージェントをHTTP/WebSocketで接続する拡張も仕様上は用意されていますが、現時点では開発途上です。
+
+設計思想はLanguage Server Protocol（LSP）の応用です。LSPが言語サーバーとIDEを疎結合にしたのと同じ発想を、ZedはGoogleのGemini CLIチームと共同でAIエージェントとエディタの関係に持ち込みました。2025年10月にはJetBrainsもIntelliJ IDEA・PyCharm・WebStormを含む全製品でACPをネイティブサポートすると表明し、2026年時点でZed・VS Code・Neovim・Emacsなど11以上のエディタと、Claude Agent SDK・GitHub Copilot・Cursor・Gemini CLIなど40以上のエージェント実装がACPに対応しています。
+
+## ACPはMCP・A2Aと何が違うのか
+
+> MCPはツール接続、A2Aはエージェント間連携を担う標準で、ACPはエディタとエージェントを繋ぐ第三のプロトコルです。
+
+3つのプロトコルは同じ「エージェントを外部と繋ぐ」課題を、異なるレイヤーで解決しています。
+
+| プロトコル | 接続する対象 | 主導 |
+|---|---|---|
+| MCP | エージェント ⇔ ツール・データ | Anthropic |
+| A2A | エージェント ⇔ エージェント | Google |
+| ACP | エディタ（ホスト）⇔ エージェント | Zed Industries |
+
+この3層は排他的ではなく共存します。実際、Claude Agent SDKをACP対応にするアダプター（`claude-agent-acp`）は、ファイル編集のレビューフローやTODO管理、インタラクティブなターミナル実行に加えて、クライアント側が持つMCPサーバーへの接続もサポートしています。つまり「エディタとの会話はACP、ツール呼び出しはMCP」という積層構成が実装レベルで成立しています。
+
+## ACPはどう動くのか——セッションと権限モデル
+
+> ACPは応答ありのメソッドと応答なしの通知の2種類のJSON-RPCメッセージでセッションと権限確認を扱います。
+
+会話は`session/new`でセッションを開始するところから始まります。エージェントがファイル編集やコマンド実行など副作用のある操作を行う前には、`session/request_permission`でクライアント（エディタ）に許可を求め、ユーザーが承認・拒否を選ぶまで実行は止まります。セッション中の進行状況——エージェント・ユーザー・思考過程のメッセージチャンク、ツール呼び出しの状態、実行計画——は`session/update`通知としてストリーミングされ、エディタ側のUIにリアルタイム反映されます。
+
+この権限確認フローがあるため、ACP対応エージェントをサブプロセスとして起動しても、ファイル書き込みやターミナル実行の可否はエディタ側UIが最終ゲートを握ります。信頼できないサードパーティ製エージェントを迎え入れても、実行制御の主導権はホスト側に残る設計です。
+
+## 自社にACP対応は必要か
+
+> 複数のエディタやエージェントを使い分ける、または比較検討したい企業はACP対応を検討する価値があります。
+
+特定のエージェントと特定のエディタに固定して運用するなら専用連携で十分です。開発者ごとに好みのエディタが違う、あるいはエージェントベンダーを比較検討する余地を残したい場合は、ACP対応のエージェント・エディタを選ぶことでロックインを避けられます。
+
+### 規模別の留意点（SMB / エンタープライズ）
+
+SMBでは、個々の開発者がZedやJetBrains、VS Codeなど好みのエディタを使いながら、同じエージェント（例えばClaude Agent SDKベースのもの）を共有できる利点が大きく、追加インフラなしに導入できます。エンタープライズでは、複数チームが異なるエディタ・エージェントを併用する状況でツール調達を標準化しやすくなる一方、サブプロセスとして起動するサードパーティ製エージェントの権限スコープと供給元の信頼性は事前審査の対象にすべきです。大規模な調達・ガバナンス設計が必要な場合は[Kuuの高度化支援サービス（RDE）](https://kuucorp.com/services/rde/)が対応します。
+
+エージェント・エディタ統合の設計や運用ルール整備のご相談は [Kuuの運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/) からお問い合わせください。
+
+## 参考
+
+- [Agent Client Protocol - Introduction（公式ドキュメント）](https://agentclientprotocol.com/overview/introduction)
+- [Agent Client Protocol - Protocol Overview（公式ドキュメント）](https://agentclientprotocol.com/protocol/overview)
+- [Bring Your Own Agent to Zed（Zed公式ブログ）](https://zed.dev/blog/bring-your-own-agent-to-zed)
+- [ACP Brings JetBrains on Board（Zed公式ブログ）](https://zed.dev/blog/jetbrains-on-acp)
+- [claude-agent-acp（公式GitHubリポジトリ）](https://github.com/agentclientprotocol/claude-agent-acp)
+
+## まとめ
+
+ACPは「エディタとAIコーディングエージェントを疎結合する」という、MCP・A2Aのどちらも扱ってこなかった第三の接続面を標準化するプロトコルです。LSPが言語サーバーとIDEを切り離したのと同じ発想で、2025年8月の発表からわずか1年でJetBrains・40以上のエージェント実装を巻き込む標準に育っています。エージェント・ツール・エディタという3層の役割分担を理解した上で、自社の開発体制に合わせてどこまで対応させるかを判断してください。
+
+エージェントプロトコルの選定や導入設計は、[Kuuの運用管理サービス（AI Ops）](https://kuucorp.com/services/ai-ops/)にご相談ください。

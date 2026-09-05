@@ -735,6 +735,26 @@
       ],
       "status": "published",
       "note": "topic-queue queued 0件・keyword_bank消化済みのためWeb調査で新規考案。Claude Fable 5.1/Mythos 5.1（2026-08-31リリース）で初めて実装されたテキスト統計透かし機能はブログ未カバーで、既存のgovernance-tech記事ai-content-provenance-c2pa-smb-implementation（画像・動画のC2PA/SynthID、audience:smb）とはメディア種別（テキスト vs 画像・動画）・audience（enterprise vs smb）の両方で切り口が異なるため併存可能と判断"
+    },
+    {
+      "slug": "acp-agent-client-protocol-editor-integration-design",
+      "keyword": "ACP Agent Client Protocol エディタ統合 JSON-RPC",
+      "title_hint": "ACPとは何か——MCP・A2Aと役割分担するエディタ連携標準",
+      "persona": "AIコーディングエージェントをエディタ/IDEに統合したい開発者・プラットフォームエンジニア",
+      "service_link": "/services/ai-ops/",
+      "audience": "both",
+      "track": "protocols",
+      "tech_depth": "deep",
+      "target_query": "ACP（Agent Client Protocol）とは何か、MCPやA2Aとどう違うか",
+      "sources": [
+        "https://agentclientprotocol.com/overview/introduction",
+        "https://agentclientprotocol.com/protocol/overview",
+        "https://zed.dev/blog/bring-your-own-agent-to-zed",
+        "https://zed.dev/blog/jetbrains-on-acp",
+        "https://github.com/agentclientprotocol/claude-agent-acp"
+      ],
+      "status": "published",
+      "note": "topic-queue queued 0件・keyword_bankのprotocols 4語（MCPリソース/OAuth/MCPとA2A/Function calling）は全て既存記事で消化済みと確認したためWeb調査で新規考案。blog-coverage-report.mjsでprotocolsは他トラックと並び最少タイの29件。ACP（Zed Industriesが2025年8月にGoogleと共同発表、2025年10月にJetBrainsも参画、JSON-RPC 2.0でエディタとエージェントを疎結合）は既存のMCP（ツール接続）・A2A（エージェント間委譲）記事群とは異なる『エディタ⇔エージェント』という第三の接続面を扱う未カバーの切り口。validate-blog.mjsのnear_duplicate警告は本記事に対して出ていないことを確認済み"
     }
   ],
   "topics_from_keyword_bank": [
