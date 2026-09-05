@@ -716,6 +716,25 @@
       ],
       "status": "published",
       "note": "topic-queue queued 0件・keyword_bankのevaluation 4語（9軸評価/回帰テスト/オンライン評価/KPIメトリクス）は既存27記事で全て消化済みと確認したためWeb調査で新規考案。Anthropic公式ブログ『Quantifying infrastructure noise in agentic coding evals』（Terminal-Bench 2.0でリソース配分差のみでスコアが最大6pt変動する実測）は既存evaluation記事群（非決定性/再現性設計のagent-eval-flaky-nondeterminism-reproducibility-design等）が扱うモデル側の出力揺らぎとは異なる、評価インフラのリソース設定起因の測定バイアスという未カバーの切り口。近接重複チェックでinspect-ai-agent-evaluation-frameworkとtitle類似0.29が出たが内容は評価コードのフレームワーク構成 vs リソース配分起因のノイズで主題が異なるためNEAR_DUP_ALLOWLISTに登録して併存"
+    },
+    {
+      "slug": "claude-text-watermark-eu-ai-act-compliance",
+      "keyword": "Claude テキスト透かし text watermark EU AI Act 第50条",
+      "title_hint": "Claudeのテキスト透かしはAI Act対応に使えるか",
+      "persona": "自社サービスにClaude APIの出力を組み込むエンタープライズの法務・コンプライアンス担当・プラットフォームエンジニア",
+      "service_link": "/services/rde/",
+      "audience": "enterprise",
+      "track": "governance-tech",
+      "tech_depth": "intermediate",
+      "target_query": "エンタープライズはClaudeのテキスト透かし（text watermark）をEU AI Act対応にどう活用できるか",
+      "sources": [
+        "https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1",
+        "https://www.anthropic.com/news/claude-text-watermark",
+        "https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50"
+      ],
+      "status": "published",
+      "note": "topic-queue queued 0件・keyword_bank消化済みのためWeb調査で新規考案。Claude Fable 5.1/Mythos 5.1（2026-08-31リリース）で初めて実装されたテキスト統計透かし機能はブログ未カバーで、既存のgovernance-tech記事ai-content-provenance-c2pa-smb-implementation（画像・動画のC2PA/SynthID、audience:smb）とはメディア種別（テキスト vs 画像・動画）・audience（enterprise vs smb）の両方で切り口が異なるため併存可能と判断"
     }
   ],
   "topics_from_keyword_bank": [

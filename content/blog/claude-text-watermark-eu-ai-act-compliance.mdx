@@ -1,0 +1,57 @@
+---
+title: "Claudeのテキスト透かしはAI Act対応に使えるか"
+description: "Claude Fable 5.1とMythos 5.1は生成テキストに統計的透かしを埋め込むが、検出APIは現在プライベートプレビューでEU AI Act対象組織に限定される。企業が自社対応に転用できる範囲を整理する。"
+date: "2026-09-05"
+lastModified: "2026-09-05"
+tags: ["EU AI Act", "AIガバナンス", "Claude API", "コンプライアンス"]
+author: "kuu-editorial"
+audience: "enterprise"
+track: "governance-tech"
+tech_depth: "intermediate"
+target_query: "エンタープライズはClaudeのテキスト透かし（text watermark）をEU AI Act対応にどう活用できるか"
+sources:
+  - "https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1"
+  - "https://www.anthropic.com/news/claude-text-watermark"
+  - "https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content"
+  - "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50"
+pillar: "ai-governance"
+---
+
+2026年8月2日以降にリリースされたClaudeモデルには、AI生成テキストへの透かし埋め込みが実装されている。Claude Fable 5.1とMythos 5.1はAnthropicが初めてテキスト出力に統計的透かしを付与したモデルであり、EU AI Act第50条の透明性義務が背景にある。自社サービスでClaude APIの出力を扱う企業は、この仕組みが自社のAI Act対応にどこまで使えるかを技術的に見極める必要がある。
+
+[エージェントガバナンス](/glossary/agent-governance/)の一環として、透かしの仕組み・検出APIのアクセス制限・企業が実務で押さえるべき限界を整理する。
+
+## Claudeのテキスト透かしはどう動くか
+
+> トークン選択時の乱数源を鍵で決定的に置き換え、意味を変えずに検出可能な統計パターンを埋め込む方式だ。
+
+Anthropicが採用する方式はGoogle DeepMindのSynthID-Textに近い。複数の語が同程度に自然な「低リスクな語彙選択」の場面で、通常なら乱数で決める次トークンの選び方を、鍵と直前の数語から導く決定的な値に置き換える。既に妥当な候補の中から鍵に沿った1つを選ぶだけなので、読者から見た自然さは変わらない。事実関係が厳密な文や短い文章は語彙の選択肢が乏しく、透かしの手がかりが薄くなる。
+
+## なぜAnthropicは透かしを実装したのか
+
+> EU AI Act第50条は2026年8月2日から、AI生成コンテンツを機械可読な形式で識別可能にすることを提供者に義務付けている。
+
+第50条はAIシステムが生成する合成音声・画像・動画・テキストについて、機械可読な形式でAI生成であることをマークし、検出可能にすることを提供者に求める規定だ。Anthropicは同条項の施行に合わせ、EU AI生成コンテンツ透明性行動規範にも署名した。この義務は生成AIベンダー側にかかるものであり、Claude APIを組み込むだけの利用企業に直接の実装義務が生じるわけではない点は区別して理解しておきたい。
+
+## 検出APIは誰が使えるのか
+
+> 検出APIは現在プライベートプレビューで、規制当局・法執行機関・報道機関・研究者などEU法上の対象組織に限定されている。
+
+透かしの有無を判定する検出APIは、一般公開されていない。現時点でアクセスできるのは規制当局、法執行機関、報道機関、ファクトチェック団体、研究者、教育機関、市民社会団体、そしてAI Act遵守のために検証義務を負う企業に限られる。Anthropicは今後段階的にアクセス範囲を広げる方針を示しているが、自社サービスの出力にClaude生成テキストが混在しているかを社内で自由に検証できる状態にはまだない。
+
+## 企業はこの仕組みにどう向き合うべきか
+
+> 透かしは「Claudeが関与した可能性」を示すのみで、人間による全面書き換えや他モデルの併用までは判別できない。
+
+文章の一部を軽く編集した程度なら検出性は保たれるが、全文を書き直せば透かしは失われる。また透かしが示すのは「Claudeの関与があった可能性が高い」という事実だけで、人間の全面執筆の証明にも、他社AIの関与検出にもならない。ユーザーや組織を特定する情報も含まないため、自社生成物の追跡にも使えない。自社のAI Act対応を透かし機能だけに委ねず、公開時にAI生成である旨を人間にも分かる形で開示する運用を並行して整備したい。画像・動画は[C2PA Content CredentialsがFiles API経由で別途付与される](/blog/ai-content-provenance-c2pa-smb-implementation/)ため、テキストとメディアで対応手段が異なる点も設計に反映する。
+
+## 参考
+
+- [What's new in Claude Fable 5.1 – Claude Platform Docs](https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1)
+- [How Claude's text watermarking works – Anthropic](https://www.anthropic.com/news/claude-text-watermark)
+- [How Claude marks AI-generated content – Anthropic Help Center](https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content)
+- [Article 50: Transparency obligations – AI Act Service Desk](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50)
+
+## まとめ
+
+Claude Fable 5.1とMythos 5.1のテキスト透かしは、EU AI Act第50条対応としてAnthropic側が実装した機能であり、検出APIも対象組織限定のプライベートプレビューにとどまる。企業が自社のコンテンツガバナンスに転用できる範囲は現時点で限定的で、開示表示など人間向けの透明性対応は別途自前で設計する必要がある。エンタープライズ規模でのAIコンテンツガバナンス設計は、[Kuuの高度実装支援（RDE）](https://kuucorp.com/services/rde/)から相談できる。
